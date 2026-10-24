@@ -3,7 +3,7 @@
 $ErrorActionPreference = 'Stop'
 $Root = $PSScriptRoot
 if (-not (Get-Command py -ErrorAction SilentlyContinue)) { throw 'Install Windows x64 Python 3.12 with its Python launcher first.' }
-& py -3.12 -c 'import sys,platform; assert sys.platform == "win32" and sys.version_info[:2] == (3,12) and platform.machine().upper() in ("AMD64","X86_64"), "Windows x64 Python 3.12 is required"'
+& py -3.12 (Join-Path $Root 'check-windows.py')
 if ($LASTEXITCODE -ne 0) { throw 'Windows x64 Python 3.12 is required.' }
 & py -3.12 (Join-Path $Root 'verify.py')
 if ($LASTEXITCODE -ne 0) { throw 'Portable source integrity check failed.' }

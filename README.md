@@ -1,18 +1,22 @@
+> **Windows startup correction: 0.8.4-clogcp.2.** This package fixes the
+> `NameError: name 'win32' is not defined` setup failure by invoking the Python
+> preflight as a file. See [Windows startup fix](docs/clogcp/WINDOWS_STARTUP_FIX.md).
+
 # CloGCP
 
-CloGCP **0.8.4-clogcp.1** is an independent, offline GCP assessment **release candidate**
+CloGCP **0.8.4-clogcp.2** is an independent, offline GCP assessment **release candidate**
 based on the validated CloSec application. It reuses the working import, investigation,
 review and reporting interface, with corrected GCP evaluation, additional criteria,
 coverage reporting and read-only historical comparison. The reused GUI retains CloSec branding.
 
 ## Download the application
 
-This repository is public. Open the
-[release candidate](https://github.com/C-enth/CloGCP/releases/tag/v0.8.4-clogcp.1), and download
+This repository is private; sign in with an account granted access. Open the
+[release candidate](https://github.com/C-enth/CloGCP/releases/tag/v0.8.4-clogcp.2), and download
 **CloGCP.zip** and **CloGCP.zip.sha256** from its assets. GitHub's green
 **Code → Download ZIP** button downloads development source, not the complete offline application.
 
-[Download CloGCP.zip](https://github.com/C-enth/CloGCP/releases/download/v0.8.4-clogcp.1/CloGCP.zip)
+[Download CloGCP.zip](https://github.com/C-enth/CloGCP/releases/download/v0.8.4-clogcp.2/CloGCP.zip)
 
 This build is a prerelease. A `releases/latest` stable-release link is intentionally not used.
 Native Windows execution and Microsoft Excel desktop acceptance remain pending.
@@ -29,11 +33,30 @@ shasum -a 256 CloGCP.zip
 Get-FileHash .\CloGCP.zip -Algorithm SHA256
 ```
 
-Expected SHA-256:
+Package SHA-256 (also recorded in `CloGCP.zip.sha256`):
 
 ```text
-abb87926e119dad60d533d3d8f52aaf9e5a404d709f1acea9d14e261719b22ed
+e7e0be798760c50a2285de8c6634c64dd92c9a72c4ee87cd261dc6cdcaf50621
 ```
+
+## Get the application with git clone (Windows)
+
+The repository includes the same verified **CloGCP.zip** and checksum as the release.
+Clone or pull the repository, then extract this ZIP; run the extracted application.
+The source files at the repository root are for development.
+
+```powershell
+git clone https://github.com/C-enth/CloGCP.git
+cd CloGCP
+Get-FileHash .\CloGCP.zip -Algorithm SHA256
+Expand-Archive -LiteralPath .\CloGCP.zip -DestinationPath ..\CloGCP-app-0.8.4-clogcp.2
+..\CloGCP-app-0.8.4-clogcp.2\CloGCP\CloGCP.cmd
+```
+
+If already cloned, run `git pull --ff-only` in the repository instead of cloning again.
+Use a fresh extraction folder for every update. Compare the printed SHA-256 with the
+value above before extraction. Windows x64 Python 3.12 must be installed.
+Native Windows execution remains pending; report any remaining startup error.
 
 ## Start and update safely
 

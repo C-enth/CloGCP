@@ -27,7 +27,7 @@ EXCLUDED_PARTS = {
     "data",
     ".pytest_cache",
 }
-VERSION = "0.8.4-clogcp.1"
+VERSION = "0.8.4-clogcp.2"
 
 
 def digest(data: bytes) -> str:
@@ -81,17 +81,14 @@ def main() -> None:
                     b"CloGCP setup complete. Run: sh CloGCP.command",
                 )
             elif name == "setup-windows.ps1":
-                runtime[name] = old.replace(
-                    b"CloSec setup complete. Run: .\\start-windows.ps1",
-                    b"CloGCP setup complete. Run: .\\CloGCP.cmd",
-                )
+                runtime[name] = current.read_bytes()
             if runtime[name] != old:
                 changed.append(name)
     for name in NEW_RUNTIME:
         relative = "src/offline_analyzer/" + name
         runtime[relative] = (root / relative).read_bytes()
         changed.append(relative)
-    for name in ("CloGCP.command", "CloGCP.cmd", "README.md"):
+    for name in ("CloGCP.command", "CloGCP.cmd", "README.md", "check-windows.py"):
         runtime[name] = (root / name).read_bytes()
         changed.append(name)
     for name in (
@@ -124,7 +121,7 @@ def main() -> None:
         "base_source_revision": base["git_revision"],
         "source_kind": "WORKING_TREE_SNAPSHOT",
         "source_snapshot": snapshot,
-        "source_branch": "clogcp/correction-0.8.4",
+        "source_branch": "main",
         "base_zip_sha256": "9050e2f34d861065c58c8d96709b4adc4d4cc20047f1b12026a5db8acae59dd8",
         "customer_data_included": False,
         "production_assessment_validated": False,

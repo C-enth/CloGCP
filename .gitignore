@@ -18,6 +18,8 @@ reports/
 *.wal
 *.log
 *.zip
+# Explicitly distributed, verified application package (no other archives).
+!/CloGCP.zip
 .env
 .env.*
 *.pem
