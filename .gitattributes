@@ -1,2 +1,4 @@
 # Preserve validated source bytes across platforms.
 * -text
+# Batch launchers retain CRLF bytes for cmd.exe.
+*.cmd -text whitespace=cr-at-eol

@@ -42,3 +42,31 @@ The original `.1` release is retained.
 
 Primary reference:
 https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_parsing?view=powershell-5.1
+
+
+## Git clone integrity error — 2026-10-24
+
+The reported second startup failure was reproduced directly in the Git clone.
+The source checkout does not contain `portable-manifest.json` or the offline wheels.
+Its launcher incorrectly tried to validate the source checkout as a portable package,
+producing the misleading instruction to re-extract the distribution.
+
+The checkout's `CloGCP.cmd` now invokes `run-portable.py` before source verification
+when no portable manifest is present. This standard-library helper pins the exact
+SHA-256 of the existing `.2` ZIP, validates bounded archive paths, extracts to a fresh
+ignored `.portable/` application folder, verifies all packaged manifest entries and
+launches the extracted `CloGCP.cmd`. It verifies cached application files before reuse
+and refuses changed files. It does not bypass integrity, overwrite existing installs,
+open a workspace during preparation, reset configuration or change the release ZIP.
+Running `setup-windows.ps1` in the source root now gives the correct launcher instruction.
+
+Recovery from the clone folder: `git pull --ff-only`, then `.\CloGCP.cmd`.
+An already running assessment does not need to be stopped to update Git; start the
+updated launcher after closing the old application normally to release its workspace lock.
+
+Synthetic launcher/isolation regressions: **22 passed, 2 skipped**. Skips require native
+Windows PowerShell/cmd.exe. The actual 310-file ZIP manifest and extracted verifier pass,
+including cache reuse. Ruff and source hash checks pass. Native Windows launch remains
+pending; the development host is macOS. The first local preparation probe used the
+host's Python 3.9 and failed; rerunning with the required Python 3.12 passed. The helper
+now reports an explicit Python-version error rather than a traceback for that case.

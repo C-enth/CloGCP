@@ -1,6 +1,11 @@
 @echo off
 setlocal
 cd /d "%~dp0"
+if not exist "%~dp0portable-manifest.json" (
+    py -3.12 "%~dp0run-portable.py" %*
+    if errorlevel 1 exit /b 1
+    exit /b 0
+)
 if not exist ".venv\Scripts\python.exe" (
     powershell -NoProfile -File "%~dp0setup-windows.ps1"
     if errorlevel 1 exit /b 1

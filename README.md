@@ -42,20 +42,21 @@ e7e0be798760c50a2285de8c6634c64dd92c9a72c4ee87cd261dc6cdcaf50621
 ## Get the application with git clone (Windows)
 
 The repository includes the same verified **CloGCP.zip** and checksum as the release.
-Clone or pull the repository, then extract this ZIP; run the extracted application.
-The source files at the repository root are for development.
+Clone or pull the repository, then run **CloGCP.cmd** directly. The clone launcher
+checks the pinned ZIP checksum, extracts a verified copy under ignored `.portable/`,
+and starts the packaged application. It never launches the incomplete source checkout.
+Existing CloGCP workspace settings are reused by the packaged application.
 
 ```powershell
 git clone https://github.com/C-enth/CloGCP.git
 cd CloGCP
 Get-FileHash .\CloGCP.zip -Algorithm SHA256
-Expand-Archive -LiteralPath .\CloGCP.zip -DestinationPath ..\CloGCP-app-0.8.4-clogcp.2
-..\CloGCP-app-0.8.4-clogcp.2\CloGCP\CloGCP.cmd
+.\CloGCP.cmd
 ```
 
-If already cloned, run `git pull --ff-only` in the repository instead of cloning again.
-Use a fresh extraction folder for every update. Compare the printed SHA-256 with the
-value above before extraction. Windows x64 Python 3.12 must be installed.
+For an existing clone, run `git pull --ff-only` followed by `.\CloGCP.cmd`.
+The checksum-specific application folder keeps versions separate. The original ZIP
+and your assessment data are unchanged. Windows x64 Python 3.12 must be installed.
 Native Windows execution remains pending; report any remaining startup error.
 
 ## Start and update safely

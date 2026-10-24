@@ -5,6 +5,9 @@ $Root = $PSScriptRoot
 if (-not (Get-Command py -ErrorAction SilentlyContinue)) { throw 'Install Windows x64 Python 3.12 with its Python launcher first.' }
 & py -3.12 (Join-Path $Root 'check-windows.py')
 if ($LASTEXITCODE -ne 0) { throw 'Windows x64 Python 3.12 is required.' }
+if (-not (Test-Path -LiteralPath (Join-Path $Root 'portable-manifest.json'))) {
+    throw 'This is a source checkout. Run .\CloGCP.cmd to prepare and launch the bundled application ZIP.'
+}
 & py -3.12 (Join-Path $Root 'verify.py')
 if ($LASTEXITCODE -ne 0) { throw 'Portable source integrity check failed.' }
 $Wheels = Join-Path $Root 'wheelhouse\windows-x64'

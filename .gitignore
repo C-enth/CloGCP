@@ -1,5 +1,6 @@
 # Client evidence, workspaces, generated reports and local environments
 .venv/
+.portable/
 venv/
 __pycache__/
 *.py[cod]
