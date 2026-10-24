@@ -1,0 +1,39 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "expected_revision": {
+      "minimum": 1,
+      "title": "Expected Revision",
+      "type": "integer"
+    },
+    "analyst": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Analyst",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "RECOMMENDATION",
+        "NARRATIVE",
+        "CONSOLIDATION",
+        "RISK_ACCEPTANCE"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "rationale": {
+      "default": "",
+      "maxLength": 16000,
+      "title": "Rationale",
+      "type": "string"
+    }
+  },
+  "required": [
+    "expected_revision",
+    "analyst",
+    "kind"
+  ],
+  "title": "ReportApproval",
+  "type": "object"
+}

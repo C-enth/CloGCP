@@ -1,0 +1,160 @@
+{
+  "product": "CloGCP",
+  "version": "0.8.4-clogcp.1",
+  "status": "RELEASE_CANDIDATE",
+  "archives": {
+    "CloGCP.zip": {
+      "sha256": "abb87926e119dad60d533d3d8f52aaf9e5a404d709f1acea9d14e261719b22ed",
+      "crc": "PASS",
+      "entries": 306,
+      "path_and_sensitive_artifact_scan": "PASS"
+    },
+    "CloGCP-source.zip": {
+      "sha256": "94b0bb17ae22c1ca457b66d90f57a5843cb17bf160ec4f760f6de3faa3ae7c41",
+      "crc": "PASS",
+      "entries": 392,
+      "path_and_sensitive_artifact_scan": "PASS"
+    }
+  },
+  "source_file_manifest": "PASS",
+  "offline_install_macos_python_312": "PASS",
+  "gcp_full_regression": {
+    "passed": 705,
+    "skipped": 4,
+    "seconds": 277.87
+  },
+  "final_history_and_end_to_end": {
+    "passed": 12,
+    "seconds": 14.8
+  },
+  "final_packaged_regression": {
+    "passed": 287,
+    "seconds": 37.3
+  },
+  "final_packaged_chromium_workflow": {
+    "passed": 1,
+    "seconds": 35.17
+  },
+  "shipped_macos_launcher": "PASS",
+  "lint": "PASS",
+  "aws_application_regression": {
+    "passed": 325,
+    "failed": 5,
+    "skipped": 1,
+    "all_five_failures_reproduced_on_validated_baseline": true
+  },
+  "aws_excel_comparison": {
+    "AWS_equal": true,
+    "evaluations": 97,
+    "findings": 8,
+    "decisions": 1,
+    "excel_members": 36,
+    "timestamp_only_differences": [
+      "docProps/core.xml"
+    ]
+  },
+  "synthetic_benchmark": {
+    "synthetic_projects": 10,
+    "import_seconds": 10.604667530002189,
+    "analysis_seconds": 6.778024500999891,
+    "export_seconds": 43.602368410000054,
+    "total_seconds": 60.985061043000314,
+    "run": "run-5916010e2139222f8d66bc0beadb4b3296b0c1634702bdabfc4fed0934d75a35",
+    "observations": 890,
+    "rule_executions": 3594,
+    "resource_evaluations": 3546,
+    "resources_evaluated": 718,
+    "findings": 1614,
+    "findings_by_rule": {
+      "GCP-VM-FULL-API-SCOPE": 192,
+      "GCP-VM-EXTERNAL-IP": 192,
+      "GCP-VM-SHIELDED": 192,
+      "GCP-VM-OSLOGIN": 192,
+      "GCP-VM-SERIAL-PORT": 192,
+      "GCP-VM-DEFAULT-SA": 192,
+      "GCP-KEY-PERSISTENT": 6,
+      "GCP-STORAGE-PAP": 6,
+      "GCP-VM-PROJECT-SSH-KEYS": 192,
+      "GCP-LB-LOGGING": 6,
+      "GCP-NET-FIREWALL-POLICY": 6,
+      "GCP-GKE-WORKLOAD-IDENTITY": 6,
+      "GCP-STORAGE-PUBLIC": 6,
+      "GCP-FUNCTION-RUNTIME-PRIVILEGE": 6,
+      "GCP-GOV-KEYS": 12,
+      "GCP-KEY-PRIVILEGED": 6,
+      "GCP-GOV-GUARDRAIL": 18,
+      "GCP-NET-PRIVATE-GOOGLE-ACCESS": 6,
+      "GCP-RUN-RUNTIME-PRIVILEGE": 6,
+      "GCP-GKE-PRIVATE-NODES": 6,
+      "GCP-NET-DEFAULT-NETWORK": 6,
+      "GCP-SQL-PUBLIC-IP": 6,
+      "GCP-RUN-PUBLIC": 6,
+      "GCP-SQL-BACKUP": 6,
+      "GCP-SQL-OPEN-NETWORK": 6,
+      "GCP-STORAGE-UBLA": 6,
+      "GCP-KEY-AGE": 6,
+      "GCP-API-BOTH": 6,
+      "GCP-NET-FW-ADMIN-INTERNET": 6,
+      "GCP-IAM-BASIC": 12,
+      "GCP-DNS-DNSSEC": 6,
+      "GCP-SQL-TLS": 6,
+      "GCP-GKE-ENDPOINT": 6,
+      "GCP-FUNCTION-PUBLIC": 6,
+      "GCP-SQL-EXPLICIT-FLAGS": 6,
+      "GCP-MONITOR-ALERT-DISABLED": 6,
+      "GCP-LB-TLS": 6,
+      "GCP-GKE-CLIENT-CERT": 6,
+      "GCP-NET-FLOW-LOGS": 6,
+      "GCP-GKE-SHIELDED-NODES": 6,
+      "GCP-WIF-SHARED-ISSUER": 6,
+      "GCP-IAM-CUSTOM-PUBLIC": 6,
+      "GCP-GKE-NODE-PRIVILEGE": 6,
+      "GCP-BQ-PUBLIC-DATA": 6,
+      "GCP-STORAGE-VERSIONING": 6,
+      "GCP-KMS-ROTATION": 6,
+      "GCP-GKE-LEGACY-ABAC": 6,
+      "GCP-GKE-NETWORK-POLICY": 6
+    },
+    "findings_by_domain": {
+      "Workload Security": 1344,
+      "Credentials and API Security": 18,
+      "Data Protection": 42,
+      "Edge Security": 12,
+      "Network and Exposure": 42,
+      "Kubernetes": 48,
+      "Serverless": 24,
+      "Governance": 30,
+      "Identity and Access": 30,
+      "Database Security": 6,
+      "Monitoring and Detection": 12,
+      "Data Security": 6
+    },
+    "findings_by_severity": {
+      "HIGH": 468,
+      "MEDIUM": 918,
+      "LOW": 228
+    },
+    "outcomes": {
+      "PASS": 1482,
+      "NOT_APPLICABLE": 406,
+      "FAIL": 1614,
+      "MANUAL_VALIDATION_REQUIRED": 62,
+      "UNKNOWN": 30
+    }
+  },
+  "original_preservation": {
+    "branch": "feature/offline-security-analyzer",
+    "head": "d232bb5e18ec93413e1dda3a22aabb82c41ae786",
+    "tracked_and_untracked_status_clean": true,
+    "release_zip_sha256": "9050e2f34d861065c58c8d96709b4adc4d4cc20047f1b12026a5db8acae59dd8",
+    "original_application_or_customer_workspaces_modified": false
+  },
+  "new_source_branch": "clogcp/correction-0.8.4",
+  "source_committed": false,
+  "customer_assessments_validated": 0,
+  "customer_findings_reconciled": 0,
+  "native_windows_acceptance": "PENDING",
+  "desktop_excel_acceptance": "PENDING",
+  "remaining_unsupported_automated_family_entries": 52,
+  "commits_pushes_or_release_publications": 0
+}

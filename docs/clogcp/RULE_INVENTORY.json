@@ -1,0 +1,772 @@
+[
+  {
+    "rule_id": "GCP-STORAGE-PUBLIC",
+    "version": "clogcp-1.0.0",
+    "domain": "Data Protection",
+    "title": "Potential public Cloud Storage object access",
+    "resource_type": "GCP::IAMBinding",
+    "operation": "gcp:storage.buckets.getIamPolicy",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-API-APP",
+    "version": "1.3.0",
+    "domain": "Credentials and API Security",
+    "title": "API key lacks application restrictions",
+    "resource_type": "GCP::APIKey",
+    "operation": "gcp:apikeys.keys.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-API-API",
+    "version": "1.3.0",
+    "domain": "Credentials and API Security",
+    "title": "API key lacks API restrictions",
+    "resource_type": "GCP::APIKey",
+    "operation": "gcp:apikeys.keys.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-API-BOTH",
+    "version": "1.3.0",
+    "domain": "Credentials and API Security",
+    "title": "API key lacks application and API restrictions",
+    "resource_type": "GCP::APIKey",
+    "operation": "gcp:apikeys.keys.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-KEY-PERSISTENT",
+    "version": "1.2.0",
+    "domain": "Credentials and API Security",
+    "title": "User-managed service-account key present",
+    "resource_type": "GCP::ServiceAccountKey",
+    "operation": "gcp:iam.serviceAccountKeys.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-KEY-AGE",
+    "version": "1.2.0",
+    "domain": "Credentials and API Security",
+    "title": "Service-account key exceeds age policy",
+    "resource_type": "GCP::ServiceAccountKey",
+    "operation": "gcp:iam.serviceAccountKeys.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-KEY-PRIVILEGED",
+    "version": "1.3.0",
+    "domain": "Identity and Access",
+    "title": "Persistent key on an observed privileged service account",
+    "resource_type": "GCP::ServiceAccountKey",
+    "operation": "gcp:iam.serviceAccountKeys.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-IAM-BASIC",
+    "version": "clogcp-1.0.0",
+    "domain": "Identity and Access",
+    "title": "Broad Owner or Editor binding",
+    "resource_type": "GCP::IAMBinding",
+    "operation": "gcp:projects.getIamPolicy",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-IAM-PUBLIC",
+    "version": "1.2.0",
+    "domain": "Network and Exposure",
+    "title": "Public principal has a sensitive role binding",
+    "resource_type": "GCP::IAMBinding",
+    "operation": "gcp:projects.getIamPolicy",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-IAM-IMPERSONATION",
+    "version": "clogcp-1.0.0",
+    "domain": "Identity and Access",
+    "title": "Broad service-account impersonation binding",
+    "resource_type": "GCP::IAMBinding",
+    "operation": "gcp:projects.getIamPolicy",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-IAM-CROSSPROJECT",
+    "version": "clogcp-1.0.0",
+    "domain": "Identity and Access",
+    "title": "Cross-project service account has an Owner or Editor binding",
+    "resource_type": "GCP::IAMBinding",
+    "operation": "gcp:projects.getIamPolicy",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-GOV-KEYS",
+    "version": "1.4.0",
+    "domain": "Governance",
+    "title": "Service-account key governance is unenforced",
+    "resource_type": "GCP::OrgPolicy",
+    "operation": "gcp:orgpolicy.getEffectivePolicy",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-LOG-AUDIT",
+    "version": "1.3.0",
+    "domain": "Monitoring and Detection",
+    "title": "Data Access audit-log exemption configured",
+    "resource_type": "GCP::IAMPolicy",
+    "operation": "gcp:projects.getIamPolicy",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-LOG-EXCLUSION",
+    "version": "1.3.0",
+    "domain": "Monitoring and Detection",
+    "title": "Logging exclusion requires security-event review",
+    "resource_type": "GCP::LoggingExclusion",
+    "operation": "gcp:logging.sinks.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-SCC-OBSERVATION",
+    "version": "1.2.0",
+    "domain": "Vulnerability and Risk",
+    "title": "Active Security Command Center observation",
+    "resource_type": "GCP::SCCFinding",
+    "operation": "gcp:securitycenter.findings.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-NET-FW-ADMIN-INTERNET",
+    "version": "clogcp-1.0.0",
+    "domain": "Network and Exposure",
+    "title": "Firewall rule allows SSH/RDP or other administrative ports from the internet",
+    "resource_type": "GCP::Firewall",
+    "operation": "gcp:compute.firewalls.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-NET-FW-DB-INTERNET",
+    "version": "clogcp-1.0.0",
+    "domain": "Network and Exposure",
+    "title": "Firewall rule allows database ports from the internet",
+    "resource_type": "GCP::Firewall",
+    "operation": "gcp:compute.firewalls.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-NET-FW-ANY-INTERNET",
+    "version": "clogcp-1.0.0",
+    "domain": "Network and Exposure",
+    "title": "Firewall rule allows all ports from the internet",
+    "resource_type": "GCP::Firewall",
+    "operation": "gcp:compute.firewalls.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-NET-DEFAULT-NETWORK",
+    "version": "1.1.0",
+    "domain": "Network and Exposure",
+    "title": "Default VPC network exists",
+    "resource_type": "GCP::Network",
+    "operation": "gcp:compute.networks.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-NET-FLOW-LOGS",
+    "version": "1.1.0",
+    "domain": "Monitoring and Detection",
+    "title": "VPC Flow Logs disabled on subnet",
+    "resource_type": "GCP::Subnet",
+    "operation": "gcp:expanded.subnets",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-NET-PRIVATE-GOOGLE-ACCESS",
+    "version": "1.1.0",
+    "domain": "Network and Exposure",
+    "title": "Private Google Access disabled on subnet",
+    "resource_type": "GCP::Subnet",
+    "operation": "gcp:expanded.subnets",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-VM-EXTERNAL-IP",
+    "version": "1.1.0",
+    "domain": "Workload Security",
+    "title": "VM instance has an external IP address",
+    "resource_type": "GCP::ComputeInstance",
+    "operation": "gcp:compute.instances.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-VM-DEFAULT-SA",
+    "version": "1.2.0",
+    "domain": "Workload Security",
+    "title": "VM instance uses the default compute service account",
+    "resource_type": "GCP::ComputeInstance",
+    "operation": "gcp:compute.instances.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-VM-FULL-API-SCOPE",
+    "version": "1.2.0",
+    "domain": "Workload Security",
+    "title": "VM instance uses the default service account with full API access",
+    "resource_type": "GCP::ComputeInstance",
+    "operation": "gcp:compute.instances.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-VM-SERIAL-PORT",
+    "version": "clogcp-1.0.0",
+    "domain": "Workload Security",
+    "title": "Interactive serial console enabled on VM instance",
+    "resource_type": "GCP::ComputeInstance",
+    "operation": "gcp:compute.instances.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-VM-OSLOGIN",
+    "version": "clogcp-1.0.0",
+    "domain": "Workload Security",
+    "title": "OS Login disabled on VM instance",
+    "resource_type": "GCP::ComputeInstance",
+    "operation": "gcp:compute.instances.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-VM-PROJECT-SSH-KEYS",
+    "version": "clogcp-1.0.0",
+    "domain": "Workload Security",
+    "title": "Project-wide SSH keys allowed on VM instance",
+    "resource_type": "GCP::ComputeInstance",
+    "operation": "gcp:compute.instances.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-VM-SHIELDED",
+    "version": "1.1.0",
+    "domain": "Workload Security",
+    "title": "Shielded VM protections disabled",
+    "resource_type": "GCP::ComputeInstance",
+    "operation": "gcp:compute.instances.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-VM-IP-FORWARD",
+    "version": "1.1.0",
+    "domain": "Workload Security",
+    "title": "IP forwarding enabled on VM instance",
+    "resource_type": "GCP::ComputeInstance",
+    "operation": "gcp:compute.instances.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-STORAGE-UBLA",
+    "version": "1.1.0",
+    "domain": "Data Protection",
+    "title": "Uniform bucket-level access disabled",
+    "resource_type": "GCP::Bucket",
+    "operation": "gcp:storage.buckets.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-STORAGE-PAP",
+    "version": "clogcp-1.0.0",
+    "domain": "Data Protection",
+    "title": "Public access prevention not enforced on bucket",
+    "resource_type": "GCP::Bucket",
+    "operation": "gcp:storage.buckets.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-STORAGE-VERSIONING",
+    "version": "clogcp-1.0.0",
+    "domain": "Data Protection",
+    "title": "Object versioning disabled on bucket",
+    "resource_type": "GCP::Bucket",
+    "operation": "gcp:storage.buckets.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-SQL-OPEN-NETWORK",
+    "version": "1.1.0",
+    "domain": "Network and Exposure",
+    "title": "Cloud SQL instance authorizes all internet addresses",
+    "resource_type": "GCP::SQLInstance",
+    "operation": "gcp:expanded.cloud_sql",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-SQL-PUBLIC-IP",
+    "version": "1.1.0",
+    "domain": "Network and Exposure",
+    "title": "Cloud SQL instance has a public IP address",
+    "resource_type": "GCP::SQLInstance",
+    "operation": "gcp:expanded.cloud_sql",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-SQL-TLS",
+    "version": "1.1.0",
+    "domain": "Data Protection",
+    "title": "Cloud SQL instance allows unencrypted connections",
+    "resource_type": "GCP::SQLInstance",
+    "operation": "gcp:expanded.cloud_sql",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-SQL-BACKUP",
+    "version": "1.1.0",
+    "domain": "Data Protection",
+    "title": "Cloud SQL automated backups disabled",
+    "resource_type": "GCP::SQLInstance",
+    "operation": "gcp:expanded.cloud_sql",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-KMS-ROTATION",
+    "version": "1.2.0",
+    "domain": "Data Protection",
+    "title": "KMS rotation period exceeds the 90-day engineering baseline",
+    "resource_type": "GCP::KMSKey",
+    "operation": "gcp:cloudkms.cryptoKeys.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-LOG-RETENTION",
+    "version": "1.1.0",
+    "domain": "Monitoring and Detection",
+    "title": "Log bucket retention requires validation",
+    "resource_type": "GCP::LogBucket",
+    "operation": "gcp:logging.buckets.list",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-GKE-LEGACY-ABAC",
+    "version": "clogcp-1.0.0",
+    "domain": "Kubernetes",
+    "title": "Legacy ABAC enabled",
+    "resource_type": "GCP::GKECluster",
+    "operation": "gcp:expanded.gke_clusters_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-GKE-PRIVATE-NODES",
+    "version": "clogcp-1.0.0",
+    "domain": "Kubernetes",
+    "title": "Cluster defaults allow public nodes",
+    "resource_type": "GCP::GKECluster",
+    "operation": "gcp:expanded.gke_clusters_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-GKE-SHIELDED-NODES",
+    "version": "clogcp-1.0.0",
+    "domain": "Kubernetes",
+    "title": "Shielded GKE Nodes disabled",
+    "resource_type": "GCP::GKECluster",
+    "operation": "gcp:expanded.gke_clusters_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-GKE-CLIENT-CERT",
+    "version": "clogcp-1.0.0",
+    "domain": "Kubernetes",
+    "title": "Legacy client certificate issuance enabled",
+    "resource_type": "GCP::GKECluster",
+    "operation": "gcp:expanded.gke_clusters_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-GKE-ENDPOINT",
+    "version": "clogcp-1.0.0",
+    "domain": "Kubernetes",
+    "title": "Public control-plane IP endpoint lacks source restrictions",
+    "resource_type": "GCP::GKECluster",
+    "operation": "gcp:expanded.gke_clusters_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-GKE-WORKLOAD-IDENTITY",
+    "version": "clogcp-1.0.0",
+    "domain": "Kubernetes",
+    "title": "Standard cluster has no workload identity pool",
+    "resource_type": "GCP::GKECluster",
+    "operation": "gcp:expanded.gke_clusters_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-GKE-NETWORK-POLICY",
+    "version": "clogcp-1.0.0",
+    "domain": "Kubernetes",
+    "title": "Cluster network-policy enforcement disabled",
+    "resource_type": "GCP::GKECluster",
+    "operation": "gcp:expanded.gke_clusters_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-GKE-SECRETS-ENCRYPTION",
+    "version": "clogcp-1.0.0",
+    "domain": "Kubernetes",
+    "title": "Review application-layer secrets encryption",
+    "resource_type": "GCP::GKECluster",
+    "operation": "gcp:expanded.gke_clusters_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-RUN-PUBLIC",
+    "version": "clogcp-1.0.0",
+    "domain": "Serverless",
+    "title": "RUN public invocation configuration",
+    "resource_type": "GCP::RunService",
+    "operation": "gcp:run.services.list",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-RUN-RUNTIME-PRIVILEGE",
+    "version": "clogcp-1.0.0",
+    "domain": "Serverless",
+    "title": "Runtime identity has a broad basic-role binding",
+    "resource_type": "GCP::RunService",
+    "operation": "gcp:run.services.list",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-FUNCTION-PUBLIC",
+    "version": "clogcp-1.0.0",
+    "domain": "Serverless",
+    "title": "FUNCTION public invocation configuration",
+    "resource_type": "GCP::Function",
+    "operation": "gcp:expanded.functions_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-FUNCTION-RUNTIME-PRIVILEGE",
+    "version": "clogcp-1.0.0",
+    "domain": "Serverless",
+    "title": "Runtime identity has a broad basic-role binding",
+    "resource_type": "GCP::Function",
+    "operation": "gcp:expanded.functions_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-GKE-NODE-PRIVILEGE",
+    "version": "clogcp-1.0.0",
+    "domain": "Kubernetes",
+    "title": "GKE node identity has a broad basic-role binding",
+    "resource_type": "GCP::GKENodePool",
+    "operation": "gcp:container.nodePools.list",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-BQ-PUBLIC-DATA",
+    "version": "clogcp-1.0.0",
+    "domain": "Data Security",
+    "title": "Public BigQuery dataset data-read grant",
+    "resource_type": "GCP::BigQueryDataset",
+    "operation": "gcp:bigquery.datasets.get",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-SQL-EXPLICIT-FLAGS",
+    "version": "clogcp-1.0.0",
+    "domain": "Database Security",
+    "title": "Explicit database security-relevant flag values",
+    "resource_type": "GCP::SQLInstance",
+    "operation": "gcp:expanded.sql_instances_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-DNS-DNSSEC",
+    "version": "clogcp-1.0.0",
+    "domain": "Network and Exposure",
+    "title": "DNSSEC disabled on a public DNS zone",
+    "resource_type": "GCP::DNSZone",
+    "operation": "gcp:expanded.dns_managed_zones",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-LB-TLS",
+    "version": "clogcp-1.0.0",
+    "domain": "Edge Security",
+    "title": "Attached external proxy policy allows legacy TLS",
+    "resource_type": "GCP::SSLPolicy",
+    "operation": "gcp:expanded.ssl_policies",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-LB-ARMOR",
+    "version": "clogcp-1.0.0",
+    "domain": "Edge Security",
+    "title": "External HTTP backend armor configuration",
+    "resource_type": "GCP::BackendService",
+    "operation": "gcp:expanded.backend_services",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-LB-LOGGING",
+    "version": "clogcp-1.0.0",
+    "domain": "Edge Security",
+    "title": "External HTTP backend logging configuration",
+    "resource_type": "GCP::BackendService",
+    "operation": "gcp:expanded.backend_services",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-NET-FIREWALL-POLICY",
+    "version": "clogcp-1.0.0",
+    "domain": "Network and Exposure",
+    "title": "Firewall policy has broad sensitive-port ingress allow",
+    "resource_type": "GCP::FirewallPolicy",
+    "operation": "gcp:expanded.firewall_policies",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-GOV-GUARDRAIL",
+    "version": "clogcp-1.0.0",
+    "domain": "Governance",
+    "title": "Effective boolean security guardrail unenforced",
+    "resource_type": "GCP::OrgPolicy",
+    "operation": "gcp:orgpolicy.getEffectivePolicy",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-LOG-AUDIT-COVERAGE",
+    "version": "clogcp-1.0.0",
+    "domain": "Monitoring and Detection",
+    "title": "Review effective Data Access audit configuration",
+    "resource_type": "GCP::IAMPolicy",
+    "operation": "gcp:projects.getIamPolicy",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-MONITOR-ALERT-DISABLED",
+    "version": "clogcp-1.0.0",
+    "domain": "Monitoring and Detection",
+    "title": "Monitoring alert policy explicitly disabled",
+    "resource_type": "GCP::AlertPolicy",
+    "operation": "gcp:monitoring.alertPolicies.list",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-SECRET-LIFECYCLE",
+    "version": "clogcp-1.0.0",
+    "domain": "Cryptography and Secrets",
+    "title": "Review secret lifecycle and rotation applicability",
+    "resource_type": "GCP::Secret",
+    "operation": "gcp:expanded.secrets_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-ARTIFACT-TAGS",
+    "version": "clogcp-1.0.0",
+    "domain": "Supply Chain",
+    "title": "Review Docker artifact tag immutability",
+    "resource_type": "GCP::ArtifactRepository",
+    "operation": "gcp:expanded.artifact_repositories_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-BUILD-APPROVAL",
+    "version": "clogcp-1.0.0",
+    "domain": "Supply Chain",
+    "title": "Review build trigger approval context",
+    "resource_type": "GCP::BuildTrigger",
+    "operation": "gcp:expanded.cloudbuild_triggers_rest",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-PUBSUB-PUSH-AUTH",
+    "version": "clogcp-1.0.0",
+    "domain": "Messaging",
+    "title": "Review push-subscription authentication",
+    "resource_type": "GCP::PubSubSubscription",
+    "operation": "gcp:expanded.pubsub_subscriptions",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-IAM-CUSTOM-PUBLIC",
+    "version": "clogcp-1.0.0",
+    "domain": "Identity and Access",
+    "title": "Public custom role contains sensitive permissions",
+    "resource_type": "GCP::IAMBinding",
+    "operation": "gcp:projects.getIamPolicy",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-WIF-SHARED-ISSUER",
+    "version": "clogcp-1.0.0",
+    "domain": "Identity and Access",
+    "title": "Shared CI identity issuer lacks attribute restriction",
+    "resource_type": "GCP::WorkloadIdentityProvider",
+    "operation": "gcp:iam.workloadIdentityPoolProviders.list",
+    "new_in_clogcp": true,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-ORG-PUBLIC-SERVERLESS",
+    "version": "clogcp-1.0.0",
+    "domain": "Network and Exposure",
+    "title": "Serverless service allows unauthenticated invocation",
+    "resource_type": "GCP::AssetIAMSearchResult",
+    "operation": "gcp:cloudasset.organizationIamSearch",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-ORG-PUBLIC-DATA",
+    "version": "clogcp-1.0.0",
+    "domain": "Data Protection",
+    "title": "Data resource grants access to public principals",
+    "resource_type": "GCP::AssetIAMSearchResult",
+    "operation": "gcp:cloudasset.organizationIamSearch",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-ORG-PUBLIC-OTHER",
+    "version": "clogcp-1.0.0",
+    "domain": "Identity and Access",
+    "title": "Resource policy grants a role to public principals",
+    "resource_type": "GCP::AssetIAMSearchResult",
+    "operation": "gcp:cloudasset.organizationIamSearch",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-ORG-BASIC-ROLE",
+    "version": "clogcp-1.0.0",
+    "domain": "Identity and Access",
+    "title": "Human principal holds Owner or Editor in the resource hierarchy",
+    "resource_type": "GCP::AssetIAMSearchResult",
+    "operation": "gcp:cloudasset.organizationIamSearch",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-ORG-SA-PRIVILEGED",
+    "version": "clogcp-1.0.0",
+    "domain": "Identity and Access",
+    "title": "Service account holds Owner or Editor in the resource hierarchy",
+    "resource_type": "GCP::AssetIAMSearchResult",
+    "operation": "gcp:cloudasset.organizationIamSearch",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-ORG-IMPERSONATION",
+    "version": "clogcp-1.0.0",
+    "domain": "Identity and Access",
+    "title": "Service-account impersonation granted on a project, folder or organization",
+    "resource_type": "GCP::AssetIAMSearchResult",
+    "operation": "gcp:cloudasset.organizationIamSearch",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-ORG-CROSSPROJECT-SA",
+    "version": "clogcp-1.0.0",
+    "domain": "Identity and Access",
+    "title": "Service account from another project holds a privileged role",
+    "resource_type": "GCP::AssetIAMSearchResult",
+    "operation": "gcp:cloudasset.organizationIamSearch",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-ORG-DELETED-PRINCIPAL",
+    "version": "1.1.0",
+    "domain": "Identity and Access",
+    "title": "Deleted principal still holds a role binding",
+    "resource_type": "GCP::AssetIAMSearchResult",
+    "operation": "gcp:cloudasset.organizationIamSearch",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-ORG-EXTERNAL-DOMAIN",
+    "version": "1.0.0",
+    "domain": "Identity and Access",
+    "title": "Principals from an email domain have access (third-party validation)",
+    "resource_type": "GCP::AssetIAMSearchResult",
+    "operation": "gcp:cloudasset.organizationIamSearch",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  },
+  {
+    "rule_id": "GCP-ORG-FEDERATION",
+    "version": "clogcp-1.0.0",
+    "domain": "Identity and Access",
+    "title": "External workload identity can act as a service account",
+    "resource_type": "GCP::AssetIAMSearchResult",
+    "operation": "gcp:cloudasset.organizationIamSearch",
+    "new_in_clogcp": false,
+    "qualification": "Named criterion only; outcome, evidence limits and review remain authoritative."
+  }
+]

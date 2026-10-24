@@ -1,0 +1,71 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "sre-validation-1",
+      "default": "sre-validation-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "finding_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "run_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "verdict": {
+      "enum": [
+        "SENT_TO_SRE",
+        "GAP_CONFIRMED",
+        "NO_GAP_BAU",
+        "NEEDS_INFO"
+      ],
+      "title": "Verdict",
+      "type": "string"
+    },
+    "sre_contact": {
+      "default": "",
+      "maxLength": 200,
+      "title": "Sre Contact",
+      "type": "string"
+    },
+    "recorded_by": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Recorded By",
+      "type": "string"
+    },
+    "reason": {
+      "default": "",
+      "maxLength": 16000,
+      "title": "Reason",
+      "type": "string"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "evidence_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Fingerprint",
+      "type": "string"
+    }
+  },
+  "required": [
+    "finding_id",
+    "run_id",
+    "verdict",
+    "recorded_by",
+    "recorded_at",
+    "evidence_fingerprint"
+  ],
+  "title": "SreValidation",
+  "type": "object"
+}

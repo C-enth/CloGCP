@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=75,<83"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "enterprise-offline-analyzer"
+version = "0.8.4"
+description = "CloSec offline AWS and GCP security assessment"
+requires-python = ">=3.11"
+dependencies = ["pydantic>=2.10,<3", "openpyxl>=3.1.5,<4", "defusedxml>=0.7.1,<1", "duckdb>=1.2,<2", "ijson>=3.3,<4"]
+
+[project.scripts]
+offline-analyzer = "offline_analyzer.cli:main"
+offline-analyzer-gui = "offline_analyzer.launcher:main"
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10", "ruff>=0.9,<1", "httpx>=0.28,<1", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "python-multipart>=0.0.20,<1"]
+application = ["networkx>=3.4,<4", "fastapi>=0.115,<1", "uvicorn>=0.34,<1", "python-multipart>=0.0.20,<1"]
+
+benchmark = ["psutil==7.2.2"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+# Collectors are separately versioned deliverables that must also run on Python 3.9.
+extend-exclude = ["collectors"]
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
+
+[tool.setuptools.package-data]
+"offline_analyzer.api" = ["assets/*", "assets/assets/*"]
+"offline_analyzer.contracts" = ["schemas/*.json"]

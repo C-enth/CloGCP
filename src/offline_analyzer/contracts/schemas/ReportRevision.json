@@ -1,0 +1,374 @@
+{
+  "$defs": {
+    "ApprovalStamp": {
+      "additionalProperties": false,
+      "properties": {
+        "reviewer": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Reviewer",
+          "type": "string"
+        },
+        "approved_at": {
+          "format": "date-time",
+          "title": "Approved At",
+          "type": "string"
+        },
+        "assessment_run": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Assessment Run",
+          "type": "string"
+        },
+        "rationale": {
+          "maxLength": 16000,
+          "title": "Rationale",
+          "type": "string"
+        }
+      },
+      "required": [
+        "reviewer",
+        "approved_at",
+        "assessment_run",
+        "rationale"
+      ],
+      "title": "ApprovalStamp",
+      "type": "object"
+    },
+    "EvidenceSnapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "finding_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "fingerprint": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Fingerprint",
+          "type": "string"
+        },
+        "account_id": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Account Id"
+        },
+        "provider": {
+          "default": "AWS",
+          "enum": [
+            "AWS",
+            "GCP"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Id"
+        },
+        "region": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Region",
+          "type": "string"
+        },
+        "resource_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Resource Id",
+          "type": "string"
+        },
+        "native_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Native Id",
+          "type": "string"
+        },
+        "collection_ids": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "title": "Collection Ids",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "type": "object"
+          },
+          "minItems": 1,
+          "title": "Evidence",
+          "type": "array"
+        }
+      },
+      "required": [
+        "finding_id",
+        "fingerprint",
+        "account_id",
+        "region",
+        "resource_id",
+        "native_id",
+        "collection_ids",
+        "evidence"
+      ],
+      "title": "EvidenceSnapshot",
+      "type": "object"
+    },
+    "ReportSections": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "INFO",
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "severity_rationale": {
+          "maxLength": 16000,
+          "title": "Severity Rationale",
+          "type": "string"
+        },
+        "technical_observation": {
+          "maxLength": 16000,
+          "title": "Technical Observation",
+          "type": "string"
+        },
+        "expected_posture": {
+          "maxLength": 16000,
+          "title": "Expected Posture",
+          "type": "string"
+        },
+        "risk": {
+          "maxLength": 16000,
+          "title": "Risk",
+          "type": "string"
+        },
+        "attack_scenario": {
+          "default": "Not established. Configuration evidence does not demonstrate exploitation.",
+          "maxLength": 16000,
+          "title": "Attack Scenario",
+          "type": "string"
+        },
+        "root_cause": {
+          "default": "Not established; validate configuration ownership and change history.",
+          "maxLength": 16000,
+          "title": "Root Cause",
+          "type": "string"
+        },
+        "remediation": {
+          "maxLength": 16000,
+          "title": "Remediation",
+          "type": "string"
+        },
+        "immediate_mitigation": {
+          "default": "",
+          "maxLength": 16000,
+          "title": "Immediate Mitigation",
+          "type": "string"
+        },
+        "considerations": {
+          "maxLength": 16000,
+          "title": "Considerations",
+          "type": "string"
+        },
+        "validation": {
+          "maxLength": 16000,
+          "title": "Validation",
+          "type": "string"
+        },
+        "references": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "References",
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "severity",
+        "severity_rationale",
+        "technical_observation",
+        "expected_posture",
+        "risk",
+        "remediation",
+        "considerations",
+        "validation",
+        "references"
+      ],
+      "title": "ReportSections",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "report-finding-1",
+      "default": "report-finding-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "report_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Report Id",
+      "type": "string"
+    },
+    "primary_finding": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Primary Finding",
+      "type": "string"
+    },
+    "revision": {
+      "minimum": 1,
+      "title": "Revision",
+      "type": "integer"
+    },
+    "run_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "author": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Author",
+      "type": "string"
+    },
+    "sections": {
+      "$ref": "#/$defs/ReportSections"
+    },
+    "snapshots": {
+      "items": {
+        "$ref": "#/$defs/EvidenceSnapshot"
+      },
+      "maxItems": 200,
+      "minItems": 1,
+      "title": "Snapshots",
+      "type": "array"
+    },
+    "recommendation_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Recommendation Version",
+      "type": "string"
+    },
+    "include_in_report": {
+      "title": "Include In Report",
+      "type": "boolean"
+    },
+    "consolidation_basis": {
+      "default": "",
+      "maxLength": 16000,
+      "title": "Consolidation Basis",
+      "type": "string"
+    },
+    "recommendation_approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalStamp"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "narrative_approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalStamp"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "consolidation_approval": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalStamp"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "risk_acceptance": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ApprovalStamp"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "report_text": {
+      "title": "Report Text",
+      "type": "string"
+    }
+  },
+  "required": [
+    "report_id",
+    "primary_finding",
+    "revision",
+    "run_id",
+    "created_at",
+    "author",
+    "sections",
+    "snapshots",
+    "recommendation_version",
+    "include_in_report",
+    "report_text"
+  ],
+  "title": "ReportRevision",
+  "type": "object"
+}

@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "artifact_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "locator": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "security-investigation-1",
+      "default": "security-investigation-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "investigation_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Investigation Id",
+      "type": "string"
+    },
+    "finding_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "evaluation_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Evaluation Id",
+      "type": "string"
+    },
+    "rule_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Rule Id",
+      "type": "string"
+    },
+    "security_domain": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Security Domain",
+      "type": "string"
+    },
+    "account_id": {
+      "pattern": "^[0-9]{12}$",
+      "title": "Account Id",
+      "type": "string"
+    },
+    "region": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Region",
+      "type": "string"
+    },
+    "affected_resources": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Affected Resources",
+      "type": "array"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "technical_hypothesis": {
+      "title": "Technical Hypothesis",
+      "type": "string"
+    },
+    "missing_validation": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Missing Validation",
+      "type": "array"
+    },
+    "security_implications": {
+      "title": "Security Implications",
+      "type": "string"
+    },
+    "assessment_snapshot_time": {
+      "format": "date-time",
+      "title": "Assessment Snapshot Time",
+      "type": "string"
+    },
+    "methodology_id": {
+      "default": null,
+      "title": "Methodology Id",
+      "type": "null"
+    },
+    "scope": {
+      "const": "ADDITIONAL_SECURITY_OBSERVATION_REQUIRING_ANALYST_REVIEW",
+      "default": "ADDITIONAL_SECURITY_OBSERVATION_REQUIRING_ANALYST_REVIEW",
+      "title": "Scope",
+      "type": "string"
+    }
+  },
+  "required": [
+    "investigation_id",
+    "finding_id",
+    "evaluation_id",
+    "rule_id",
+    "security_domain",
+    "account_id",
+    "region",
+    "affected_resources",
+    "evidence",
+    "technical_hypothesis",
+    "missing_validation",
+    "security_implications",
+    "assessment_snapshot_time"
+  ],
+  "title": "SecurityInvestigation",
+  "type": "object"
+}

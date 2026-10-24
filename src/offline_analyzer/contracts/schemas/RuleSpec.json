@@ -1,0 +1,92 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "control_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Control Id",
+      "type": "string"
+    },
+    "rule_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Rule Version",
+      "type": "string"
+    },
+    "methodology_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Methodology Sha256",
+      "type": "string"
+    },
+    "source_location": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Source Location",
+      "type": "string"
+    },
+    "prerequisites": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Prerequisites",
+      "type": "array"
+    },
+    "applicability": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Applicability",
+      "type": "string"
+    },
+    "pass_condition": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Pass Condition",
+      "type": "string"
+    },
+    "fail_condition": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Fail Condition",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "status": {
+      "default": "DRAFT",
+      "enum": [
+        "DRAFT",
+        "APPROVED"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "control_id",
+    "rule_version",
+    "methodology_sha256",
+    "source_location",
+    "prerequisites",
+    "applicability",
+    "pass_condition",
+    "fail_condition",
+    "limitations"
+  ],
+  "title": "RuleSpec",
+  "type": "object"
+}

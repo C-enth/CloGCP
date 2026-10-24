@@ -1,0 +1,14 @@
+{
+  "product": "CloGCP",
+  "version": "0.8.4-clogcp.1",
+  "status": "RELEASE_CANDIDATE",
+  "base_source_revision": "5a90bdf2ce9147f678ed3dd4b5c3ec34efeceb1e",
+  "source_kind": "WORKING_TREE_SNAPSHOT",
+  "source_snapshot": "94e7f32a3603c7f3d1e0bb2d689ae3e00cd79891f471c4df26da0d449eb66f76",
+  "source_branch": "clogcp/correction-0.8.4",
+  "base_zip_sha256": "9050e2f34d861065c58c8d96709b4adc4d4cc20047f1b12026a5db8acae59dd8",
+  "customer_data_included": false,
+  "production_assessment_validated": false,
+  "native_windows_acceptance": "PENDING",
+  "desktop_excel_acceptance": "PENDING"
+}

@@ -1,0 +1,505 @@
+{
+  "$defs": {
+    "Candidate": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "r0.1",
+          "default": "r0.1",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "provider": {
+          "default": "AWS",
+          "enum": [
+            "AWS",
+            "GCP"
+          ],
+          "title": "Provider",
+          "type": "string"
+        },
+        "project_id": {
+          "anyOf": [
+            {
+              "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Id"
+        },
+        "project_number": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9]{1,20}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Number"
+        },
+        "organization_id": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Organization Id"
+        },
+        "folder_id": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Folder Id"
+        },
+        "methodology_id": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Methodology Id"
+        },
+        "mapping_status": {
+          "default": "UNRESOLVED",
+          "enum": [
+            "UNRESOLVED",
+            "PROPOSED"
+          ],
+          "title": "Mapping Status",
+          "type": "string"
+        },
+        "methodology_criteria": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Methodology Criteria",
+          "type": "array"
+        },
+        "methodology_sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Methodology Sha256"
+        },
+        "finding_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Finding Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "security_domain": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Security Domain",
+          "type": "string"
+        },
+        "rule_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Rule Id",
+          "type": "string"
+        },
+        "rule_version": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Rule Version",
+          "type": "string"
+        },
+        "account_id": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9]{12}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Account Id"
+        },
+        "region": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Region",
+          "type": "string"
+        },
+        "resource_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Resource Id",
+          "type": "string"
+        },
+        "native_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Native Id",
+          "type": "string"
+        },
+        "technical_observation": {
+          "title": "Technical Observation",
+          "type": "string"
+        },
+        "security_risk": {
+          "title": "Security Risk",
+          "type": "string"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "contradictory_observations": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Contradictory Observations",
+          "type": "array"
+        },
+        "missing_evidence": {
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Missing Evidence",
+          "type": "array"
+        },
+        "suggested_severity": {
+          "enum": [
+            "INFO",
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
+          ],
+          "title": "Suggested Severity",
+          "type": "string"
+        },
+        "severity_rationale": {
+          "title": "Severity Rationale",
+          "type": "string"
+        },
+        "evidence_confidence": {
+          "enum": [
+            "HIGH",
+            "MEDIUM",
+            "LOW",
+            "UNASSESSED"
+          ],
+          "title": "Evidence Confidence",
+          "type": "string"
+        },
+        "remediation": {
+          "title": "Remediation",
+          "type": "string"
+        },
+        "review_status": {
+          "const": "CANDIDATE",
+          "default": "CANDIDATE",
+          "title": "Review Status",
+          "type": "string"
+        },
+        "validation_requirements": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Validation Requirements",
+          "type": "array"
+        },
+        "attack_paths": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Attack Paths",
+          "type": "array"
+        },
+        "stride_category": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Stride Category"
+        },
+        "methodology_inherent_severity": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Methodology Inherent Severity"
+        },
+        "finding_class": {
+          "anyOf": [
+            {
+              "enum": [
+                "BASELINE_DEVIATION",
+                "POTENTIAL_EXPOSURE",
+                "SUPPORTED_SECURITY_GAP"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Finding Class"
+        },
+        "exposure_status": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exposure Status"
+        },
+        "compensating_controls": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Compensating Controls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "finding_id",
+        "title",
+        "security_domain",
+        "rule_id",
+        "rule_version",
+        "account_id",
+        "region",
+        "resource_id",
+        "native_id",
+        "technical_observation",
+        "security_risk",
+        "evidence",
+        "contradictory_observations",
+        "missing_evidence",
+        "suggested_severity",
+        "severity_rationale",
+        "evidence_confidence",
+        "remediation"
+      ],
+      "title": "Candidate",
+      "type": "object"
+    },
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "artifact_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "locator": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Snapshot": {
+      "additionalProperties": false,
+      "properties": {
+        "finding": {
+          "$ref": "#/$defs/Candidate"
+        },
+        "evidence_signature": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Evidence Signature",
+          "type": "array"
+        },
+        "decisions": {
+          "default": [],
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Decisions",
+          "type": "array"
+        },
+        "decision_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Decision Ids",
+          "type": "array"
+        },
+        "sre_history": {
+          "default": [],
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Sre History",
+          "type": "array"
+        },
+        "sre_validation_ids": {
+          "default": [],
+          "items": {
+            "type": "string"
+          },
+          "title": "Sre Validation Ids",
+          "type": "array"
+        },
+        "report_history": {
+          "default": [],
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Report History",
+          "type": "array"
+        },
+        "report_revision_keys": {
+          "default": [],
+          "items": {
+            "maxItems": 2,
+            "minItems": 2,
+            "prefixItems": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "integer"
+              }
+            ],
+            "type": "array"
+          },
+          "title": "Report Revision Keys",
+          "type": "array"
+        },
+        "exclusion_history": {
+          "default": [],
+          "items": {
+            "additionalProperties": true,
+            "type": "object"
+          },
+          "title": "Exclusion History",
+          "type": "array"
+        },
+        "source_run": {
+          "default": "",
+          "title": "Source Run",
+          "type": "string"
+        }
+      },
+      "required": [
+        "finding"
+      ],
+      "title": "Snapshot",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "default": "clogcp-history-1",
+      "pattern": "^clogcp-history-1$",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "records": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/Snapshot"
+      },
+      "title": "Records",
+      "type": "array"
+    }
+  },
+  "title": "History",
+  "type": "object"
+}

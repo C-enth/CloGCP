@@ -1,0 +1,417 @@
+{
+  "$defs": {
+    "ManifestDetection": {
+      "additionalProperties": false,
+      "description": "Fixed format vocabulary only; no paths, customer values or raw errors.",
+      "properties": {
+        "filename": {
+          "const": "collection_manifest.json",
+          "default": "collection_manifest.json",
+          "title": "Filename",
+          "type": "string"
+        },
+        "detected_version": {
+          "maxLength": 80,
+          "pattern": "^(?:(?:pilot-|assessment-expanded-)[0-9]+(?:\\.[0-9]+){0,3}|MISSING|UNRECOGNIZED_TOKEN)$",
+          "title": "Detected Version",
+          "type": "string"
+        },
+        "selected_adapter": {
+          "enum": [
+            "gcp-pilot-1.2.2-adapter-1",
+            "gcp-pilot-1.5-adapter-1",
+            "gcp-expanded-2.1-adapter-1",
+            "gcp-expanded-2.2-adapter-1",
+            "NONE"
+          ],
+          "title": "Selected Adapter",
+          "type": "string"
+        },
+        "expected_versions": {
+          "items": {
+            "enum": [
+              "pilot-1.2.2",
+              "pilot-1.5",
+              "assessment-expanded-2.1",
+              "assessment-expanded-2.2"
+            ],
+            "type": "string"
+          },
+          "title": "Expected Versions",
+          "type": "array"
+        },
+        "manifest_count": {
+          "maximum": 1100,
+          "minimum": 0,
+          "title": "Manifest Count",
+          "type": "integer"
+        },
+        "rejection_condition": {
+          "anyOf": [
+            {
+              "enum": [
+                "root schema_version is missing",
+                "root schema_version is not a supported pilot version",
+                "root schema_version is not a supported collector version",
+                "collector_version is outside the accepted range for assessment-expanded-2.2 (2.2.0 to 2.2.8)",
+                "manifest root must be an object"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rejection Condition"
+        },
+        "corrective_action": {
+          "anyOf": [
+            {
+              "const": "Preserve the original package; use a CloSec adapter supporting its exact collector version. Do not rename or edit the manifest.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Corrective Action"
+        }
+      },
+      "required": [
+        "detected_version",
+        "selected_adapter",
+        "expected_versions",
+        "manifest_count"
+      ],
+      "title": "ManifestDetection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "closec-local-diagnostic-1",
+      "default": "closec-local-diagnostic-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "product": {
+      "const": "CloSec",
+      "default": "CloSec",
+      "title": "Product",
+      "type": "string"
+    },
+    "application_version": {
+      "title": "Application Version",
+      "type": "string"
+    },
+    "git_revision": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Git Revision"
+    },
+    "working_tree_modified": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Working Tree Modified"
+    },
+    "backend_source_hash": {
+      "title": "Backend Source Hash",
+      "type": "string"
+    },
+    "frontend_build_id": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Frontend Build Id"
+    },
+    "transport_version": {
+      "title": "Transport Version",
+      "type": "string"
+    },
+    "compatible": {
+      "title": "Compatible",
+      "type": "boolean"
+    },
+    "source_changed_since_startup": {
+      "title": "Source Changed Since Startup",
+      "type": "boolean"
+    },
+    "operating_system": {
+      "title": "Operating System",
+      "type": "string"
+    },
+    "operating_system_release": {
+      "title": "Operating System Release",
+      "type": "string"
+    },
+    "job_id": {
+      "title": "Job Id",
+      "type": "string"
+    },
+    "job_type": {
+      "title": "Job Type",
+      "type": "string"
+    },
+    "job_state": {
+      "title": "Job State",
+      "type": "string"
+    },
+    "job_stage": {
+      "title": "Job Stage",
+      "type": "string"
+    },
+    "provider": {
+      "title": "Provider",
+      "type": "string"
+    },
+    "import_mode": {
+      "title": "Import Mode",
+      "type": "string"
+    },
+    "detected_manifest_version": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Detected Manifest Version"
+    },
+    "manifest_detection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ManifestDetection"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "submitted_at": {
+      "title": "Submitted At",
+      "type": "number"
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Started At"
+    },
+    "finished_at": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Finished At"
+    },
+    "duration_seconds": {
+      "title": "Duration Seconds",
+      "type": "number"
+    },
+    "last_progress_at": {
+      "title": "Last Progress At",
+      "type": "string"
+    },
+    "heartbeat_at": {
+      "title": "Heartbeat At",
+      "type": "string"
+    },
+    "timings": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Timings",
+      "type": "object"
+    },
+    "error_code": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Error Code"
+    },
+    "stack_trace_classification": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Stack Trace Classification"
+    },
+    "recoverable": {
+      "title": "Recoverable",
+      "type": "boolean"
+    },
+    "limit": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Limit"
+    },
+    "files_total": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Files Total"
+    },
+    "supported_dataset_count": {
+      "title": "Supported Dataset Count",
+      "type": "integer"
+    },
+    "unsupported_dataset_count": {
+      "title": "Unsupported Dataset Count",
+      "type": "integer"
+    },
+    "collection_error_count": {
+      "title": "Collection Error Count",
+      "type": "integer"
+    },
+    "dataset_status_counts": {
+      "additionalProperties": {
+        "type": "integer"
+      },
+      "title": "Dataset Status Counts",
+      "type": "object"
+    },
+    "parser_names": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 40,
+      "title": "Parser Names",
+      "type": "array"
+    },
+    "failed_supported_operations": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 1024,
+      "title": "Failed Supported Operations",
+      "type": "array"
+    },
+    "database_integrity": {
+      "enum": [
+        "NOT_CHECKED",
+        "TRANSACTION_COMMITTED_AND_SCHEMA_READABLE"
+      ],
+      "title": "Database Integrity",
+      "type": "string"
+    },
+    "real_evidence_compatibility": {
+      "title": "Real Evidence Compatibility",
+      "type": "string"
+    },
+    "raw_values_included": {
+      "const": false,
+      "default": false,
+      "title": "Raw Values Included",
+      "type": "boolean"
+    },
+    "customer_paths_included": {
+      "const": false,
+      "default": false,
+      "title": "Customer Paths Included",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "application_version",
+    "git_revision",
+    "working_tree_modified",
+    "backend_source_hash",
+    "frontend_build_id",
+    "transport_version",
+    "compatible",
+    "source_changed_since_startup",
+    "operating_system",
+    "operating_system_release",
+    "job_id",
+    "job_type",
+    "job_state",
+    "job_stage",
+    "provider",
+    "import_mode",
+    "detected_manifest_version",
+    "submitted_at",
+    "started_at",
+    "finished_at",
+    "duration_seconds",
+    "last_progress_at",
+    "heartbeat_at",
+    "timings",
+    "error_code",
+    "stack_trace_classification",
+    "recoverable",
+    "limit",
+    "files_total",
+    "supported_dataset_count",
+    "unsupported_dataset_count",
+    "collection_error_count",
+    "dataset_status_counts",
+    "parser_names",
+    "failed_supported_operations",
+    "database_integrity",
+    "real_evidence_compatibility"
+  ],
+  "title": "SanitizedDiagnostic",
+  "type": "object"
+}

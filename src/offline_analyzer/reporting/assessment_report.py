@@ -1,0 +1,497 @@
+"""One-click assessment report: native Excel workbook and Word report for one run.
+
+Deliverables: technical findings register, control coverage matrix, attack-path
+feasibility, posture by account/project and organization-wide, and a prioritized
+remediation roadmap. Everything is projected from persisted analyzer data for the
+selected run; candidates are never labelled validated without an analyst decision.
+Account/project display names come from collector manifests (labels, never identity).
+"""
+
+import re
+import zipfile
+from collections import Counter, defaultdict
+from datetime import UTC, datetime
+from pathlib import Path
+
+from offline_analyzer.ingestion.safety import excel_literal
+
+OUTCOME_LABEL = {
+    "PASS": "PASS",
+    "FAIL": "FAIL",
+    "NOT_APPLICABLE": "NOT APPLICABLE",
+    "UNKNOWN": "INSUFFICIENT EVIDENCE",
+    "COLLECTION_ERROR": "INSUFFICIENT EVIDENCE",
+    "MANUAL_VALIDATION_REQUIRED": "MANUAL VALIDATION",
+}
+LABELS = ("PASS", "FAIL", "NOT APPLICABLE", "INSUFFICIENT EVIDENCE", "MANUAL VALIDATION")
+SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW", "INFO")
+ROADMAP = {
+    "CRITICAL": ("P1", "Immediate (0-7 days)"),
+    "HIGH": ("P2", "Short term (0-30 days)"),
+    "MEDIUM": ("P3", "Medium term (30-90 days)"),
+    "LOW": ("P4", "Planned (90+ days)"),
+    "INFO": ("P5", "Best practice / backlog"),
+}
+VALIDATION = {
+    "CANDIDATE": "Candidate - analyst review pending",
+    "CONFIRMED": "Validated by analyst",
+    "REJECTED": "Rejected by analyst",
+    "NEEDS_VALIDATION": "Analyst requested further validation",
+    "NEEDS_REVALIDATION": "Evidence changed since analyst decision - revalidate",
+}
+# Which findings a report contains, chosen at download time from the analyst's marking.
+SCOPE_NOTICE = (
+    "This report is not limited to analyst-confirmed findings: it also contains findings that "
+    "are still under review. Treat unconfirmed findings as candidates, not verified results."
+)
+INCLUDE = {
+    "valid": "All findings except those marked not valid (rejected) or No gap (BAU) by SRE",
+    "confirmed": "Only findings the analyst marked valid (confirmed)",
+    "all": "All findings, including those marked not valid",
+}
+EXCLUDED_STAGES = {"valid": {"REJECTED", "NO_GAP_BAU"}}
+BUSINESS = (
+    "Business context not provided: business impact is not assessed. Technical impact is "
+    "stated; asset criticality must be confirmed with the client."
+)
+
+
+def _scope(item) -> tuple[str, str]:
+    provider = getattr(item, "provider", None) or (
+        "GCP" if getattr(item, "project_id", None) else "AWS"
+    )
+    return provider, (getattr(item, "project_id", None) or getattr(item, "account_id", None) or "")
+
+
+def included(include: str, status: str, stage: str) -> bool:
+    if include == "confirmed":
+        return status == "CONFIRMED"
+    return stage not in EXCLUDED_STAGES.get(include, set())
+
+
+def model(
+    store,
+    run_id: str,
+    include: str = "confirmed",
+    provider_filter: str = "",
+    scope_filter: str = "",
+    grouped: bool = True,
+) -> dict:
+    """Report data; `include` applies the analyst/SRE marking, filters select one account."""
+    from offline_analyzer.attack_paths.diagram import diagram_text
+    from offline_analyzer.attack_paths.feasibility import attack_paths
+    from offline_analyzer.findings.explanations import explain
+    from offline_analyzer.findings.recommendations import recommendation
+    from offline_analyzer.findings.sre import STAGES, latest_sre, review_state
+    from offline_analyzer.ingestion.labels import scope_names
+    from offline_analyzer.methodology.cloud_checklist import describe, matrix
+
+    store.require_run(run_id)
+    names = scope_names(store)
+    sources = list(store.source_data(run_id))
+    collected = {s["artifact_id"]: s for s in sources if s.get("artifact_id")}
+    if include not in INCLUDE:
+        raise ValueError("Unknown report scope")
+    decisions = store.latest_decisions(run_id)
+    sre = latest_sre(store, run_id)
+    scopes: dict[tuple[str, str], dict] = {}
+
+    def wanted(provider: str, scope: str) -> bool:
+        return (not provider_filter or provider == provider_filter) and (
+            not scope_filter or scope == scope_filter
+        )
+
+    def scope_entry(provider: str, scope: str) -> dict:
+        return scopes.setdefault(
+            (provider, scope),
+            {
+                "provider": provider,
+                "scope": scope,
+                "name": names.get((provider, scope), ""),
+                "severity": Counter(),
+                "outcomes": Counter(),
+                "gaps": 0,
+                "sources": 0,
+            },
+        )
+
+    for source in sources:
+        provider = "GCP" if source.get("format") == "gcp-json-v1" else "AWS"
+        scope = source.get("project_id") or source.get("account_id") or ""
+        if not wanted(provider, scope):
+            continue
+        entry = scope_entry(provider, scope)
+        entry["sources"] += 1
+        if source.get("effective_coverage") in {"ERROR", "NOT_COLLECTED"}:
+            entry["gaps"] += 1
+    from offline_analyzer.reporting.coverage_reasons import ERROR_REASONS, NOTE_REASONS, notable
+
+    notes: Counter = Counter()
+    for source in sources:
+        provider = "GCP" if source.get("format") == "gcp-json-v1" else "AWS"
+        scope = source.get("project_id") or source.get("account_id") or ""
+        metadata = source.get("gcp_metadata") or {}
+        if wanted(provider, scope):
+            for code in notable(
+                metadata.get("error_category"), metadata.get("completeness_limitations")
+            ):
+                notes[(provider, scope, code)] += 1
+    coverage_notes = [
+        {
+            "provider": provider,
+            "scope": scope,
+            "name": names.get((provider, scope), ""),
+            "code": code,
+            "reason": ERROR_REASONS.get(code) or NOTE_REASONS.get(code) or code,
+            "datasets": count,
+        }
+        for (provider, scope, code), count in sorted(notes.items())
+    ]
+    coverage: dict[tuple, Counter] = defaultdict(Counter)
+    for result in store.results(run_id):
+        provider, scope = _scope(result)
+        if not wanted(provider, scope):
+            continue
+        label = OUTCOME_LABEL.get(str(result.outcome), "INSUFFICIENT EVIDENCE")
+        scope_entry(provider, scope)["outcomes"][label] += 1
+        coverage[(provider, scope, result.rule_id)][label] += 1
+    from offline_analyzer.findings.exclusions import appendix, excluded
+    from offline_analyzer.reporting.limitations import latest as custom_limitations
+
+    hidden = excluded(store, run_id)
+    excluded_count = 0
+    from offline_analyzer.contracts.report_finding import ReportRevision
+
+    covering: dict = {}
+    for (raw,) in store.rows(
+        "SELECT data FROM report_revisions QUALIFY row_number() OVER "
+        "(PARTITION BY report_id ORDER BY revision DESC)=1 ORDER BY report_id"
+    ):
+        group_revision = ReportRevision.model_validate_json(raw)
+        for snapshot in group_revision.snapshots:
+            covering.setdefault(snapshot.finding_id, group_revision)
+    findings = []
+    for finding in store.candidates(run_id):
+        provider, scope = _scope(finding)
+        if not wanted(provider, scope):
+            continue
+        if finding.finding_id in hidden:
+            # Excluded from client reporting by the analyst; counted so totals reconcile.
+            excluded_count += 1
+            continue
+        status, stage = review_state(store, finding, decisions, sre)
+        if not included(include, status, stage):
+            continue
+        advice = recommendation(finding.rule_id)
+        decision = decisions.get(finding.finding_id)
+        evidence = []
+        for ref in finding.evidence:
+            source = collected.get(ref.artifact_id, {})
+            evidence.append(
+                f"{source.get('operation', 'source')} {ref.locator} "
+                f"(collected {source.get('collected_at', 'unknown')})"
+            )
+        scope_entry(provider, scope)["severity"][finding.suggested_severity] += 1
+        checklist = describe(finding.methodology_id)
+        explanation = explain(finding)
+        from offline_analyzer.contracts.r0 import stable_id
+        from offline_analyzer.findings.groups import group_key
+
+        rule_key, key_kind, key_value = group_key(finding)
+        findings.append(
+            {
+                "group_id": stable_id("finding-group", [rule_key, key_kind, key_value]),
+                "group_key": key_value or rule_key,
+                "checklist_domain": checklist["checklist_domain"],
+                "checklist_title": checklist["checklist_title"],
+                "stride": finding.stride_category or "",
+                "methodology_paths": ", ".join(finding.attack_paths),
+                "id": finding.finding_id,
+                "title": finding.title,
+                "domain": finding.security_domain,
+                "control": finding.methodology_id or "Unclassified",
+                "rule": finding.rule_id,
+                "severity": finding.suggested_severity,
+                "rationale": finding.severity_rationale,
+                "provider": provider,
+                "scope": scope,
+                "scope_name": names.get((provider, scope), ""),
+                "region": finding.region,
+                "resource": finding.native_id,
+                "observed": finding.technical_observation,
+                "expected": advice.get("expected_posture") or "Analyst to define expected state",
+                "impact": explanation["impact"],
+                "why": explanation["why_flagged"],
+                "misuse": explanation["misuse"],
+                "recommendation": explanation["recommendation"],
+                "business": BUSINESS,
+                "evidence": "; ".join(evidence) or "No evidence reference",
+                "remediation": " ".join(
+                    filter(
+                        None,
+                        [
+                            advice.get("recommended_action"),
+                            advice.get("permanent_remediation"),
+                            advice.get("implementation_guidance"),
+                        ],
+                    )
+                )
+                or finding.remediation,
+                "validation_procedure": advice.get("validation_procedure", ""),
+                "status": VALIDATION.get(status, status),
+                "stage": STAGES[stage],
+                "confidence": finding.evidence_confidence,
+                "framework": finding.methodology_id
+                or "Not mapped (verifiable mapping unavailable)",
+                "missing": ", ".join(finding.missing_evidence),
+                "analyst": decision.analyst if decision else "",
+            }
+        )
+        # Report edits belong to Client Reporting; only evidence-current revisions are
+        # used. Approval state stays explicit and is never inferred from the text edit.
+        from offline_analyzer.findings.report_ready import (
+            current_findings,
+            latest_revision,
+            validity,
+        )
+
+        # The finding's own revision, else a group revision that names it as a member.
+        revision = latest_revision(store, finding.finding_id) or covering.get(finding.finding_id)
+        if revision:
+            state = validity(
+                revision,
+                current_findings(store, run_id, [s.finding_id for s in revision.snapshots]),
+                decisions,
+                store,
+            )
+            if state["member_states"].get(finding.finding_id) == "CURRENT":
+                section = revision.sections
+                findings[-1].update(
+                    title=section.title,
+                    severity=section.severity,
+                    rationale=section.severity_rationale,
+                    observed=section.technical_observation,
+                    why=section.technical_observation,
+                    expected=section.expected_posture,
+                    impact=section.risk,
+                    misuse=section.attack_scenario,
+                    recommendation=section.remediation,
+                    remediation=section.remediation,
+                    immediate=section.immediate_mitigation,
+                    validation_procedure=section.validation,
+                    report_revision=revision.revision,
+                    report_approval="APPROVED"
+                    if state["eligible"]
+                    else "DRAFT — report approval pending",
+                )
+    order = {s: i for i, s in enumerate(SEVERITIES)}
+    findings.sort(
+        key=lambda f: (order.get(f["severity"], 9), f["provider"], f["scope"], f["title"])
+    )
+    evaluated = attack_paths(store, run_id)
+    reported = {f["id"] for f in findings}
+
+    def visible(ids) -> list[str]:
+        # Excluded findings stay excluded: paths and hops never cite them.
+        return [i for i in ids or [] if i not in hidden]
+
+    paths = [
+        {
+            **p,
+            "diagram": diagram_text(p),
+            "finding_ids": visible(p.get("finding_ids")),
+            **(
+                {"hops": [{**h, "finding_ids": visible(h["finding_ids"])} for h in p["hops"]]}
+                if "hops" in p
+                else {}
+            ),
+        }
+        for p in evaluated["items"]
+        if not p.get("excluded_dependency")
+        and (not provider_filter or p["provider"] == provider_filter)
+        and (not scope_filter or scope_filter in {p.get("project_id"), p.get("account_id")})
+        and (include != "confirmed" or set(p.get("finding_ids", [])) & reported)
+    ]
+    assessed = {"GCP" if s.get("format") == "gcp-json-v1" else "AWS" for s in sources}
+    for finding in findings:
+        finding["evaluated_paths"] = "; ".join(
+            f"{p.get('attack_path') or p['path_id']}: {p.get('title', '')}; "
+            f"{p['feasibility']}; STRIDE: {', '.join(p.get('stride', [])) or 'Unmapped'}"
+            for p in paths
+            if p.get("analyst_review") == "CONFIRMED" and finding["id"] in p.get("finding_ids", [])
+        )
+    return {
+        "run_id": run_id,
+        "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
+        "include": INCLUDE[include],
+        # Safe default is analyst-confirmed findings only; any wider scope is stated on the cover.
+        "include_key": include,
+        "excluded": excluded_count,
+        # Transparency appendix: excluded findings grouped by rule and reason (with IDs).
+        "excluded_findings": appendix(store, run_id, provider_filter, scope_filter),
+        # Analyst scope-limitation text for this run (reporting/limitations.py).
+        "custom_limitations": custom_limitations(store, run_id),
+        "scopes": sorted(scopes.values(), key=lambda s: (s["provider"], s["name"], s["scope"])),
+        "findings": findings,
+        # Root-cause groups of the reported findings (owner brief 2c); totals stay per finding.
+        "grouped": grouped,
+        "groups": report_groups(findings),
+        "coverage": coverage,
+        "checklist": matrix(
+            [r for r in store.results(run_id) if wanted(*_scope(r))],
+            assessed=assessed,
+        ),
+        "paths": paths,
+        "provider_scope": provider_filter
+        or " + ".join(p for p in ("GCP", "AWS") if p in assessed)
+        or "No evidence",
+        # Why path kinds were or were not formed (counts only), per provider.
+        "path_coverage": [
+            {**reason, "provider": provider}
+            for provider, reasons in evaluated.get("coverage", {}).items()
+            if (not provider_filter or provider == provider_filter) and provider in assessed
+            for reason in reasons
+        ],
+        # Collection gaps and limitations per account/project, with plain-language reasons.
+        "coverage_notes": coverage_notes,
+        # Areas where evidence could not support an outcome (UNKNOWN / collection error) or
+        # a manual check is required; never reported as passing.
+        "unknown_areas": [
+            {
+                "provider": provider,
+                "scope": scope,
+                "name": names.get((provider, scope), ""),
+                "rule": rule,
+                "insufficient": counts["INSUFFICIENT EVIDENCE"],
+                "manual": counts["MANUAL VALIDATION"],
+            }
+            for (provider, scope, rule), counts in sorted(coverage.items())
+            if counts["INSUFFICIENT EVIDENCE"] or counts["MANUAL VALIDATION"]
+        ],
+    }
+
+
+def report_groups(findings: list[dict]) -> list[dict]:
+    """One entry per root-cause group: highest member severity, members, affected resources."""
+    from offline_analyzer.findings.groups import SEVERITY_ORDER, highest
+
+    found: dict[str, dict] = {}
+    for f in findings:
+        entry = found.setdefault(f["group_id"], {"group_id": f["group_id"], "members": []})
+        entry["members"].append(f)
+    result = []
+    for entry in found.values():
+        members = sorted(
+            entry["members"], key=lambda f: (-SEVERITY_ORDER.get(f["severity"], -1), f["id"])
+        )
+        result.append(
+            {
+                "group_id": entry["group_id"],
+                "title": members[0]["title"],
+                "rule": members[0]["rule"],
+                "key": members[0]["group_key"],
+                "severity": highest(f["severity"] for f in members),
+                "representative": members[0],
+                "members": members,
+                "affected_resources": len(
+                    {(f["provider"], f["scope"], f["resource"]) for f in members}
+                ),
+            }
+        )
+    result.sort(key=lambda g: (-SEVERITY_ORDER.get(g["severity"], -1), g["title"], g["group_id"]))
+    return result
+
+
+def scope_title(data: dict) -> str:
+    # Collected accounts/projects name the report; org-wide findings add other scopes.
+    collected = [s for s in data["scopes"] if s["scope"] and s["sources"]]
+    names = [s["name"] or s["scope"] for s in collected or data["scopes"] if s["scope"]]
+    return ", ".join(names[:3]) + (f" +{len(names) - 3}" if len(names) > 3 else "") or "assessment"
+
+
+def file_label(data: dict) -> str:
+    return re.sub(r"[^A-Za-z0-9_.-]+", "_", scope_title(data))[:80].strip("_") or "assessment"
+
+
+def _cell(value) -> object:
+    if isinstance(value, str):
+        return excel_literal(value)
+    return value
+
+
+def write_excel(data: dict, path: Path, *, gcp_register: dict | None = None) -> None:
+    """Executive Summary, Technical Findings and Attack Paths (reporting.report_document)."""
+    from offline_analyzer.reporting.report_document import write_excel as document
+
+    document(data, path, gcp_register=gcp_register)
+
+
+def rtf(text: str) -> str:
+    from offline_analyzer.reporting.approved import rtf_escape
+
+    return rtf_escape(text)
+
+
+def heading(text: str) -> str:
+    """Section heading with spacing; kept with the following paragraph."""
+    return "{\\pard\\sb360\\sa120\\keepn\\b\\fs28 " + rtf(text) + "\\par}\n"
+
+
+def field(label: str, value: str) -> str:
+    """One labelled line: bold label, plain value."""
+    return "{\\pard\\sa60 {\\b " + rtf(label + ": ") + "}" + rtf(str(value)) + "\\par}\n"
+
+
+def write_rtf(data: dict, path: Path) -> None:
+    """Word document: title page, executive summary, technical findings, attack paths."""
+    from offline_analyzer.reporting.report_document import write_rtf as document
+
+    document(data, path)
+
+
+def export_assessment(
+    store,
+    run_id: str,
+    path: Path,
+    progress=None,
+    include: str = "confirmed",
+    provider: str = "",
+    scope: str = "",
+    grouped: bool = True,
+) -> str:
+    """Write a ZIP with the Excel workbook and Word report; returns the download name."""
+    import tempfile
+
+    from offline_analyzer.findings.finalisation import filtered, frozen
+
+    edition = frozen(store, run_id)
+    data = (
+        filtered(edition, "document", provider, scope)
+        if edition
+        else model(store, run_id, include, provider, scope, grouped)
+    )
+    label = file_label(data) + ("" if include == "valid" else f"-{include}")
+    with tempfile.TemporaryDirectory() as temporary:
+        workbook = Path(temporary) / "report.xlsx"
+        document = Path(temporary) / "report.docx"
+        from offline_analyzer.reporting.gcp_register import build as gcp_register
+
+        register = gcp_register(store, run_id, data, provider=provider, scope=scope)
+        write_excel(data, workbook, gcp_register=register)
+        if progress:
+            progress("Writing assessment report", 1, 2)
+        from offline_analyzer.reporting.docx import write_docx
+
+        write_docx(data, document)
+        with zipfile.ZipFile(path, "x", zipfile.ZIP_DEFLATED) as archive:
+            archive.write(workbook, f"CloSec-{label}-assessment.xlsx")
+            archive.write(document, f"CloSec-{label}-assessment-report.docx")
+            archive.writestr(
+                "README.txt",
+                "Excel workbook and Word report: cover, executive summary, coverage and "
+                "limitations, attack surface, attack paths with one row per hop, STRIDE and "
+                "direction justification, findings and appendix.\n"
+                "Word: open the .docx in Microsoft Word. Excel: every table has a frozen "
+                "header row and filters.\n",
+            )
+    return f"CloSec-{label}-assessment-report.zip"

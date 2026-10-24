@@ -1,0 +1,294 @@
+{
+  "$defs": {
+    "GCPDataset": {
+      "additionalProperties": false,
+      "properties": {
+        "project_id": {
+          "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$",
+          "title": "Project Id",
+          "type": "string"
+        },
+        "project_number": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9]{1,20}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Project Number"
+        },
+        "operation": {
+          "maxLength": 200,
+          "pattern": "^gcp:[A-Za-z0-9_.]+$",
+          "title": "Operation",
+          "type": "string"
+        },
+        "parameters": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "maxProperties": 40,
+          "title": "Parameters",
+          "type": "object"
+        },
+        "started_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Started At"
+        },
+        "completed_at": {
+          "anyOf": [
+            {
+              "format": "date-time",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Completed At"
+        },
+        "dataset_type": {
+          "default": "native-json",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Dataset Type",
+          "type": "string"
+        },
+        "location": {
+          "default": "global",
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Location",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "SUCCESS",
+            "EMPTY",
+            "FAILED",
+            "PARTIAL",
+            "ACCESS_DENIED",
+            "NOT_COLLECTED",
+            "NOT_APPLICABLE",
+            "UNSUPPORTED",
+            "UNKNOWN"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "record_count": {
+          "maximum": 100000,
+          "minimum": 0,
+          "title": "Record Count",
+          "type": "integer"
+        },
+        "path": {
+          "anyOf": [
+            {
+              "maxLength": 512,
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Path"
+        },
+        "sha256": {
+          "anyOf": [
+            {
+              "pattern": "^[0-9a-f]{64}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Sha256"
+        },
+        "pagination_complete": {
+          "default": false,
+          "title": "Pagination Complete",
+          "type": "boolean"
+        },
+        "truncated": {
+          "default": false,
+          "title": "Truncated",
+          "type": "boolean"
+        },
+        "errors": {
+          "default": [],
+          "items": {
+            "pattern": "^[A-Z0-9_]{1,100}$",
+            "type": "string"
+          },
+          "title": "Errors",
+          "type": "array"
+        },
+        "parser_profile": {
+          "default": "gcp-native-1",
+          "enum": [
+            "gcp-native-1",
+            "unsupported"
+          ],
+          "title": "Parser Profile",
+          "type": "string"
+        },
+        "normalized_resource_types": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Normalized Resource Types",
+          "type": "array"
+        },
+        "applicable_rules": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Applicable Rules",
+          "type": "array"
+        }
+      },
+      "required": [
+        "project_id",
+        "operation",
+        "status",
+        "record_count"
+      ],
+      "title": "GCPDataset",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "contract_version": {
+      "const": "closec-gcp-1",
+      "default": "closec-gcp-1",
+      "title": "Contract Version",
+      "type": "string"
+    },
+    "collector_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Collector Version",
+      "type": "string"
+    },
+    "assessment_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Assessment Id",
+      "type": "string"
+    },
+    "organization_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{1,20}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Organization Id"
+    },
+    "folder_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{1,20}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Folder Id"
+    },
+    "expected_projects": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$",
+        "type": "string"
+      },
+      "maxItems": 4096,
+      "minItems": 1,
+      "title": "Expected Projects",
+      "type": "array"
+    },
+    "collected_projects": {
+      "items": {
+        "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$",
+        "type": "string"
+      },
+      "maxItems": 4096,
+      "title": "Collected Projects",
+      "type": "array"
+    },
+    "dataset_origin": {
+      "enum": [
+        "synthetic",
+        "tool-generated"
+      ],
+      "title": "Dataset Origin",
+      "type": "string"
+    },
+    "provenance": {
+      "default": "collector-declared",
+      "enum": [
+        "collector-declared",
+        "manual-unverified"
+      ],
+      "title": "Provenance",
+      "type": "string"
+    },
+    "max_key_age_days": {
+      "default": 90,
+      "maximum": 3650,
+      "minimum": 1,
+      "title": "Max Key Age Days",
+      "type": "integer"
+    },
+    "datasets": {
+      "items": {
+        "$ref": "#/$defs/GCPDataset"
+      },
+      "maxItems": 1024,
+      "minItems": 1,
+      "title": "Datasets",
+      "type": "array"
+    }
+  },
+  "required": [
+    "collector_version",
+    "assessment_id",
+    "expected_projects",
+    "collected_projects",
+    "dataset_origin",
+    "datasets"
+  ],
+  "title": "GCPManifest",
+  "type": "object"
+}

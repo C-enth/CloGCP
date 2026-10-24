@@ -1,0 +1,167 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "artifact_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "locator": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Outcome": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "NOT_APPLICABLE",
+        "UNKNOWN",
+        "COLLECTION_ERROR",
+        "MANUAL_VALIDATION_REQUIRED"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "evaluation_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Evaluation Id",
+      "type": "string"
+    },
+    "run_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "control_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Control Id",
+      "type": "string"
+    },
+    "rule_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Rule Version",
+      "type": "string"
+    },
+    "methodology_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Methodology Sha256",
+      "type": "string"
+    },
+    "accounts": {
+      "items": {
+        "pattern": "^[0-9]{12}$",
+        "type": "string"
+      },
+      "title": "Accounts",
+      "type": "array"
+    },
+    "resource_ids": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Resource Ids",
+      "type": "array"
+    },
+    "outcome": {
+      "$ref": "#/$defs/Outcome"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "reasoning": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Reasoning",
+      "type": "string"
+    },
+    "missing_dependencies": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Missing Dependencies",
+      "type": "array"
+    },
+    "confidence": {
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "UNASSESSED"
+      ],
+      "title": "Confidence",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "assessed_at": {
+      "format": "date-time",
+      "title": "Assessed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "evaluation_id",
+    "run_id",
+    "control_id",
+    "rule_version",
+    "methodology_sha256",
+    "accounts",
+    "resource_ids",
+    "outcome",
+    "evidence",
+    "reasoning",
+    "missing_dependencies",
+    "confidence",
+    "limitations",
+    "assessed_at"
+  ],
+  "title": "Evaluation",
+  "type": "object"
+}

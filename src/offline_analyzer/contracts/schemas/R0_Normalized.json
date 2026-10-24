@@ -1,0 +1,388 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "artifact_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "locator": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "r0.1",
+      "default": "r0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provider": {
+      "default": "AWS",
+      "enum": [
+        "AWS",
+        "GCP"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "project_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project Id"
+    },
+    "project_number": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{1,20}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project Number"
+    },
+    "organization_id": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Organization Id"
+    },
+    "folder_id": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Folder Id"
+    },
+    "observation_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "account_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{12}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Account Id"
+    },
+    "region": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Region"
+    },
+    "resource_id": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Resource Id"
+    },
+    "native_id": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Native Id"
+    },
+    "resource_type": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Resource Type"
+    },
+    "partition": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Partition"
+    },
+    "source_tool": {
+      "enum": [
+        "aws",
+        "prowler",
+        "gcp"
+      ],
+      "title": "Source Tool",
+      "type": "string"
+    },
+    "source_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Source Version",
+      "type": "string"
+    },
+    "source_check_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Source Check Id",
+      "type": "string"
+    },
+    "source_status": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Source Status"
+    },
+    "source_severity": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Source Severity"
+    },
+    "collected_at": {
+      "anyOf": [
+        {
+          "format": "date-time",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Collected At"
+    },
+    "operation": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Operation",
+      "type": "string"
+    },
+    "normalization_version": {
+      "default": "r0.1.6",
+      "enum": [
+        "r0.1",
+        "r0.1.1",
+        "r0.1.2",
+        "r0.1.3",
+        "r0.1.4",
+        "r0.1.5",
+        "r0.1.6"
+      ],
+      "title": "Normalization Version",
+      "type": "string"
+    },
+    "source_finding_id": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Finding Id"
+    },
+    "source_status_id": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Status Id"
+    },
+    "source_status_caption": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Status Caption"
+    },
+    "collection_account_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{12}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Collection Account Id"
+    },
+    "collection_region": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Collection Region"
+    },
+    "source_details": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Source Details",
+      "type": "object"
+    },
+    "configuration": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Configuration",
+      "type": "object"
+    },
+    "evidence": {
+      "$ref": "#/$defs/EvidenceRef"
+    },
+    "integrity_sha256": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Integrity Sha256",
+      "type": "string"
+    },
+    "unresolved": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Unresolved",
+      "type": "array"
+    }
+  },
+  "required": [
+    "observation_id",
+    "account_id",
+    "region",
+    "resource_id",
+    "native_id",
+    "resource_type",
+    "partition",
+    "source_tool",
+    "source_version",
+    "source_check_id",
+    "source_status",
+    "source_severity",
+    "collected_at",
+    "operation",
+    "configuration",
+    "evidence",
+    "integrity_sha256"
+  ],
+  "title": "Normalized",
+  "type": "object"
+}

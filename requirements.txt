@@ -1,0 +1,23 @@
+# CloSec runtime only. CPython 3.12, macOS and Windows x64; no Node or executable builder.
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+click==8.5.0
+colorama==0.4.6; sys_platform == "win32"
+defusedxml==0.7.1
+duckdb==1.5.6
+et-xmlfile==2.0.0
+fastapi==0.143.0
+h11==0.16.0
+idna==3.20
+ijson==3.5.1
+networkx==3.6.1
+openpyxl==3.1.5
+opentelemetry-api==1.45.1
+pydantic-core==2.46.5
+pydantic==2.13.5
+python-multipart==0.0.32
+starlette==1.7.0
+typing-extensions==4.16.0
+typing-inspection==0.4.4
+uvicorn==0.54.0

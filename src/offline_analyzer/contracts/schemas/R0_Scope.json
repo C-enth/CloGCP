@@ -1,0 +1,28 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "r0.1",
+      "default": "r0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "account_id": {
+      "pattern": "^[0-9]{12}$",
+      "title": "Account Id",
+      "type": "string"
+    },
+    "region": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Region",
+      "type": "string"
+    }
+  },
+  "required": [
+    "account_id",
+    "region"
+  ],
+  "title": "Scope",
+  "type": "object"
+}

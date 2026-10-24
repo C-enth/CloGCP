@@ -1,0 +1,50 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "path-review-1",
+      "default": "path-review-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "path_id": {
+      "title": "Path Id",
+      "type": "string"
+    },
+    "fingerprint": {
+      "title": "Fingerprint",
+      "type": "string"
+    },
+    "analyst": {
+      "title": "Analyst",
+      "type": "string"
+    },
+    "reviewed_at": {
+      "format": "date-time",
+      "title": "Reviewed At",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "CONFIRMED",
+        "REJECTED"
+      ],
+      "title": "Status",
+      "type": "string"
+    }
+  },
+  "required": [
+    "run_id",
+    "path_id",
+    "fingerprint",
+    "analyst",
+    "reviewed_at",
+    "status"
+  ],
+  "title": "PathReview",
+  "type": "object"
+}

@@ -1,0 +1,54 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "enterprise-1",
+      "default": "enterprise-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "member_runs": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2048,
+      "minItems": 1,
+      "title": "Member Runs",
+      "type": "array"
+    },
+    "context": {
+      "additionalProperties": {
+        "anyOf": [
+          {
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      },
+      "title": "Context",
+      "type": "object"
+    },
+    "targets": {
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "maxItems": 16384,
+      "title": "Targets",
+      "type": "array"
+    }
+  },
+  "required": [
+    "member_runs",
+    "context",
+    "targets"
+  ],
+  "title": "EnterpriseSnapshot",
+  "type": "object"
+}

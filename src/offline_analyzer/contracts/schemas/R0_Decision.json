@@ -1,0 +1,64 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "r0.1",
+      "default": "r0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "finding_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "CONFIRMED",
+        "REJECTED",
+        "NEEDS_VALIDATION"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "analyst": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Analyst",
+      "type": "string"
+    },
+    "note": {
+      "maxLength": 16000,
+      "title": "Note",
+      "type": "string"
+    },
+    "decided_at": {
+      "format": "date-time",
+      "title": "Decided At",
+      "type": "string"
+    },
+    "run_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "evidence_fingerprint": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Evidence Fingerprint",
+      "type": "string"
+    }
+  },
+  "required": [
+    "finding_id",
+    "status",
+    "analyst",
+    "note",
+    "decided_at",
+    "run_id",
+    "evidence_fingerprint"
+  ],
+  "title": "Decision",
+  "type": "object"
+}

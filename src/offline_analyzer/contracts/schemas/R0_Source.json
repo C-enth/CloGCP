@@ -1,0 +1,265 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "r0.1",
+      "default": "r0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "path": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Path"
+    },
+    "sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Sha256"
+    },
+    "partition": {
+      "anyOf": [
+        {
+          "enum": [
+            "aws",
+            "aws-cn",
+            "aws-us-gov"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Partition"
+    },
+    "format": {
+      "enum": [
+        "aws-json-v1",
+        "prowler-ocsf-5.10",
+        "prowler-ocsf-5.26.1",
+        "gcp-json-v1"
+      ],
+      "title": "Format",
+      "type": "string"
+    },
+    "operation": {
+      "anyOf": [
+        {
+          "enum": [
+            "sts:GetCallerIdentity",
+            "ec2:DescribeSubnets",
+            "ec2:DescribeNetworkAcls",
+            "ec2:DescribeInternetGateways",
+            "s3api:GetBucketPolicy",
+            "kms:GetKeyPolicy",
+            "kms:ListGrants",
+            "lambda:ListFunctions",
+            "ecs:DescribeTaskDefinition",
+            "ec2:DescribeVpcs",
+            "ec2:DescribeVpcPeeringConnections",
+            "ec2:DescribeTransitGateways",
+            "ec2:DescribeTransitGatewayAttachments",
+            "ec2:DescribeTransitGatewayRouteTables",
+            "ec2:GetTransitGatewayRouteTableAssociations",
+            "ec2:GetTransitGatewayRouteTablePropagations",
+            "ec2:SearchTransitGatewayRoutes",
+            "ram:GetResourceShares",
+            "ram:ListResources",
+            "ram:ListPrincipals",
+            "ec2:DescribeInstances",
+            "rds:DescribeDBInstances",
+            "cloudtrail:DescribeTrails",
+            "ec2:DescribeSecurityGroups",
+            "ec2:DescribeNetworkInterfaces",
+            "iam:GetAccountAuthorizationDetails",
+            "iam:ListRoles",
+            "s3control:GetPublicAccessBlock",
+            "ec2:DescribeRouteTables",
+            "s3api:GetPublicAccessBlock",
+            "s3api:GetBucketPolicyStatus",
+            "s3api:GetBucketAcl",
+            "iam:GetRole",
+            "iam:ListAttachedRolePolicies",
+            "iam:ListRolePolicies",
+            "iam:GetRolePolicy",
+            "iam:GetPolicy",
+            "iam:GetPolicyVersion",
+            "iam:ListInstanceProfilesForRole",
+            "iam:GetInstanceProfile",
+            "organizations:DescribeOrganization",
+            "organizations:ListRoots",
+            "organizations:ListOrganizationalUnitsForParent",
+            "organizations:ListAccountsForParent",
+            "organizations:ListAccounts",
+            "organizations:ListParents",
+            "organizations:ListPolicies",
+            "organizations:DescribePolicy",
+            "organizations:ListTargetsForPolicy",
+            "organizations:ListPoliciesForTarget",
+            "cloudtrail:GetTrailStatus",
+            "cloudtrail:GetEventSelectors",
+            "guardduty:ListDetectors",
+            "guardduty:GetDetector",
+            "config:DescribeConfigurationRecorderStatus",
+            "securityhub:DescribeHub",
+            "kms:DescribeKey",
+            "kms:GetKeyRotationStatus",
+            "prowler:Scan"
+          ],
+          "type": "string"
+        },
+        {
+          "maxLength": 200,
+          "pattern": "^gcp:[A-Za-z0-9_.]+$",
+          "type": "string"
+        }
+      ],
+      "title": "Operation"
+    },
+    "account_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{12}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Account Id"
+    },
+    "region": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Region"
+    },
+    "collected_at": {
+      "format": "date-time",
+      "title": "Collected At",
+      "type": "string"
+    },
+    "coverage": {
+      "default": "PARTIAL",
+      "enum": [
+        "COMPLETE",
+        "PARTIAL",
+        "ERROR",
+        "NOT_COLLECTED"
+      ],
+      "title": "Coverage",
+      "type": "string"
+    },
+    "errors": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Errors",
+      "type": "array"
+    },
+    "collector_version": {
+      "default": "unspecified",
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Collector Version",
+      "type": "string"
+    },
+    "request_parameters": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Request Parameters"
+    },
+    "project_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project Id"
+    },
+    "project_number": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{1,20}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project Number"
+    },
+    "gcp_metadata": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Gcp Metadata"
+    }
+  },
+  "required": [
+    "format",
+    "operation",
+    "collected_at"
+  ],
+  "title": "Source",
+  "type": "object"
+}

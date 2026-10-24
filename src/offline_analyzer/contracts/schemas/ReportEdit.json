@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "ReportSections": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "maxLength": 500,
+          "minLength": 1,
+          "title": "Title",
+          "type": "string"
+        },
+        "severity": {
+          "enum": [
+            "INFO",
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
+          ],
+          "title": "Severity",
+          "type": "string"
+        },
+        "severity_rationale": {
+          "maxLength": 16000,
+          "title": "Severity Rationale",
+          "type": "string"
+        },
+        "technical_observation": {
+          "maxLength": 16000,
+          "title": "Technical Observation",
+          "type": "string"
+        },
+        "expected_posture": {
+          "maxLength": 16000,
+          "title": "Expected Posture",
+          "type": "string"
+        },
+        "risk": {
+          "maxLength": 16000,
+          "title": "Risk",
+          "type": "string"
+        },
+        "attack_scenario": {
+          "default": "Not established. Configuration evidence does not demonstrate exploitation.",
+          "maxLength": 16000,
+          "title": "Attack Scenario",
+          "type": "string"
+        },
+        "root_cause": {
+          "default": "Not established; validate configuration ownership and change history.",
+          "maxLength": 16000,
+          "title": "Root Cause",
+          "type": "string"
+        },
+        "remediation": {
+          "maxLength": 16000,
+          "title": "Remediation",
+          "type": "string"
+        },
+        "immediate_mitigation": {
+          "default": "",
+          "maxLength": 16000,
+          "title": "Immediate Mitigation",
+          "type": "string"
+        },
+        "considerations": {
+          "maxLength": 16000,
+          "title": "Considerations",
+          "type": "string"
+        },
+        "validation": {
+          "maxLength": 16000,
+          "title": "Validation",
+          "type": "string"
+        },
+        "references": {
+          "items": {
+            "maxLength": 2000,
+            "type": "string"
+          },
+          "maxItems": 20,
+          "title": "References",
+          "type": "array"
+        }
+      },
+      "required": [
+        "title",
+        "severity",
+        "severity_rationale",
+        "technical_observation",
+        "expected_posture",
+        "risk",
+        "remediation",
+        "considerations",
+        "validation",
+        "references"
+      ],
+      "title": "ReportSections",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "expected_revision": {
+      "minimum": 0,
+      "title": "Expected Revision",
+      "type": "integer"
+    },
+    "analyst": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Analyst",
+      "type": "string"
+    },
+    "sections": {
+      "$ref": "#/$defs/ReportSections"
+    },
+    "member_ids": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "maxItems": 2000,
+      "minItems": 1,
+      "title": "Member Ids",
+      "type": "array"
+    },
+    "include_in_report": {
+      "default": false,
+      "title": "Include In Report",
+      "type": "boolean"
+    },
+    "consolidation_basis": {
+      "default": "",
+      "maxLength": 16000,
+      "title": "Consolidation Basis",
+      "type": "string"
+    }
+  },
+  "required": [
+    "expected_revision",
+    "analyst",
+    "sections",
+    "member_ids"
+  ],
+  "title": "ReportEdit",
+  "type": "object"
+}

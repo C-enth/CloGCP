@@ -1,0 +1,165 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema": {
+      "const": "closec-evidence-request-item-1",
+      "default": "closec-evidence-request-item-1",
+      "title": "Schema",
+      "type": "string"
+    },
+    "request_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Request Id",
+      "type": "string"
+    },
+    "account_id": {
+      "pattern": "^[0-9]{12}$",
+      "title": "Account Id",
+      "type": "string"
+    },
+    "region": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Region",
+      "type": "string"
+    },
+    "operation": {
+      "enum": [
+        "sts:GetCallerIdentity",
+        "ec2:DescribeSubnets",
+        "ec2:DescribeNetworkAcls",
+        "ec2:DescribeInternetGateways",
+        "s3api:GetBucketPolicy",
+        "kms:GetKeyPolicy",
+        "kms:ListGrants",
+        "lambda:ListFunctions",
+        "ecs:DescribeTaskDefinition",
+        "ec2:DescribeVpcs",
+        "ec2:DescribeVpcPeeringConnections",
+        "ec2:DescribeTransitGateways",
+        "ec2:DescribeTransitGatewayAttachments",
+        "ec2:DescribeTransitGatewayRouteTables",
+        "ec2:GetTransitGatewayRouteTableAssociations",
+        "ec2:GetTransitGatewayRouteTablePropagations",
+        "ec2:SearchTransitGatewayRoutes",
+        "ram:GetResourceShares",
+        "ram:ListResources",
+        "ram:ListPrincipals",
+        "ec2:DescribeInstances",
+        "rds:DescribeDBInstances",
+        "cloudtrail:DescribeTrails",
+        "ec2:DescribeSecurityGroups",
+        "ec2:DescribeNetworkInterfaces",
+        "iam:GetAccountAuthorizationDetails",
+        "iam:ListRoles",
+        "s3control:GetPublicAccessBlock",
+        "ec2:DescribeRouteTables",
+        "s3api:GetPublicAccessBlock",
+        "s3api:GetBucketPolicyStatus",
+        "s3api:GetBucketAcl",
+        "iam:GetRole",
+        "iam:ListAttachedRolePolicies",
+        "iam:ListRolePolicies",
+        "iam:GetRolePolicy",
+        "iam:GetPolicy",
+        "iam:GetPolicyVersion",
+        "iam:ListInstanceProfilesForRole",
+        "iam:GetInstanceProfile",
+        "organizations:DescribeOrganization",
+        "organizations:ListRoots",
+        "organizations:ListOrganizationalUnitsForParent",
+        "organizations:ListAccountsForParent",
+        "organizations:ListAccounts",
+        "organizations:ListParents",
+        "organizations:ListPolicies",
+        "organizations:DescribePolicy",
+        "organizations:ListTargetsForPolicy",
+        "organizations:ListPoliciesForTarget",
+        "cloudtrail:GetTrailStatus",
+        "cloudtrail:GetEventSelectors",
+        "guardduty:ListDetectors",
+        "guardduty:GetDetector",
+        "config:DescribeConfigurationRecorderStatus",
+        "securityhub:DescribeHub",
+        "kms:DescribeKey",
+        "kms:GetKeyRotationStatus"
+      ],
+      "title": "Operation",
+      "type": "string"
+    },
+    "state": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "State",
+      "type": "string"
+    },
+    "reason": {
+      "title": "Reason",
+      "type": "string"
+    },
+    "request": {
+      "title": "Request",
+      "type": "string"
+    },
+    "request_parameters": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Request Parameters",
+      "type": "object"
+    },
+    "related_investigations": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Investigations",
+      "type": "array"
+    },
+    "related_controls": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Controls",
+      "type": "array"
+    },
+    "priority": {
+      "enum": [
+        "HIGH",
+        "NORMAL"
+      ],
+      "title": "Priority",
+      "type": "string"
+    },
+    "recommended_freshness_hours": {
+      "maximum": 168,
+      "minimum": 1,
+      "title": "Recommended Freshness Hours",
+      "type": "integer"
+    },
+    "freshness_basis": {
+      "title": "Freshness Basis",
+      "type": "string"
+    }
+  },
+  "required": [
+    "request_id",
+    "account_id",
+    "region",
+    "operation",
+    "state",
+    "reason",
+    "request",
+    "request_parameters",
+    "related_investigations",
+    "related_controls",
+    "priority",
+    "recommended_freshness_hours",
+    "freshness_basis"
+  ],
+  "title": "EvidenceRequest",
+  "type": "object"
+}

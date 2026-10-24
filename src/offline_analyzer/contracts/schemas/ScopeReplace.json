@@ -1,0 +1,42 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "scope-action-1",
+      "default": "scope-action-1",
+      "title": "Version",
+      "type": "string"
+    },
+    "provider": {
+      "enum": [
+        "AWS",
+        "GCP"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "scope_id": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "upload_id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Upload Id",
+      "type": "string"
+    },
+    "acknowledge_legacy_integrity": {
+      "default": false,
+      "title": "Acknowledge Legacy Integrity",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "provider",
+    "scope_id",
+    "upload_id"
+  ],
+  "title": "ScopeReplace",
+  "type": "object"
+}

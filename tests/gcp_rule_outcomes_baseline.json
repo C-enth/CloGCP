@@ -1,0 +1,775 @@
+{
+ "expanded": {
+  "GCP-API-API": {
+   "UNKNOWN": 4
+  },
+  "GCP-API-APP": {
+   "UNKNOWN": 4
+  },
+  "GCP-API-BOTH": {
+   "UNKNOWN": 4
+  },
+  "GCP-IAM-PUBLIC": {
+   "NOT_APPLICABLE": 1,
+   "PASS": 4,
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-AGE": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-PERSISTENT": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-PRIVILEGED": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-KMS-ROTATION": {
+   "UNKNOWN": 2
+  },
+  "GCP-LOG-AUDIT": {
+   "NOT_APPLICABLE": 4,
+   "UNKNOWN": 6
+  },
+  "GCP-LOG-EXCLUSION": {
+   "UNKNOWN": 2
+  },
+  "GCP-LOG-RETENTION": {
+   "UNKNOWN": 5
+  },
+  "GCP-NET-DEFAULT-NETWORK": {
+   "PASS": 2,
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FLOW-LOGS": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-FW-ADMIN-INTERNET": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-FW-ANY-INTERNET": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-FW-DB-INTERNET": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-PRIVATE-GOOGLE-ACCESS": {
+   "UNKNOWN": 2
+  },
+  "GCP-ORG-BASIC-ROLE": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-DELETED-PRINCIPAL": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-IMPERSONATION": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-DATA": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-OTHER": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-SERVERLESS": {
+   "UNKNOWN": 1
+  },
+  "GCP-SCC-OBSERVATION": {
+   "UNKNOWN": 3
+  },
+  "GCP-SQL-BACKUP": {
+   "UNKNOWN": 3
+  },
+  "GCP-SQL-OPEN-NETWORK": {
+   "UNKNOWN": 3
+  },
+  "GCP-SQL-PUBLIC-IP": {
+   "UNKNOWN": 3
+  },
+  "GCP-SQL-TLS": {
+   "UNKNOWN": 3
+  },
+  "GCP-STORAGE-PAP": {
+   "UNKNOWN": 3
+  },
+  "GCP-STORAGE-PUBLIC": {
+   "PASS": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-STORAGE-UBLA": {
+   "UNKNOWN": 3
+  },
+  "GCP-STORAGE-VERSIONING": {
+   "UNKNOWN": 3
+  },
+  "GCP-VM-DEFAULT-SA": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-EXTERNAL-IP": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-FULL-API-SCOPE": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-IP-FORWARD": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-OSLOGIN": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-PROJECT-SSH-KEYS": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-SERIAL-PORT": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-SHIELDED": {
+   "UNKNOWN": 2
+  }
+ },
+ "expanded22": {
+  "GCP-API-API": {
+   "NOT_APPLICABLE": 3
+  },
+  "GCP-API-APP": {
+   "NOT_APPLICABLE": 3
+  },
+  "GCP-API-BOTH": {
+   "FAIL": 3
+  },
+  "GCP-IAM-PUBLIC": {
+   "NOT_APPLICABLE": 1,
+   "PASS": 2,
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-AGE": {
+   "FAIL": 1
+  },
+  "GCP-KEY-PERSISTENT": {
+   "FAIL": 1
+  },
+  "GCP-KEY-PRIVILEGED": {
+   "FAIL": 1
+  },
+  "GCP-KMS-ROTATION": {
+   "UNKNOWN": 1
+  },
+  "GCP-LOG-AUDIT": {
+   "NOT_APPLICABLE": 3,
+   "UNKNOWN": 5
+  },
+  "GCP-LOG-EXCLUSION": {
+   "UNKNOWN": 1
+  },
+  "GCP-LOG-RETENTION": {
+   "UNKNOWN": 4
+  },
+  "GCP-NET-DEFAULT-NETWORK": {
+   "PASS": 2
+  },
+  "GCP-NET-FLOW-LOGS": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FW-ADMIN-INTERNET": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FW-ANY-INTERNET": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FW-DB-INTERNET": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-PRIVATE-GOOGLE-ACCESS": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-BASIC-ROLE": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-DELETED-PRINCIPAL": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-IMPERSONATION": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-DATA": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-OTHER": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-SERVERLESS": {
+   "UNKNOWN": 1
+  },
+  "GCP-SCC-OBSERVATION": {
+   "UNKNOWN": 2
+  },
+  "GCP-SQL-BACKUP": {
+   "UNKNOWN": 2
+  },
+  "GCP-SQL-OPEN-NETWORK": {
+   "UNKNOWN": 2
+  },
+  "GCP-SQL-PUBLIC-IP": {
+   "UNKNOWN": 2
+  },
+  "GCP-SQL-TLS": {
+   "UNKNOWN": 2
+  },
+  "GCP-STORAGE-PAP": {
+   "UNKNOWN": 2
+  },
+  "GCP-STORAGE-PUBLIC": {
+   "PASS": 1
+  },
+  "GCP-STORAGE-UBLA": {
+   "UNKNOWN": 2
+  },
+  "GCP-STORAGE-VERSIONING": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-DEFAULT-SA": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-EXTERNAL-IP": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-FULL-API-SCOPE": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-IP-FORWARD": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-OSLOGIN": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-PROJECT-SSH-KEYS": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-SERIAL-PORT": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-SHIELDED": {
+   "UNKNOWN": 1
+  }
+ },
+ "expanded_mixed": {
+  "GCP-API-API": {
+   "UNKNOWN": 4
+  },
+  "GCP-API-APP": {
+   "UNKNOWN": 4
+  },
+  "GCP-API-BOTH": {
+   "UNKNOWN": 4
+  },
+  "GCP-IAM-PUBLIC": {
+   "NOT_APPLICABLE": 1,
+   "PASS": 2,
+   "UNKNOWN": 2
+  },
+  "GCP-KEY-AGE": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-PERSISTENT": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-PRIVILEGED": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-KMS-ROTATION": {
+   "UNKNOWN": 2
+  },
+  "GCP-LOG-AUDIT": {
+   "NOT_APPLICABLE": 3,
+   "UNKNOWN": 6
+  },
+  "GCP-LOG-EXCLUSION": {
+   "UNKNOWN": 2
+  },
+  "GCP-LOG-RETENTION": {
+   "UNKNOWN": 5
+  },
+  "GCP-NET-DEFAULT-NETWORK": {
+   "PASS": 2,
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FLOW-LOGS": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-FW-ADMIN-INTERNET": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-FW-ANY-INTERNET": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-FW-DB-INTERNET": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-PRIVATE-GOOGLE-ACCESS": {
+   "UNKNOWN": 2
+  },
+  "GCP-ORG-BASIC-ROLE": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-DELETED-PRINCIPAL": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-IMPERSONATION": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-DATA": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-OTHER": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-SERVERLESS": {
+   "UNKNOWN": 1
+  },
+  "GCP-SCC-OBSERVATION": {
+   "UNKNOWN": 3
+  },
+  "GCP-SQL-BACKUP": {
+   "UNKNOWN": 3
+  },
+  "GCP-SQL-OPEN-NETWORK": {
+   "UNKNOWN": 3
+  },
+  "GCP-SQL-PUBLIC-IP": {
+   "UNKNOWN": 3
+  },
+  "GCP-SQL-TLS": {
+   "UNKNOWN": 3
+  },
+  "GCP-STORAGE-PAP": {
+   "UNKNOWN": 3
+  },
+  "GCP-STORAGE-PUBLIC": {
+   "PASS": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-STORAGE-UBLA": {
+   "UNKNOWN": 3
+  },
+  "GCP-STORAGE-VERSIONING": {
+   "UNKNOWN": 3
+  },
+  "GCP-VM-DEFAULT-SA": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-EXTERNAL-IP": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-FULL-API-SCOPE": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-IP-FORWARD": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-OSLOGIN": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-PROJECT-SSH-KEYS": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-SERIAL-PORT": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-SHIELDED": {
+   "UNKNOWN": 2
+  }
+ },
+ "gcp_fixture": {
+  "GCP-API-API": {
+   "NOT_APPLICABLE": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-API-APP": {
+   "NOT_APPLICABLE": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-API-BOTH": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-IAM-PUBLIC": {
+   "FAIL": 1,
+   "PASS": 3,
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-AGE": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-PERSISTENT": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-PRIVILEGED": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-KMS-ROTATION": {
+   "UNKNOWN": 2
+  },
+  "GCP-LOG-AUDIT": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-LOG-EXCLUSION": {
+   "FAIL": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-LOG-RETENTION": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-DEFAULT-NETWORK": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-FLOW-LOGS": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-FW-ADMIN-INTERNET": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-FW-ANY-INTERNET": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-FW-DB-INTERNET": {
+   "UNKNOWN": 2
+  },
+  "GCP-NET-PRIVATE-GOOGLE-ACCESS": {
+   "UNKNOWN": 2
+  },
+  "GCP-ORG-BASIC-ROLE": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-DELETED-PRINCIPAL": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-IMPERSONATION": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-DATA": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-OTHER": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-SERVERLESS": {
+   "UNKNOWN": 1
+  },
+  "GCP-SCC-OBSERVATION": {
+   "NOT_APPLICABLE": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-SQL-BACKUP": {
+   "UNKNOWN": 2
+  },
+  "GCP-SQL-OPEN-NETWORK": {
+   "UNKNOWN": 2
+  },
+  "GCP-SQL-PUBLIC-IP": {
+   "UNKNOWN": 2
+  },
+  "GCP-SQL-TLS": {
+   "UNKNOWN": 2
+  },
+  "GCP-STORAGE-PAP": {
+   "UNKNOWN": 2
+  },
+  "GCP-STORAGE-PUBLIC": {
+   "UNKNOWN": 2
+  },
+  "GCP-STORAGE-UBLA": {
+   "UNKNOWN": 2
+  },
+  "GCP-STORAGE-VERSIONING": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-DEFAULT-SA": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-EXTERNAL-IP": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-FULL-API-SCOPE": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-IP-FORWARD": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-OSLOGIN": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-PROJECT-SSH-KEYS": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-SERIAL-PORT": {
+   "UNKNOWN": 2
+  },
+  "GCP-VM-SHIELDED": {
+   "UNKNOWN": 2
+  }
+ },
+ "package_227": {
+  "GCP-API-API": {
+   "NOT_APPLICABLE": 3
+  },
+  "GCP-API-APP": {
+   "NOT_APPLICABLE": 3
+  },
+  "GCP-API-BOTH": {
+   "FAIL": 3
+  },
+  "GCP-IAM-PUBLIC": {
+   "NOT_APPLICABLE": 2,
+   "PASS": 2,
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-AGE": {
+   "FAIL": 1
+  },
+  "GCP-KEY-PERSISTENT": {
+   "FAIL": 1
+  },
+  "GCP-KEY-PRIVILEGED": {
+   "FAIL": 1
+  },
+  "GCP-KMS-ROTATION": {
+   "UNKNOWN": 1
+  },
+  "GCP-LOG-AUDIT": {
+   "NOT_APPLICABLE": 4,
+   "UNKNOWN": 5
+  },
+  "GCP-LOG-EXCLUSION": {
+   "UNKNOWN": 1
+  },
+  "GCP-LOG-RETENTION": {
+   "UNKNOWN": 4
+  },
+  "GCP-NET-DEFAULT-NETWORK": {
+   "PASS": 2
+  },
+  "GCP-NET-FLOW-LOGS": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FW-ADMIN-INTERNET": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FW-ANY-INTERNET": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FW-DB-INTERNET": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-PRIVATE-GOOGLE-ACCESS": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-BASIC-ROLE": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-DELETED-PRINCIPAL": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-EXTERNAL-DOMAIN": {
+   "MANUAL_VALIDATION_REQUIRED": 1
+  },
+  "GCP-ORG-FEDERATION": {
+   "MANUAL_VALIDATION_REQUIRED": 1
+  },
+  "GCP-ORG-IMPERSONATION": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-DATA": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-OTHER": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-SERVERLESS": {
+   "UNKNOWN": 1
+  },
+  "GCP-SCC-OBSERVATION": {
+   "UNKNOWN": 2
+  },
+  "GCP-SQL-BACKUP": {
+   "UNKNOWN": 2
+  },
+  "GCP-SQL-OPEN-NETWORK": {
+   "UNKNOWN": 2
+  },
+  "GCP-SQL-PUBLIC-IP": {
+   "UNKNOWN": 2
+  },
+  "GCP-SQL-TLS": {
+   "UNKNOWN": 2
+  },
+  "GCP-STORAGE-PAP": {
+   "PASS": 2
+  },
+  "GCP-STORAGE-PUBLIC": {
+   "PASS": 2
+  },
+  "GCP-STORAGE-UBLA": {
+   "PASS": 2
+  },
+  "GCP-STORAGE-VERSIONING": {
+   "PASS": 2
+  },
+  "GCP-VM-DEFAULT-SA": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-EXTERNAL-IP": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-FULL-API-SCOPE": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-IP-FORWARD": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-OSLOGIN": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-PROJECT-SSH-KEYS": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-SERIAL-PORT": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-SHIELDED": {
+   "UNKNOWN": 1
+  }
+ },
+ "pilot": {
+  "GCP-API-API": {
+   "UNKNOWN": 1
+  },
+  "GCP-API-APP": {
+   "UNKNOWN": 1
+  },
+  "GCP-API-BOTH": {
+   "UNKNOWN": 1
+  },
+  "GCP-IAM-PUBLIC": {
+   "PASS": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-AGE": {
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-PERSISTENT": {
+   "UNKNOWN": 1
+  },
+  "GCP-KEY-PRIVILEGED": {
+   "UNKNOWN": 1
+  },
+  "GCP-KMS-ROTATION": {
+   "UNKNOWN": 1
+  },
+  "GCP-LOG-AUDIT": {
+   "UNKNOWN": 2
+  },
+  "GCP-LOG-EXCLUSION": {
+   "UNKNOWN": 1
+  },
+  "GCP-LOG-RETENTION": {
+   "MANUAL_VALIDATION_REQUIRED": 1,
+   "UNKNOWN": 1
+  },
+  "GCP-NET-DEFAULT-NETWORK": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FLOW-LOGS": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FW-ADMIN-INTERNET": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FW-ANY-INTERNET": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-FW-DB-INTERNET": {
+   "UNKNOWN": 1
+  },
+  "GCP-NET-PRIVATE-GOOGLE-ACCESS": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-BASIC-ROLE": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-DELETED-PRINCIPAL": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-IMPERSONATION": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-DATA": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-OTHER": {
+   "UNKNOWN": 1
+  },
+  "GCP-ORG-PUBLIC-SERVERLESS": {
+   "UNKNOWN": 1
+  },
+  "GCP-SCC-OBSERVATION": {
+   "UNKNOWN": 1
+  },
+  "GCP-SQL-BACKUP": {
+   "UNKNOWN": 1
+  },
+  "GCP-SQL-OPEN-NETWORK": {
+   "UNKNOWN": 1
+  },
+  "GCP-SQL-PUBLIC-IP": {
+   "UNKNOWN": 1
+  },
+  "GCP-SQL-TLS": {
+   "UNKNOWN": 1
+  },
+  "GCP-STORAGE-PAP": {
+   "UNKNOWN": 1
+  },
+  "GCP-STORAGE-PUBLIC": {
+   "UNKNOWN": 1
+  },
+  "GCP-STORAGE-UBLA": {
+   "UNKNOWN": 1
+  },
+  "GCP-STORAGE-VERSIONING": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-DEFAULT-SA": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-EXTERNAL-IP": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-FULL-API-SCOPE": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-IP-FORWARD": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-OSLOGIN": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-PROJECT-SSH-KEYS": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-SERIAL-PORT": {
+   "UNKNOWN": 1
+  },
+  "GCP-VM-SHIELDED": {
+   "UNKNOWN": 1
+  }
+ }
+}

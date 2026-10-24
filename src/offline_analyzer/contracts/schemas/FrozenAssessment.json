@@ -1,0 +1,50 @@
+{
+  "$defs": {
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "finalized-assessment-1",
+      "default": "finalized-assessment-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "title": "Run Id",
+      "type": "string"
+    },
+    "created_at": {
+      "format": "date-time",
+      "title": "Created At",
+      "type": "string"
+    },
+    "analyst": {
+      "title": "Analyst",
+      "type": "string"
+    },
+    "view": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "View",
+      "type": "object"
+    },
+    "document": {
+      "additionalProperties": {
+        "$ref": "#/$defs/JsonValue"
+      },
+      "title": "Document",
+      "type": "object"
+    }
+  },
+  "required": [
+    "run_id",
+    "created_at",
+    "analyst",
+    "view",
+    "document"
+  ],
+  "title": "FrozenAssessment",
+  "type": "object"
+}

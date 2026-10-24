@@ -1,0 +1,177 @@
+{
+  "$defs": {
+    "Artifact": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "artifact_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "relative_path": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Relative Path",
+          "type": "string"
+        },
+        "sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "title": "Sha256",
+          "type": "string"
+        },
+        "size_bytes": {
+          "minimum": 0,
+          "title": "Size Bytes",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "relative_path",
+        "sha256",
+        "size_bytes"
+      ],
+      "title": "Artifact",
+      "type": "object"
+    },
+    "Coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "account_id": {
+          "pattern": "^[0-9]{12}$",
+          "title": "Account Id",
+          "type": "string"
+        },
+        "region": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Region",
+          "type": "string"
+        },
+        "service": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Service",
+          "type": "string"
+        },
+        "operation": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Operation",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "COMPLETE",
+            "PARTIAL",
+            "ERROR",
+            "NOT_COLLECTED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "errors": {
+          "default": [],
+          "items": {
+            "maxLength": 512,
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Errors",
+          "type": "array"
+        }
+      },
+      "required": [
+        "account_id",
+        "region",
+        "service",
+        "operation",
+        "status"
+      ],
+      "title": "Coverage",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "run_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "source_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Source Id",
+      "type": "string"
+    },
+    "collector": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Collector",
+      "type": "string"
+    },
+    "collector_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Collector Version",
+      "type": "string"
+    },
+    "collection_started": {
+      "format": "date-time",
+      "title": "Collection Started",
+      "type": "string"
+    },
+    "collection_finished": {
+      "format": "date-time",
+      "title": "Collection Finished",
+      "type": "string"
+    },
+    "artifacts": {
+      "items": {
+        "$ref": "#/$defs/Artifact"
+      },
+      "title": "Artifacts",
+      "type": "array"
+    },
+    "coverage": {
+      "items": {
+        "$ref": "#/$defs/Coverage"
+      },
+      "title": "Coverage",
+      "type": "array"
+    }
+  },
+  "required": [
+    "run_id",
+    "source_id",
+    "collector",
+    "collector_version",
+    "collection_started",
+    "collection_finished",
+    "artifacts",
+    "coverage"
+  ],
+  "title": "Manifest",
+  "type": "object"
+}

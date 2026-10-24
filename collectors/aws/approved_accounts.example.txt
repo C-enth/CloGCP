@@ -1,0 +1,2 @@
+# One approved 12-digit account ID per line. Preserve leading zeros.
+# Copy to approved_accounts.txt and replace this example; this file is an allowlist, not discovery.

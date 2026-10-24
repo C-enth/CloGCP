@@ -1,0 +1,99 @@
+{
+  "additionalProperties": false,
+  "description": "Static relationships and attack prerequisites remain separate claims.",
+  "properties": {
+    "schema_version": {
+      "const": "cloud-transition-1",
+      "default": "cloud-transition-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provider": {
+      "enum": [
+        "AWS",
+        "GCP"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "source": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Source",
+      "type": "string"
+    },
+    "destination": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Destination",
+      "type": "string"
+    },
+    "relationship": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Relationship",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "STRUCTURAL_ONLY",
+        "SUPPORTED",
+        "POTENTIAL",
+        "BLOCKED",
+        "UNKNOWN"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "evidence": {
+      "default": [],
+      "items": {
+        "additionalProperties": {
+          "type": "string"
+        },
+        "type": "object"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "attack_prerequisites": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Attack Prerequisites",
+      "type": "array"
+    },
+    "missing_evidence": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Missing Evidence",
+      "type": "array"
+    },
+    "blocking_controls": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Blocking Controls",
+      "type": "array"
+    }
+  },
+  "required": [
+    "provider",
+    "source",
+    "destination",
+    "relationship",
+    "status"
+  ],
+  "title": "CloudTransition",
+  "type": "object"
+}

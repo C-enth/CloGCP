@@ -1,0 +1,178 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "artifact_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "locator": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "JsonValue": {},
+    "Resource": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "resource_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Resource Id",
+          "type": "string"
+        },
+        "partition": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Partition",
+          "type": "string"
+        },
+        "account_id": {
+          "pattern": "^[0-9]{12}$",
+          "title": "Account Id",
+          "type": "string"
+        },
+        "region": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Region",
+          "type": "string"
+        },
+        "service": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Service",
+          "type": "string"
+        },
+        "native_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Native Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource_id",
+        "partition",
+        "account_id",
+        "region",
+        "service",
+        "native_id"
+      ],
+      "title": "Resource",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "observation_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Observation Id",
+      "type": "string"
+    },
+    "run_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "source_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Source Id",
+      "type": "string"
+    },
+    "parser_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Parser Id",
+      "type": "string"
+    },
+    "parser_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Parser Version",
+      "type": "string"
+    },
+    "resource": {
+      "$ref": "#/$defs/Resource"
+    },
+    "predicate": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Predicate",
+      "type": "string"
+    },
+    "value": {
+      "$ref": "#/$defs/JsonValue"
+    },
+    "observed_at": {
+      "format": "date-time",
+      "title": "Observed At",
+      "type": "string"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "minItems": 1,
+      "title": "Evidence",
+      "type": "array"
+    },
+    "limitations": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "observation_id",
+    "run_id",
+    "source_id",
+    "parser_id",
+    "parser_version",
+    "resource",
+    "predicate",
+    "value",
+    "observed_at",
+    "evidence"
+  ],
+  "title": "Observation",
+  "type": "object"
+}

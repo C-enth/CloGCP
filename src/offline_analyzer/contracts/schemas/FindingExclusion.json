@@ -1,0 +1,115 @@
+{
+  "additionalProperties": false,
+  "description": "Append-only record; the latest record per finding decides whether it is excluded.",
+  "properties": {
+    "schema_version": {
+      "const": "finding-exclusion-1",
+      "default": "finding-exclusion-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "finding_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Finding Id",
+      "type": "string"
+    },
+    "run_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "action": {
+      "enum": [
+        "EXCLUDE",
+        "RESTORE"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "FALSE_POSITIVE",
+            "DUPLICATE",
+            "ACCEPTED_RISK",
+            "OUT_OF_SCOPE",
+            "COMPENSATING_CONTROL",
+            "NOT_APPLICABLE",
+            "OTHER"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    },
+    "note": {
+      "default": "",
+      "maxLength": 2000,
+      "title": "Note",
+      "type": "string"
+    },
+    "analyst": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Analyst",
+      "type": "string"
+    },
+    "recorded_at": {
+      "format": "date-time",
+      "title": "Recorded At",
+      "type": "string"
+    },
+    "previous_state": {
+      "anyOf": [
+        {
+          "maxLength": 60,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Previous State"
+    },
+    "principals": {
+      "default": [],
+      "items": {
+        "maxLength": 400,
+        "type": "string"
+      },
+      "title": "Principals",
+      "type": "array"
+    },
+    "carried_from": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Carried From"
+    }
+  },
+  "required": [
+    "finding_id",
+    "run_id",
+    "action",
+    "analyst",
+    "recorded_at"
+  ],
+  "title": "FindingExclusion",
+  "type": "object"
+}

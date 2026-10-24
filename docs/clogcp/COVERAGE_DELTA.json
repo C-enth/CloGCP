@@ -1,0 +1,31 @@
+{
+  "baseline_criteria": 48,
+  "clogcp_criteria": 77,
+  "baseline_direct_family_entries": 34,
+  "clogcp_direct_family_entries": 56,
+  "new_direct_family_entries": [
+    "alert_policies",
+    "artifact_repositories",
+    "artifact_repositories_rest",
+    "backend_services",
+    "bigquery_datasets_rest",
+    "bq_dataset_details",
+    "cloud_run",
+    "cloudbuild_triggers",
+    "cloudbuild_triggers_rest",
+    "dns_managed_zones",
+    "firewall_policies",
+    "functions",
+    "functions_rest",
+    "gke_clusters",
+    "gke_clusters_rest",
+    "gke_node_pools",
+    "pubsub_subscriptions",
+    "run_services_rest",
+    "secrets",
+    "secrets_rest",
+    "ssl_policies",
+    "workload_pool_providers"
+  ],
+  "qualification": "Catalog entries include aliases and review-only criteria, not complete service control coverage."
+}

@@ -1,0 +1,58 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "finding-exclusion-request-1",
+      "default": "finding-exclusion-request-1",
+      "title": "Version",
+      "type": "string"
+    },
+    "action": {
+      "enum": [
+        "EXCLUDE",
+        "RESTORE"
+      ],
+      "title": "Action",
+      "type": "string"
+    },
+    "reason": {
+      "anyOf": [
+        {
+          "enum": [
+            "FALSE_POSITIVE",
+            "DUPLICATE",
+            "ACCEPTED_RISK",
+            "OUT_OF_SCOPE",
+            "COMPENSATING_CONTROL",
+            "NOT_APPLICABLE",
+            "OTHER"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Reason"
+    },
+    "note": {
+      "default": "",
+      "maxLength": 2000,
+      "title": "Note",
+      "type": "string"
+    },
+    "analyst": {
+      "maxLength": 200,
+      "minLength": 1,
+      "title": "Analyst",
+      "type": "string"
+    }
+  },
+  "required": [
+    "action",
+    "analyst"
+  ],
+  "title": "ExclusionRequest",
+  "type": "object"
+}

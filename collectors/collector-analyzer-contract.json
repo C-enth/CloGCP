@@ -1,0 +1,3108 @@
+{
+  "contract": "closec-collector-analyzer",
+  "contract_version": "2.0.0",
+  "lifecycle": [
+    "COLLECTED",
+    "RECOGNIZED",
+    "NORMALIZED",
+    "EVALUATED",
+    "DISPLAYED",
+    "REPORTABLE"
+  ],
+  "rule": "Missing, denied or failed evidence never yields PASS; recognition is not coverage; a scanner or SCC finding is never an approved vulnerability.",
+  "providers": [
+    {
+      "provider": "AWS",
+      "collector": "collectors/aws/assessment.py",
+      "collector_version": "0.3.2",
+      "manifest_schema": "closec-provisional-0.3",
+      "accepted_collector_versions": [
+        "0.3.0",
+        "0.3.1",
+        "0.3.2"
+      ],
+      "analyzer_adapter": "closec-v030-native-1",
+      "operation_names": "botocore 1.43.113 model table (135)",
+      "journal": {
+        "file": "operations.jsonl",
+        "required_fields": [
+          "account_id",
+          "collection_id",
+          "region",
+          "service",
+          "operation",
+          "outcome",
+          "started_at",
+          "completed_at",
+          "files"
+        ],
+        "outcomes": [
+          "ACCESS_DENIED",
+          "API_ERROR",
+          "COMPLETE",
+          "NOT_COLLECTED",
+          "NOT_ENABLED",
+          "PARTIAL"
+        ],
+        "outcome_mapping": {
+          "COMPLETE": "SUCCEEDED; residual pagination token -> PARTIAL coverage",
+          "PARTIAL": "SUCCEEDED with TRUNCATED pagination -> PARTIAL coverage",
+          "NOT_ENABLED": "AWS-defined absence code -> derived absence evidence; otherwise FAILED (coverage ERROR)",
+          "ACCESS_DENIED": "FAILED (coverage ERROR); never PASS",
+          "API_ERROR": "FAILED (coverage ERROR); never PASS",
+          "NOT_COLLECTED": "SKIPPED (coverage NOT_COLLECTED)"
+        },
+        "multi_page_responses": "merged into .closec-derived/ with source page SHA-256s"
+      },
+      "integrity": "checksums.sha256 must list every file; mismatch or omission fails closed",
+      "datasets": [
+        {
+          "dataset": "iam.get_account_authorization_details",
+          "operation": "iam:GetAccountAuthorizationDetails",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R1-IAM-INSTANCE-ROLE-PRIVILEGE",
+            "R1-IAM-ROLE-TRUST-CONDITIONS",
+            "SEC-IAM-ROLE-WILDCARD"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "iam.get_account_summary",
+          "operation": "iam:GetAccountSummary",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "iam.list_instance_profiles",
+          "operation": "iam:ListInstanceProfiles",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "iam.get_account_password_policy",
+          "operation": "iam:GetAccountPasswordPolicy",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "iam.list_users",
+          "operation": "iam:ListUsers",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "iam.list_roles",
+          "operation": "iam:ListRoles",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R1-IAM-INSTANCE-ROLE-PRIVILEGE",
+            "R1-IAM-ROLE-TRUST-CONDITIONS",
+            "SEC-IAM-ROLE-WILDCARD"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "iam.list_groups",
+          "operation": "iam:ListGroups",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "iam.list_policies",
+          "operation": "iam:ListPolicies",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "iam.list_virtual_mfa_devices",
+          "operation": "iam:ListVirtualMFADevices",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "iam.list_saml_providers",
+          "operation": "iam:ListSAMLProviders",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "iam.list_open_id_connect_providers",
+          "operation": "iam:ListOpenIDConnectProviders",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "iam.list_account_aliases",
+          "operation": "iam:ListAccountAliases",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.list_buckets",
+          "operation": "s3api:ListBuckets",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3control.get_public_access_block",
+          "operation": "s3control:GetPublicAccessBlock",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R1-S3-ACCOUNT-BPA",
+            "R1-S3-BUCKET-PUBLIC-ACCESS"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "cloudfront.list_distributions",
+          "operation": "cloudfront:ListDistributions",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "route53.list_hosted_zones",
+          "operation": "route53:ListHostedZones",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "organizations.describe_organization",
+          "operation": "organizations:DescribeOrganization",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "organizations.list_roots",
+          "operation": "organizations:ListRoots",
+          "phase": "GLOBAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ec2.describe_iam_instance_profile_associations",
+          "operation": "ec2:DescribeIamInstanceProfileAssociations",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_vpcs",
+          "operation": "ec2:DescribeVpcs",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ec2.describe_subnets",
+          "operation": "ec2:DescribeSubnets",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ec2.describe_route_tables",
+          "operation": "ec2:DescribeRouteTables",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R1-EC2-SG-SENSITIVE-INGRESS",
+            "R1-RDS-PUBLIC-ACCESS"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "ec2.describe_security_groups",
+          "operation": "ec2:DescribeSecurityGroups",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R1-EC2-SG-SENSITIVE-INGRESS",
+            "R1-RDS-PUBLIC-ACCESS",
+            "SEC-EC2-SG-LATENT-EXPOSURE"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "ec2.describe_security_group_rules",
+          "operation": "ec2:DescribeSecurityGroupRules",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_network_acls",
+          "operation": "ec2:DescribeNetworkAcls",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ec2.describe_instances",
+          "operation": "ec2:DescribeInstances",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R0-EC2-IMDSV2",
+            "R1-EC2-IMDS-HOP-LIMIT"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "ec2.describe_network_interfaces",
+          "operation": "ec2:DescribeNetworkInterfaces",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R1-EC2-SG-SENSITIVE-INGRESS",
+            "SEC-EC2-SG-LATENT-EXPOSURE"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "ec2.describe_addresses",
+          "operation": "ec2:DescribeAddresses",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_internet_gateways",
+          "operation": "ec2:DescribeInternetGateways",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ec2.describe_nat_gateways",
+          "operation": "ec2:DescribeNatGateways",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_egress_only_internet_gateways",
+          "operation": "ec2:DescribeEgressOnlyInternetGateways",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_vpc_peering_connections",
+          "operation": "ec2:DescribeVpcPeeringConnections",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ec2.describe_vpc_endpoints",
+          "operation": "ec2:DescribeVpcEndpoints",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_transit_gateways",
+          "operation": "ec2:DescribeTransitGateways",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ec2.describe_transit_gateway_attachments",
+          "operation": "ec2:DescribeTransitGatewayAttachments",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ec2.describe_transit_gateway_route_tables",
+          "operation": "ec2:DescribeTransitGatewayRouteTables",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ec2.describe_flow_logs",
+          "operation": "ec2:DescribeFlowLogs",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_vpn_connections",
+          "operation": "ec2:DescribeVpnConnections",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_vpn_gateways",
+          "operation": "ec2:DescribeVpnGateways",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_customer_gateways",
+          "operation": "ec2:DescribeCustomerGateways",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_transit_gateway_vpc_attachments",
+          "operation": "ec2:DescribeTransitGatewayVpcAttachments",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_prefix_lists",
+          "operation": "ec2:DescribePrefixLists",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.describe_managed_prefix_lists",
+          "operation": "ec2:DescribeManagedPrefixLists",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "rds.describe_db_instances",
+          "operation": "rds:DescribeDBInstances",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R0-RDS-ENCRYPTION",
+            "R1-RDS-PUBLIC-ACCESS"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "rds.describe_db_clusters",
+          "operation": "rds:DescribeDBClusters",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "rds.describe_db_subnet_groups",
+          "operation": "rds:DescribeDBSubnetGroups",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "rds.describe_db_snapshots",
+          "operation": "rds:DescribeDBSnapshots",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "rds.describe_db_cluster_snapshots",
+          "operation": "rds:DescribeDBClusterSnapshots",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "rds.describe_db_parameter_groups",
+          "operation": "rds:DescribeDBParameterGroups",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "rds.describe_db_cluster_parameter_groups",
+          "operation": "rds:DescribeDBClusterParameterGroups",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "rds.describe_db_proxies",
+          "operation": "rds:DescribeDBProxies",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "kms.list_keys",
+          "operation": "kms:ListKeys",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "kms.list_aliases",
+          "operation": "kms:ListAliases",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "cloudtrail.describe_trails",
+          "operation": "cloudtrail:DescribeTrails",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R0-CLOUDTRAIL-VALIDATION"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "cloudtrail.list_trails",
+          "operation": "cloudtrail:ListTrails",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "config.describe_configuration_recorders",
+          "operation": "config:DescribeConfigurationRecorders",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "config.describe_configuration_recorder_status",
+          "operation": "config:DescribeConfigurationRecorderStatus",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "SEC-CONFIG-RECORDING"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "config.describe_delivery_channels",
+          "operation": "config:DescribeDeliveryChannels",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "config.describe_config_rules",
+          "operation": "config:DescribeConfigRules",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "config.describe_aggregation_authorizations",
+          "operation": "config:DescribeAggregationAuthorizations",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "config.describe_configuration_aggregators",
+          "operation": "config:DescribeConfigurationAggregators",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "guardduty.list_detectors",
+          "operation": "guardduty:ListDetectors",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "SEC-GUARDDUTY-ENABLED"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "securityhub.describe_hub",
+          "operation": "securityhub:DescribeHub",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "SEC-SECURITYHUB-ENABLED"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "securityhub.get_enabled_standards",
+          "operation": "securityhub:GetEnabledStandards",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "securityhub.get_findings",
+          "operation": "securityhub:GetFindings",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "accessanalyzer.list_analyzers",
+          "operation": "accessanalyzer:ListAnalyzers",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "elbv2.describe_load_balancers",
+          "operation": "elbv2:DescribeLoadBalancers",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "elbv2.describe_target_groups",
+          "operation": "elbv2:DescribeTargetGroups",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "lambda.list_functions",
+          "operation": "lambda:ListFunctions",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "lambda.list_layers",
+          "operation": "lambda:ListLayers",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "lambda.list_event_source_mappings",
+          "operation": "lambda:ListEventSourceMappings",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ecs.list_clusters",
+          "operation": "ecs:ListClusters",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "eks.list_clusters",
+          "operation": "eks:ListClusters",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ecr.describe_repositories",
+          "operation": "ecr:DescribeRepositories",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "dynamodb.list_tables",
+          "operation": "dynamodb:ListTables",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "efs.describe_file_systems",
+          "operation": "efs:DescribeFileSystems",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "fsx.describe_file_systems",
+          "operation": "fsx:DescribeFileSystems",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "secretsmanager.list_secrets",
+          "operation": "secretsmanager:ListSecrets",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "logs.describe_log_groups",
+          "operation": "logs:DescribeLogGroups",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "cloudwatch.describe_alarms",
+          "operation": "cloudwatch:DescribeAlarms",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "events.list_rules",
+          "operation": "events:ListRules",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "wafv2.list_web_acls",
+          "operation": "wafv2:ListWebACLs",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "network-firewall.list_firewalls",
+          "operation": "network-firewall:ListFirewalls",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "network-firewall.list_firewall_policies",
+          "operation": "network-firewall:ListFirewallPolicies",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "network-firewall.list_rule_groups",
+          "operation": "network-firewall:ListRuleGroups",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "inspector2.list_findings",
+          "operation": "inspector2:ListFindings",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "macie2.get_macie_session",
+          "operation": "macie2:GetMacieSession",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "apigateway.get_rest_apis",
+          "operation": "apigateway:GetRestApis",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "apigatewayv2.get_apis",
+          "operation": "apigatewayv2:GetApis",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "resourcegroupstaggingapi.get_resources",
+          "operation": "resourcegroupstaggingapi:GetResources",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "resource-explorer-2.list_indexes",
+          "operation": "resource-explorer-2:ListIndexes",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ram.list_resources",
+          "operation": "ram:ListResources",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ssm.describe_instance_information",
+          "operation": "ssm:DescribeInstanceInformation",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "route53resolver.list_resolver_endpoints",
+          "operation": "route53resolver:ListResolverEndpoints",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "route53resolver.list_resolver_rules",
+          "operation": "route53resolver:ListResolverRules",
+          "phase": "REGIONAL",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.get_bucket_location",
+          "operation": "s3api:GetBucketLocation",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.get_public_access_block",
+          "operation": "s3api:GetPublicAccessBlock",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R1-S3-BUCKET-PUBLIC-ACCESS"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "s3.get_bucket_policy",
+          "operation": "s3api:GetBucketPolicy",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "s3.get_bucket_policy_status",
+          "operation": "s3api:GetBucketPolicyStatus",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R1-S3-BUCKET-PUBLIC-ACCESS"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "s3.get_bucket_encryption",
+          "operation": "s3api:GetBucketEncryption",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.get_bucket_versioning",
+          "operation": "s3api:GetBucketVersioning",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.get_bucket_logging",
+          "operation": "s3api:GetBucketLogging",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.get_bucket_acl",
+          "operation": "s3api:GetBucketAcl",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R1-S3-BUCKET-PUBLIC-ACCESS"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "s3.get_bucket_ownership_controls",
+          "operation": "s3api:GetBucketOwnershipControls",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.get_bucket_replication",
+          "operation": "s3api:GetBucketReplication",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.get_bucket_lifecycle_configuration",
+          "operation": "s3api:GetBucketLifecycleConfiguration",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.get_bucket_notification_configuration",
+          "operation": "s3api:GetBucketNotificationConfiguration",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.get_bucket_website",
+          "operation": "s3api:GetBucketWebsite",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.get_bucket_cors",
+          "operation": "s3api:GetBucketCors",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "s3.get_bucket_tagging",
+          "operation": "s3api:GetBucketTagging",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "kms.describe_key",
+          "operation": "kms:DescribeKey",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "SEC-KMS-ROTATION"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "kms.get_key_policy",
+          "operation": "kms:GetKeyPolicy",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "SEC-KMS-WILDCARD-PRINCIPAL"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "kms.get_key_rotation_status",
+          "operation": "kms:GetKeyRotationStatus",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "SEC-KMS-ROTATION"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "kms.list_grants",
+          "operation": "kms:ListGrants",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "SEC-KMS-WILDCARD-PRINCIPAL"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "kms.list_key_policies",
+          "operation": "kms:ListKeyPolicies",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "cloudtrail.get_trail_status",
+          "operation": "cloudtrail:GetTrailStatus",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "SEC-CLOUDTRAIL-LOGGING"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "cloudtrail.get_event_selectors",
+          "operation": "cloudtrail:GetEventSelectors",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "SEC-CLOUDTRAIL-MANAGEMENT-EVENTS"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "guardduty.get_detector",
+          "operation": "guardduty:GetDetector",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "SEC-GUARDDUTY-ENABLED"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "lambda.get_policy",
+          "operation": "lambda:GetPolicy",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "iam.get_policy_version",
+          "operation": "iam:GetPolicyVersion",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [
+            "R1-IAM-INSTANCE-ROLE-PRIVILEGE",
+            "SEC-IAM-ROLE-WILDCARD"
+          ],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Findings and coverage sheets",
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "dataset": "elbv2.describe_listeners",
+          "operation": "elbv2:DescribeListeners",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "elbv2.describe_rules",
+          "operation": "elbv2:DescribeRules",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "ec2.get_transit_gateway_route_table_associations",
+          "operation": "ec2:GetTransitGatewayRouteTableAssociations",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ec2.get_transit_gateway_route_table_propagations",
+          "operation": "ec2:GetTransitGatewayRouteTablePropagations",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ec2.search_transit_gateway_routes",
+          "operation": "ec2:SearchTransitGatewayRoutes",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "ecs.describe_clusters",
+          "operation": "ecs:DescribeClusters",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "eks.describe_cluster",
+          "operation": "eks:DescribeCluster",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "dynamodb.describe_table",
+          "operation": "dynamodb:DescribeTable",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": false,
+          "evaluated_by": [],
+          "displayed": "Collection summary (retained, unparsed)",
+          "reportable": "Coverage only",
+          "lifecycle": "RECOGNIZED_RETAINED_UNPARSED"
+        },
+        {
+          "dataset": "organizations.list_policies_for_target",
+          "operation": "organizations:ListPoliciesForTarget",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "organizations.describe_policy",
+          "operation": "organizations:DescribePolicy",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "dataset": "organizations.list_parents",
+          "operation": "organizations:ListParents",
+          "phase": "DEPENDENT",
+          "collected": true,
+          "recognized": true,
+          "normalized": true,
+          "evaluated_by": [],
+          "displayed": "Evidence Explorer and Assessment Coverage",
+          "reportable": "Coverage only",
+          "lifecycle": "NORMALIZED"
+        }
+      ]
+    },
+    {
+      "provider": "GCP",
+      "collector": "collectors/gcp/GCP_Security_Evidence_Collector.ps1",
+      "collector_version": "2.2.8",
+      "accepted_manifest_schemas": [
+        "assessment-expanded-2.1",
+        "assessment-expanded-2.2"
+      ],
+      "legacy_manifest_schemas": [
+        "pilot-1.2.2",
+        "pilot-1.5"
+      ],
+      "gap_statuses_never_pass": [
+        "FAILED",
+        "API_DISABLED",
+        "ACCESS_DENIED",
+        "QUOTA_PROJECT_DENIED",
+        "COMMAND_ERROR",
+        "AUTH_ERROR",
+        "TIMEOUT",
+        "RATE_LIMITED",
+        "NOT_FOUND",
+        "HTTP_ERROR",
+        "SERVER_ERROR",
+        "UNEXPECTED_SCHEMA",
+        "INVALID_OUTPUT",
+        "UNSUPPORTED_ENDPOINT"
+      ],
+      "partial_statuses": [
+        "TRUNCATED",
+        "PARTIAL"
+      ],
+      "integrity": "2.2 requires checksums.sha256; 2.1 and pilot packages require an explicit acknowledgment that no source checksums exist",
+      "datasets": [
+        {
+          "domain": "inventory",
+          "dataset_pattern": "project",
+          "operation": "gcp:projects.get",
+          "resource_type": "GCP::Project",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "inventory",
+          "dataset_pattern": "assets",
+          "operation": "gcp:cloudasset.searchAllResources",
+          "resource_type": "GCP::Asset",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "inventory",
+          "dataset_pattern": "asset_iam_search",
+          "operation": "gcp:cloudasset.searchAllIamPolicies",
+          "resource_type": "GCP::AssetIAMSearchResult",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "inventory",
+          "dataset_pattern": "asset_resource_list",
+          "operation": "gcp:expanded.asset_resource_list",
+          "resource_type": "GCP::AssetResourceSnapshot",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "inventory",
+          "dataset_pattern": "asset_iam_list",
+          "operation": "gcp:expanded.asset_iam_list",
+          "resource_type": "GCP::AssetIAMSnapshot",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "api",
+          "dataset_pattern": "enabled_services",
+          "operation": "gcp:serviceusage.services.list",
+          "resource_type": "GCP::Service",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "api",
+          "dataset_pattern": "api_keys",
+          "operation": "gcp:apikeys.keys.list",
+          "resource_type": "GCP::APIKey",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [
+            "GCP-API-API",
+            "GCP-API-APP",
+            "GCP-API-BOTH"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "project_iam",
+          "operation": "gcp:projects.getIamPolicy",
+          "resource_type": "GCP::IAMPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [
+            "GCP-IAM-BASIC",
+            "GCP-IAM-CROSSPROJECT",
+            "GCP-IAM-IMPERSONATION",
+            "GCP-IAM-PUBLIC",
+            "GCP-KEY-PRIVILEGED",
+            "GCP-LOG-AUDIT"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "service_accounts",
+          "operation": "gcp:iam.serviceAccounts.list",
+          "resource_type": "GCP::ServiceAccount",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-KEY-PRIVILEGED"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "custom_roles",
+          "operation": "gcp:iam.roles.list",
+          "resource_type": "GCP::CustomRole",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "governance",
+          "dataset_pattern": "org_policies",
+          "operation": "gcp:orgpolicy.policies.list",
+          "resource_type": "GCP::OrgPolicyInventory",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "logging",
+          "dataset_pattern": "sinks",
+          "operation": "gcp:logging.sinks.list",
+          "resource_type": "GCP::LoggingSink",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [
+            "GCP-LOG-EXCLUSION"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "logging",
+          "dataset_pattern": "buckets_global",
+          "operation": "gcp:logging.buckets.list",
+          "resource_type": "GCP::LogBucket",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-LOG-RETENTION"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "monitoring",
+          "dataset_pattern": "alert_policies",
+          "operation": "gcp:monitoring.alertPolicies.list",
+          "resource_type": "GCP::AlertPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "vpcs",
+          "operation": "gcp:compute.networks.list",
+          "resource_type": "GCP::Network",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-NET-DEFAULT-NETWORK"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "subnets",
+          "operation": "gcp:expanded.subnets",
+          "resource_type": "GCP::Subnet",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-NET-FLOW-LOGS",
+            "GCP-NET-PRIVATE-GOOGLE-ACCESS"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "firewall_rules",
+          "operation": "gcp:compute.firewalls.list",
+          "resource_type": "GCP::Firewall",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-NET-FW-ADMIN-INTERNET",
+            "GCP-NET-FW-ANY-INTERNET",
+            "GCP-NET-FW-DB-INTERNET"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "firewall_policies",
+          "operation": "gcp:expanded.firewall_policies",
+          "resource_type": "GCP::FirewallPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "routes",
+          "operation": "gcp:expanded.routes",
+          "resource_type": "GCP::Route",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "addresses",
+          "operation": "gcp:expanded.addresses",
+          "resource_type": "GCP::Address",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "routers",
+          "operation": "gcp:expanded.routers",
+          "resource_type": "GCP::Router",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "forwarding_rules",
+          "operation": "gcp:expanded.forwarding_rules",
+          "resource_type": "GCP::ForwardingRule",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "vpn_tunnels",
+          "operation": "gcp:expanded.vpn_tunnels",
+          "resource_type": "GCP::VPNTunnel",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "compute",
+          "dataset_pattern": "instances",
+          "operation": "gcp:compute.instances.list",
+          "resource_type": "GCP::ComputeInstance",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-NET-FW-ADMIN-INTERNET",
+            "GCP-NET-FW-ANY-INTERNET",
+            "GCP-NET-FW-DB-INTERNET",
+            "GCP-VM-DEFAULT-SA",
+            "GCP-VM-EXTERNAL-IP",
+            "GCP-VM-FULL-API-SCOPE",
+            "GCP-VM-IP-FORWARD",
+            "GCP-VM-OSLOGIN",
+            "GCP-VM-PROJECT-SSH-KEYS",
+            "GCP-VM-SERIAL-PORT",
+            "GCP-VM-SHIELDED"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "compute",
+          "dataset_pattern": "disks",
+          "operation": "gcp:expanded.disks",
+          "resource_type": "GCP::Disk",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "compute",
+          "dataset_pattern": "snapshots",
+          "operation": "gcp:expanded.snapshots",
+          "resource_type": "GCP::Snapshot",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "compute",
+          "dataset_pattern": "gke_clusters",
+          "operation": "gcp:expanded.gke_clusters",
+          "resource_type": "GCP::GKECluster",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "serverless",
+          "dataset_pattern": "cloud_run",
+          "operation": "gcp:run.services.list",
+          "resource_type": "GCP::RunService",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "serverless",
+          "dataset_pattern": "functions",
+          "operation": "gcp:expanded.functions",
+          "resource_type": "GCP::Function",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "storage",
+          "dataset_pattern": "buckets",
+          "operation": "gcp:storage.buckets.list",
+          "resource_type": "GCP::Bucket",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-STORAGE-PAP",
+            "GCP-STORAGE-PUBLIC",
+            "GCP-STORAGE-UBLA",
+            "GCP-STORAGE-VERSIONING"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "data",
+          "dataset_pattern": "cloud_sql",
+          "operation": "gcp:expanded.cloud_sql",
+          "resource_type": "GCP::SQLInstance",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-SQL-BACKUP",
+            "GCP-SQL-OPEN-NETWORK",
+            "GCP-SQL-PUBLIC-IP",
+            "GCP-SQL-TLS"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "secrets",
+          "operation": "gcp:expanded.secrets",
+          "resource_type": "GCP::Secret",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "devops",
+          "dataset_pattern": "artifact_repositories",
+          "operation": "gcp:expanded.artifact_repositories",
+          "resource_type": "GCP::ArtifactRepository",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "workload_identity_pools",
+          "operation": "gcp:expanded.workload_identity_pools",
+          "resource_type": "GCP::WorkloadIdentityPool",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "scc_findings",
+          "operation": "gcp:securitycenter.findings.list",
+          "resource_type": "GCP::SCCFinding",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [
+            "GCP-SCC-OBSERVATION"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "dns_managed_zones",
+          "operation": "gcp:expanded.dns_managed_zones",
+          "resource_type": "GCP::DNSZone",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "compute",
+          "dataset_pattern": "mig_managed",
+          "operation": "gcp:expanded.mig_managed",
+          "resource_type": "GCP::InstanceGroup",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "serverless",
+          "dataset_pattern": "cloud_run_jobs",
+          "operation": "gcp:expanded.cloud_run_jobs",
+          "resource_type": "GCP::RunJob",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "messaging",
+          "dataset_pattern": "pubsub_topics",
+          "operation": "gcp:expanded.pubsub_topics",
+          "resource_type": "GCP::PubSubTopic",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "messaging",
+          "dataset_pattern": "pubsub_subscriptions",
+          "operation": "gcp:expanded.pubsub_subscriptions",
+          "resource_type": "GCP::PubSubSubscription",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "data",
+          "dataset_pattern": "spanner_instances",
+          "operation": "gcp:expanded.spanner_instances",
+          "resource_type": "GCP::SpannerInstance",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "devops",
+          "dataset_pattern": "cloudbuild_triggers",
+          "operation": "gcp:expanded.cloudbuild_triggers",
+          "resource_type": "GCP::BuildTrigger",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "logging",
+          "dataset_pattern": "settings",
+          "operation": "gcp:expanded.settings",
+          "resource_type": "GCP::LoggingSettings",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "logging",
+          "dataset_pattern": "log_metrics",
+          "operation": "gcp:expanded.log_metrics",
+          "resource_type": "GCP::LogMetric",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "logging",
+          "dataset_pattern": "buckets_us_central1",
+          "operation": "gcp:logging.buckets.list",
+          "resource_type": "GCP::LogBucket",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-LOG-RETENTION"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "logging",
+          "dataset_pattern": "buckets_europe_west1",
+          "operation": "gcp:logging.buckets.list",
+          "resource_type": "GCP::LogBucket",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-LOG-RETENTION"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "ssl_policies",
+          "operation": "gcp:expanded.ssl_policies",
+          "resource_type": "GCP::SSLPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "backend_services",
+          "operation": "gcp:expanded.backend_services",
+          "resource_type": "GCP::BackendService",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "url_maps",
+          "operation": "gcp:expanded.url_maps",
+          "resource_type": "GCP::URLMap",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "security_policies",
+          "operation": "gcp:expanded.security_policies",
+          "resource_type": "GCP::SecurityPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "compute",
+          "dataset_pattern": "instance_templates",
+          "operation": "gcp:expanded.instance_templates",
+          "resource_type": "GCP::InstanceTemplate",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "compute",
+          "dataset_pattern": "images",
+          "operation": "gcp:expanded.images",
+          "resource_type": "GCP::Image",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "governance",
+          "dataset_pattern": "parent_org_iam",
+          "operation": "gcp:organizations.getIamPolicy",
+          "resource_type": "GCP::IAMPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "governance",
+          "dataset_pattern": "parent_org_policies",
+          "operation": "gcp:orgpolicy.organizationPolicies.list",
+          "resource_type": "GCP::OrgPolicyInventory",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "governance",
+          "dataset_pattern": "parent_folder_iam",
+          "operation": "gcp:folders.getIamPolicy",
+          "resource_type": "GCP::IAMPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "governance",
+          "dataset_pattern": "parent_folder_policies",
+          "operation": "gcp:orgpolicy.folderPolicies.list",
+          "resource_type": "GCP::OrgPolicyInventory",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "api",
+          "dataset_pattern": "api_key_detail_[1-9][0-9]{0,5}",
+          "operation": "gcp:apikeys.keys.get",
+          "resource_type": "GCP::APIKey",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "sa_keys_[1-9][0-9]{0,5}",
+          "operation": "gcp:iam.serviceAccountKeys.list",
+          "resource_type": "GCP::ServiceAccountKey",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [
+            "GCP-KEY-AGE",
+            "GCP-KEY-PERSISTENT",
+            "GCP-KEY-PRIVILEGED"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "sa_iam_[1-9][0-9]{0,5}",
+          "operation": "gcp:iam.serviceAccounts.getIamPolicy",
+          "resource_type": "GCP::IAMPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "storage",
+          "dataset_pattern": "bucket_iam_[1-9][0-9]{0,5}",
+          "operation": "gcp:storage.buckets.getIamPolicy",
+          "resource_type": "GCP::IAMPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [
+            "GCP-STORAGE-PUBLIC"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "storage",
+          "dataset_pattern": "bucket_details_[1-9][0-9]{0,5}",
+          "operation": "gcp:storage.buckets.get",
+          "resource_type": "GCP::Bucket",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-STORAGE-PAP",
+            "GCP-STORAGE-UBLA",
+            "GCP-STORAGE-VERSIONING"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "service_account_keys_inventory",
+          "operation": "gcp:iam.serviceAccounts.list",
+          "resource_type": "GCP::ServiceAccount",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-KEY-PRIVILEGED"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "governance",
+          "dataset_pattern": "project_org_policy_v2",
+          "operation": "gcp:orgpolicy.policies.list",
+          "resource_type": "GCP::OrgPolicyInventory",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "kms_locations",
+          "operation": "gcp:expanded.kms_locations",
+          "resource_type": "GCP::KMSLocation",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "logging",
+          "dataset_pattern": "exclusions",
+          "operation": "gcp:logging.exclusions.list",
+          "resource_type": "GCP::LoggingExclusion",
+          "method": "Invoke-RestEvidence",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "logging",
+          "dataset_pattern": "log_buckets_locations",
+          "operation": "gcp:logging.buckets.list",
+          "resource_type": "GCP::LogBucket",
+          "method": "Invoke-RestEvidence",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-LOG-RETENTION"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "logging",
+          "dataset_pattern": "logging_settings_rest",
+          "operation": "gcp:expanded.logging_settings_rest",
+          "resource_type": "GCP::LoggingSettings",
+          "method": "Invoke-RestEvidence",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "api",
+          "dataset_pattern": "api_keys_rest",
+          "operation": "gcp:apikeys.keys.list",
+          "resource_type": "GCP::APIKey",
+          "method": "Invoke-RestEvidence",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [
+            "GCP-API-API",
+            "GCP-API-APP",
+            "GCP-API-BOTH"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "data",
+          "dataset_pattern": "bigquery_datasets_rest",
+          "operation": "gcp:expanded.bigquery_datasets_rest",
+          "resource_type": "GCP::BigQueryDataset",
+          "method": "Invoke-RestEvidence",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "data",
+          "dataset_pattern": "bq_dataset_[A-Za-z0-9_-]{1,200}_details",
+          "operation": "gcp:bigquery.datasets.get",
+          "resource_type": "GCP::BigQueryDataset",
+          "method": "Invoke-RestEvidence",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "data",
+          "dataset_pattern": "bq_dataset_[A-Za-z0-9_-]{1,200}_tables",
+          "operation": "gcp:bigquery.tables.list",
+          "resource_type": "GCP::BigQueryTable",
+          "method": "Invoke-RestEvidence",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "ai",
+          "dataset_pattern": "discovery_resource_[1-9][0-9]{0,5}",
+          "operation": "gcp:discoveryengine.resources.get",
+          "resource_type": "GCP::DiscoveryResource",
+          "method": "Invoke-RestEvidence",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "folder_[0-9]{1,20}_iam",
+          "operation": "gcp:folders.getIamPolicy",
+          "resource_type": "GCP::IAMPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "governance",
+          "dataset_pattern": "folder_[0-9]{1,20}_policies",
+          "operation": "gcp:orgpolicy.folderPolicies.list",
+          "resource_type": "GCP::OrgPolicyInventory",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "inventory",
+          "dataset_pattern": "folder_[0-9]{1,20}_iam_search",
+          "operation": "gcp:cloudasset.folderIamSearch",
+          "resource_type": "GCP::AssetIAMSearchResult",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "inventory",
+          "dataset_pattern": "folder_[0-9]{1,20}_describe",
+          "operation": "gcp:folders.get",
+          "resource_type": "GCP::Folder",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "organization_[0-9]{1,20}_iam",
+          "operation": "gcp:organizations.getIamPolicy",
+          "resource_type": "GCP::IAMPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "inventory",
+          "dataset_pattern": "organization_[0-9]{1,20}_iam_search",
+          "operation": "gcp:cloudasset.organizationIamSearch",
+          "resource_type": "GCP::AssetIAMSearchResult",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "governance",
+          "dataset_pattern": "organization_[0-9]{1,20}_policies",
+          "operation": "gcp:orgpolicy.organizationPolicies.list",
+          "resource_type": "GCP::OrgPolicyInventory",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "custom_role_detail_[1-9][0-9]{0,5}",
+          "operation": "gcp:iam.roles.get",
+          "resource_type": "GCP::CustomRole",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "workload_pool_providers_[1-9][0-9]{0,5}",
+          "operation": "gcp:iam.workloadIdentityPoolProviders.list",
+          "resource_type": "GCP::WorkloadIdentityProvider",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "governance",
+          "dataset_pattern": "effective_policy_[1-9][0-9]{0,5}",
+          "operation": "gcp:orgpolicy.getEffectivePolicy",
+          "resource_type": "GCP::OrgPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [
+            "GCP-GOV-KEYS",
+            "GCP-STORAGE-PAP",
+            "GCP-STORAGE-PUBLIC",
+            "GCP-STORAGE-UBLA",
+            "GCP-STORAGE-VERSIONING"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "deny_policies_project",
+          "operation": "gcp:expanded.deny_policies_project",
+          "resource_type": "GCP::IAMDenyPolicy",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "principal_access_boundaries_project",
+          "operation": "gcp:expanded.principal_access_boundaries_project",
+          "resource_type": "GCP::PrincipalAccessBoundaryBinding",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "workforce_pools",
+          "operation": "gcp:expanded.workforce_pools",
+          "resource_type": "GCP::WorkforcePool",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "identity",
+          "dataset_pattern": "iam_recommendations",
+          "operation": "gcp:expanded.iam_recommendations",
+          "resource_type": "GCP::IAMRecommendation",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "access_context_policies",
+          "operation": "gcp:expanded.access_context_policies",
+          "resource_type": "GCP::AccessPolicy",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "scc_sources",
+          "operation": "gcp:expanded.scc_sources",
+          "resource_type": "GCP::SCCSource",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "scc_findings_rest",
+          "operation": "gcp:securitycenter.findings.list",
+          "resource_type": "GCP::SCCFinding",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [
+            "GCP-SCC-OBSERVATION"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "inventory",
+          "dataset_pattern": "compute_regions_rest",
+          "operation": "gcp:expanded.compute_regions_rest",
+          "resource_type": "GCP::ComputeRegion",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "inventory",
+          "dataset_pattern": "compute_zones_rest",
+          "operation": "gcp:expanded.compute_zones_rest",
+          "resource_type": "GCP::ComputeZone",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "kms_locations_rest",
+          "operation": "gcp:expanded.kms_locations_rest",
+          "resource_type": "GCP::KMSLocation",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "secrets_rest",
+          "operation": "gcp:expanded.secrets_rest",
+          "resource_type": "GCP::Secret",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "data",
+          "dataset_pattern": "sql_instances_rest",
+          "operation": "gcp:expanded.sql_instances_rest",
+          "resource_type": "GCP::SQLInstance",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "compute",
+          "dataset_pattern": "gke_clusters_rest",
+          "operation": "gcp:expanded.gke_clusters_rest",
+          "resource_type": "GCP::GKECluster",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "serverless",
+          "dataset_pattern": "run_services_rest",
+          "operation": "gcp:run.services.list",
+          "resource_type": "GCP::RunService",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "serverless",
+          "dataset_pattern": "run_jobs_rest",
+          "operation": "gcp:expanded.run_jobs_rest",
+          "resource_type": "GCP::RunJob",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "serverless",
+          "dataset_pattern": "functions_rest",
+          "operation": "gcp:expanded.functions_rest",
+          "resource_type": "GCP::Function",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "monitoring",
+          "dataset_pattern": "notification_channels",
+          "operation": "gcp:expanded.notification_channels",
+          "resource_type": "GCP::NotificationChannel",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "monitoring",
+          "dataset_pattern": "uptime_check_configs",
+          "operation": "gcp:expanded.uptime_check_configs",
+          "resource_type": "GCP::UptimeCheck",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "dns_policies",
+          "operation": "gcp:expanded.dns_policies",
+          "resource_type": "GCP::DNSPolicy",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "vpc_peerings",
+          "operation": "gcp:expanded.vpc_peerings",
+          "resource_type": "GCP::Network",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "global_security_policies_rest",
+          "operation": "gcp:expanded.global_security_policies_rest",
+          "resource_type": "GCP::SecurityPolicy",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "interconnect_attachments",
+          "operation": "gcp:expanded.interconnect_attachments",
+          "resource_type": "GCP::InterconnectAttachment",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "network",
+          "dataset_pattern": "psc_forwarding_rules",
+          "operation": "gcp:expanded.psc_forwarding_rules",
+          "resource_type": "GCP::ForwardingRule",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "data",
+          "dataset_pattern": "bigquery_connections",
+          "operation": "gcp:expanded.bigquery_connections",
+          "resource_type": "GCP::BigQueryConnection",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "devops",
+          "dataset_pattern": "artifact_repositories_rest",
+          "operation": "gcp:expanded.artifact_repositories_rest",
+          "resource_type": "GCP::ArtifactRepository",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "devops",
+          "dataset_pattern": "cloudbuild_triggers_rest",
+          "operation": "gcp:expanded.cloudbuild_triggers_rest",
+          "resource_type": "GCP::BuildTrigger",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "kms_keyrings_[1-9][0-9]{0,5}",
+          "operation": "gcp:cloudkms.keyRings.list",
+          "resource_type": "GCP::KMSKeyRing",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "kms_keys_[1-9][0-9]{0,5}_[1-9][0-9]{0,5}",
+          "operation": "gcp:cloudkms.cryptoKeys.list",
+          "resource_type": "GCP::KMSKey",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [
+            "GCP-KMS-ROTATION"
+          ],
+          "lifecycle": "EVALUATED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "kms_versions_[1-9][0-9]{0,5}_[1-9][0-9]{0,5}_[1-9][0-9]{0,5}",
+          "operation": "gcp:cloudkms.cryptoKeyVersions.list",
+          "resource_type": "GCP::KMSKeyVersion",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "security",
+          "dataset_pattern": "secret_versions_[1-9][0-9]{0,5}",
+          "operation": "gcp:secretmanager.versions.list",
+          "resource_type": "GCP::SecretVersion",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "compute",
+          "dataset_pattern": "gke_node_pools_[1-9][0-9]{0,5}",
+          "operation": "gcp:container.nodePools.list",
+          "resource_type": "GCP::GKENodePool",
+          "method": "RestList",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "serverless",
+          "dataset_pattern": "run_iam_[1-9][0-9]{0,5}",
+          "operation": "gcp:run.services.getIamPolicy",
+          "resource_type": "GCP::IAMPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "serverless",
+          "dataset_pattern": "function_iam_[1-9][0-9]{0,5}",
+          "operation": "gcp:functions.getIamPolicy",
+          "resource_type": "GCP::IAMPolicy",
+          "method": "Run",
+          "since_schema": "assessment-expanded-2.1",
+          "analysis_support": "EXISTING_RULES",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "ai",
+          "dataset_pattern": "discovery_datastores_[1-9][0-9]{0,5}",
+          "operation": "gcp:discoveryengine.dataStores.list",
+          "resource_type": "GCP::DiscoveryDataStore",
+          "method": "Invoke-RestEvidence",
+          "since_schema": "assessment-expanded-2.2",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "ai",
+          "dataset_pattern": "discovery_engines_[1-9][0-9]{0,5}",
+          "operation": "gcp:discoveryengine.engines.list",
+          "resource_type": "GCP::DiscoveryEngine",
+          "method": "Invoke-RestEvidence",
+          "since_schema": "assessment-expanded-2.2",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        },
+        {
+          "domain": "ai",
+          "dataset_pattern": "discovery_unsupported_[1-9][0-9]{0,5}",
+          "operation": "gcp:discoveryengine.unsupportedType",
+          "resource_type": "GCP::DiscoveryResource",
+          "method": "Add-ManifestEntry",
+          "since_schema": "assessment-expanded-2.2",
+          "analysis_support": "NOT_EVALUATED",
+          "evaluated_by": [],
+          "lifecycle": "NORMALIZED"
+        }
+      ]
+    }
+  ]
+}

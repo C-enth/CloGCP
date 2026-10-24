@@ -1,0 +1,411 @@
+{
+  "$defs": {
+    "JsonValue": {},
+    "ManifestDetection": {
+      "additionalProperties": false,
+      "description": "Fixed format vocabulary only; no paths, customer values or raw errors.",
+      "properties": {
+        "filename": {
+          "const": "collection_manifest.json",
+          "default": "collection_manifest.json",
+          "title": "Filename",
+          "type": "string"
+        },
+        "detected_version": {
+          "maxLength": 80,
+          "pattern": "^(?:(?:pilot-|assessment-expanded-)[0-9]+(?:\\.[0-9]+){0,3}|MISSING|UNRECOGNIZED_TOKEN)$",
+          "title": "Detected Version",
+          "type": "string"
+        },
+        "selected_adapter": {
+          "enum": [
+            "gcp-pilot-1.2.2-adapter-1",
+            "gcp-pilot-1.5-adapter-1",
+            "gcp-expanded-2.1-adapter-1",
+            "gcp-expanded-2.2-adapter-1",
+            "NONE"
+          ],
+          "title": "Selected Adapter",
+          "type": "string"
+        },
+        "expected_versions": {
+          "items": {
+            "enum": [
+              "pilot-1.2.2",
+              "pilot-1.5",
+              "assessment-expanded-2.1",
+              "assessment-expanded-2.2"
+            ],
+            "type": "string"
+          },
+          "title": "Expected Versions",
+          "type": "array"
+        },
+        "manifest_count": {
+          "maximum": 1100,
+          "minimum": 0,
+          "title": "Manifest Count",
+          "type": "integer"
+        },
+        "rejection_condition": {
+          "anyOf": [
+            {
+              "enum": [
+                "root schema_version is missing",
+                "root schema_version is not a supported pilot version",
+                "root schema_version is not a supported collector version",
+                "collector_version is outside the accepted range for assessment-expanded-2.2 (2.2.0 to 2.2.8)",
+                "manifest root must be an object"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Rejection Condition"
+        },
+        "corrective_action": {
+          "anyOf": [
+            {
+              "const": "Preserve the original package; use a CloSec adapter supporting its exact collector version. Do not rename or edit the manifest.",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Corrective Action"
+        }
+      },
+      "required": [
+        "detected_version",
+        "selected_adapter",
+        "expected_versions",
+        "manifest_count"
+      ],
+      "title": "ManifestDetection",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "local-job-1",
+      "default": "local-job-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "id": {
+      "pattern": "^[0-9a-f]{32}$",
+      "title": "Id",
+      "type": "string"
+    },
+    "kind": {
+      "maxLength": 80,
+      "minLength": 1,
+      "title": "Kind",
+      "type": "string"
+    },
+    "workspace_id": {
+      "pattern": "^[0-9a-f]{64}$",
+      "title": "Workspace Id",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "QUEUED",
+        "RUNNING",
+        "SUCCEEDED",
+        "FAILED",
+        "CANCELLED",
+        "INTERRUPTED"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "PENDING",
+        "RUNNING",
+        "COMPLETED",
+        "FAILED",
+        "CANCELLED",
+        "INTERRUPTED"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "stage": {
+      "maxLength": 80,
+      "title": "Stage",
+      "type": "string"
+    },
+    "provider": {
+      "default": "UNRESOLVED",
+      "enum": [
+        "AWS",
+        "GCP",
+        "Consolidated",
+        "UNRESOLVED"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "import_mode": {
+      "default": "NONE",
+      "enum": [
+        "ZIP",
+        "FOLDER",
+        "GUIDED_JSON",
+        "NONE"
+      ],
+      "title": "Import Mode",
+      "type": "string"
+    },
+    "submitted_at": {
+      "title": "Submitted At",
+      "type": "number"
+    },
+    "stage_started_at": {
+      "title": "Stage Started At",
+      "type": "number"
+    },
+    "started_at": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Started At"
+    },
+    "finished_at": {
+      "anyOf": [
+        {
+          "type": "number"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finished At"
+    },
+    "updated_at": {
+      "format": "date-time",
+      "title": "Updated At",
+      "type": "string"
+    },
+    "last_progress_at": {
+      "format": "date-time",
+      "title": "Last Progress At",
+      "type": "string"
+    },
+    "heartbeat_at": {
+      "format": "date-time",
+      "title": "Heartbeat At",
+      "type": "string"
+    },
+    "result": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Result"
+    },
+    "error": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error"
+    },
+    "error_class": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Error Class"
+    },
+    "recoverable": {
+      "default": true,
+      "title": "Recoverable",
+      "type": "boolean"
+    },
+    "cancel_supported": {
+      "default": false,
+      "title": "Cancel Supported",
+      "type": "boolean"
+    },
+    "key": {
+      "anyOf": [
+        {
+          "maxLength": 240,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Key"
+    },
+    "progress": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Progress"
+    },
+    "explanation": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Explanation"
+    },
+    "timings": {
+      "additionalProperties": {
+        "type": "number"
+      },
+      "title": "Timings",
+      "type": "object"
+    },
+    "files_total": {
+      "anyOf": [
+        {
+          "type": "integer"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Files Total"
+    },
+    "manifest_version": {
+      "anyOf": [
+        {
+          "maxLength": 80,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Manifest Version"
+    },
+    "manifest_detection": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ManifestDetection"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "collection_id": {
+      "anyOf": [
+        {
+          "maxLength": 256,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Collection Id"
+    },
+    "scopes": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 2048,
+      "title": "Scopes",
+      "type": "array"
+    },
+    "limit": {
+      "anyOf": [
+        {
+          "additionalProperties": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "string"
+              }
+            ]
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Limit"
+    }
+  },
+  "required": [
+    "id",
+    "kind",
+    "workspace_id",
+    "status",
+    "state",
+    "stage",
+    "submitted_at",
+    "stage_started_at",
+    "updated_at",
+    "last_progress_at",
+    "heartbeat_at"
+  ],
+  "title": "LocalJob",
+  "type": "object"
+}

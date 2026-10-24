@@ -1,0 +1,115 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "artifact_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "locator": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "relationship_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Relationship Id",
+      "type": "string"
+    },
+    "run_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "source_resource_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Source Resource Id",
+      "type": "string"
+    },
+    "target_resource_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Target Resource Id",
+      "type": "string"
+    },
+    "kind": {
+      "enum": [
+        "CONTAINS",
+        "ATTACHED_TO",
+        "TRUSTS",
+        "PERMITS",
+        "ROUTES_TO"
+      ],
+      "title": "Kind",
+      "type": "string"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "minItems": 1,
+      "title": "Evidence",
+      "type": "array"
+    },
+    "conditions": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Conditions",
+      "type": "array"
+    },
+    "limitations": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    }
+  },
+  "required": [
+    "relationship_id",
+    "run_id",
+    "source_resource_id",
+    "target_resource_id",
+    "kind",
+    "evidence"
+  ],
+  "title": "Relationship",
+  "type": "object"
+}

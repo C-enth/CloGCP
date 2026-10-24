@@ -1,0 +1,27 @@
+# Client evidence, workspaces, generated reports and local environments
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.ruff_cache/
+node_modules/
+data/
+artifacts/
+workspace/
+workspaces/
+raw/
+reports/
+*.duckdb*
+*.sqlite*
+*.db
+*.wal
+*.log
+*.zip
+.env
+.env.*
+*.pem
+*.key
+*.p12
+*.pfx
+.DS_Store

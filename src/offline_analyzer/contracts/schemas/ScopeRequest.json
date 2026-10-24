@@ -1,0 +1,31 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "scope-action-1",
+      "default": "scope-action-1",
+      "title": "Version",
+      "type": "string"
+    },
+    "provider": {
+      "enum": [
+        "AWS",
+        "GCP"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "scope_id": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Scope Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider",
+    "scope_id"
+  ],
+  "title": "ScopeRequest",
+  "type": "object"
+}

@@ -1,0 +1,306 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "artifact_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "locator": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "enterprise-1",
+      "default": "enterprise-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "relationship_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Relationship Id",
+      "type": "string"
+    },
+    "run_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "source_account": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{12}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Source Account"
+    },
+    "source": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "title": "Source",
+      "type": "string"
+    },
+    "destination_account": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{12}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Destination Account"
+    },
+    "destination": {
+      "maxLength": 4096,
+      "minLength": 1,
+      "title": "Destination",
+      "type": "string"
+    },
+    "source_partition": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Source Partition"
+    },
+    "destination_partition": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Destination Partition"
+    },
+    "relationship_type": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Relationship Type",
+      "type": "string"
+    },
+    "service": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Service",
+      "type": "string"
+    },
+    "domain": {
+      "enum": [
+        "IAM",
+        "RESOURCE_ACCESS",
+        "NETWORK",
+        "MONITORING",
+        "ORGANIZATION"
+      ],
+      "title": "Domain",
+      "type": "string"
+    },
+    "region": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Region",
+      "type": "string"
+    },
+    "status": {
+      "enum": [
+        "DIRECTLY_OBSERVED",
+        "DERIVED_SUPPORTED",
+        "POTENTIAL",
+        "BLOCKED",
+        "UNKNOWN"
+      ],
+      "title": "Status",
+      "type": "string"
+    },
+    "authorization": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Authorization"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "observation_ids": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Observation Ids",
+      "type": "array"
+    },
+    "collected_at": {
+      "items": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "title": "Collected At",
+      "type": "array"
+    },
+    "assessed_at": {
+      "format": "date-time",
+      "title": "Assessed At",
+      "type": "string"
+    },
+    "missing": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Missing",
+      "type": "array"
+    },
+    "blocking": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Blocking",
+      "type": "array"
+    },
+    "confidence": {
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "UNASSESSED"
+      ],
+      "title": "Confidence",
+      "type": "string"
+    },
+    "limitations": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "preconditions": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Preconditions",
+      "type": "array"
+    },
+    "detail": {
+      "title": "Detail",
+      "type": "string"
+    },
+    "related_findings": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Related Findings",
+      "type": "array"
+    },
+    "methodology_ids": {
+      "default": [],
+      "items": {
+        "type": "string"
+      },
+      "title": "Methodology Ids",
+      "type": "array"
+    },
+    "target_privilege": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Target Privilege"
+    },
+    "outside_registry": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Outside Registry"
+    }
+  },
+  "required": [
+    "relationship_id",
+    "run_id",
+    "source_account",
+    "source",
+    "destination_account",
+    "destination",
+    "relationship_type",
+    "service",
+    "domain",
+    "region",
+    "status",
+    "evidence",
+    "observation_ids",
+    "collected_at",
+    "assessed_at",
+    "confidence",
+    "detail"
+  ],
+  "title": "Edge",
+  "type": "object"
+}

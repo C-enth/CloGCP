@@ -1,0 +1,149 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "artifact_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "locator": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "path_definition_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Path Definition Id",
+      "type": "string"
+    },
+    "definition_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Definition Version",
+      "type": "string"
+    },
+    "run_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Run Id",
+      "type": "string"
+    },
+    "state": {
+      "enum": [
+        "SUPPORTED",
+        "BLOCKED",
+        "UNKNOWN",
+        "NOT_APPLICABLE"
+      ],
+      "title": "State",
+      "type": "string"
+    },
+    "relationship_ids": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Relationship Ids",
+      "type": "array"
+    },
+    "evidence": {
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "prerequisites": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Prerequisites",
+      "type": "array"
+    },
+    "blockers": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Blockers",
+      "type": "array"
+    },
+    "missing_dependencies": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Missing Dependencies",
+      "type": "array"
+    },
+    "reasoning": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Reasoning",
+      "type": "string"
+    },
+    "limitations": {
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "assessed_at": {
+      "format": "date-time",
+      "title": "Assessed At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "path_definition_id",
+    "definition_version",
+    "run_id",
+    "state",
+    "relationship_ids",
+    "evidence",
+    "prerequisites",
+    "blockers",
+    "missing_dependencies",
+    "reasoning",
+    "limitations",
+    "assessed_at"
+  ],
+  "title": "PathEvaluation",
+  "type": "object"
+}

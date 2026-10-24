@@ -1,0 +1,70 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "version": {
+      "const": "scope-action-1",
+      "default": "scope-action-1",
+      "title": "Version",
+      "type": "string"
+    },
+    "provider": {
+      "enum": [
+        "AWS",
+        "GCP"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "scope_id": {
+      "maxLength": 100,
+      "minLength": 1,
+      "title": "Scope Id",
+      "type": "string"
+    },
+    "preview_token": {
+      "maxLength": 200,
+      "title": "Preview Token",
+      "type": "string"
+    },
+    "confirmation": {
+      "default": "",
+      "maxLength": 100,
+      "title": "Confirmation",
+      "type": "string"
+    },
+    "confirmed": {
+      "default": false,
+      "title": "Confirmed",
+      "type": "boolean"
+    },
+    "backup": {
+      "default": true,
+      "title": "Backup",
+      "type": "boolean"
+    },
+    "supersede_frozen": {
+      "default": false,
+      "title": "Supersede Frozen",
+      "type": "boolean"
+    },
+    "supersede_confirmation": {
+      "default": "",
+      "maxLength": 100,
+      "title": "Supersede Confirmation",
+      "type": "string"
+    },
+    "supersede_reason": {
+      "default": "",
+      "maxLength": 2000,
+      "title": "Supersede Reason",
+      "type": "string"
+    }
+  },
+  "required": [
+    "provider",
+    "scope_id",
+    "preview_token"
+  ],
+  "title": "ScopeDelete",
+  "type": "object"
+}

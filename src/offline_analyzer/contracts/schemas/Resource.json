@@ -1,0 +1,56 @@
+{
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "1.0",
+      "default": "1.0",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "resource_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Resource Id",
+      "type": "string"
+    },
+    "partition": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Partition",
+      "type": "string"
+    },
+    "account_id": {
+      "pattern": "^[0-9]{12}$",
+      "title": "Account Id",
+      "type": "string"
+    },
+    "region": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Region",
+      "type": "string"
+    },
+    "service": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Service",
+      "type": "string"
+    },
+    "native_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Native Id",
+      "type": "string"
+    }
+  },
+  "required": [
+    "resource_id",
+    "partition",
+    "account_id",
+    "region",
+    "service",
+    "native_id"
+  ],
+  "title": "Resource",
+  "type": "object"
+}

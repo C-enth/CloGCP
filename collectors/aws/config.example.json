@@ -1,0 +1,8 @@
+{
+  "assessment_id": "ASSESSMENT-NAME",
+  "approved_accounts_file": "approved_accounts.txt",
+  "approved_regions": ["ap-south-1"],
+  "spoke_role_name": "APPROVED-READ-ONLY-SPOKE-ROLE",
+  "prowler_executable": "",
+  "dataset_origin": "TOOL_GENERATED"
+}

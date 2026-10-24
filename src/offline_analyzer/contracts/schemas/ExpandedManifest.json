@@ -1,0 +1,289 @@
+{
+  "$defs": {
+    "AssetTypeCount": {
+      "additionalProperties": false,
+      "properties": {
+        "asset_type": {
+          "maxLength": 400,
+          "minLength": 1,
+          "title": "Asset Type",
+          "type": "string"
+        },
+        "count": {
+          "minimum": 0,
+          "title": "Count",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "asset_type",
+        "count"
+      ],
+      "title": "AssetTypeCount",
+      "type": "object"
+    },
+    "ExpandedDataset": {
+      "additionalProperties": false,
+      "properties": {
+        "domain": {
+          "maxLength": 100,
+          "title": "Domain",
+          "type": "string"
+        },
+        "dataset": {
+          "maxLength": 200,
+          "title": "Dataset",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "SUCCESS",
+            "EMPTY",
+            "FAILED",
+            "API_DISABLED",
+            "ACCESS_DENIED",
+            "COMMAND_ERROR",
+            "AUTH_ERROR",
+            "TRUNCATED",
+            "RATE_LIMITED",
+            "NOT_FOUND",
+            "HTTP_ERROR",
+            "SERVER_ERROR"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "record_count": {
+          "anyOf": [
+            {
+              "maximum": 100000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Record Count"
+        },
+        "exit_code": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exit Code"
+        },
+        "started_utc": {
+          "format": "date-time",
+          "title": "Started Utc",
+          "type": "string"
+        },
+        "finished_utc": {
+          "format": "date-time",
+          "title": "Finished Utc",
+          "type": "string"
+        },
+        "file": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "File"
+        },
+        "error_file": {
+          "anyOf": [
+            {
+              "maxLength": 500,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Error File"
+        },
+        "command": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            }
+          ],
+          "maxLength": 16000,
+          "title": "Command"
+        },
+        "required_api": {
+          "maxLength": 400,
+          "title": "Required Api",
+          "type": "string"
+        },
+        "pages": {
+          "anyOf": [
+            {
+              "maximum": 100000,
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Pages"
+        }
+      },
+      "required": [
+        "domain",
+        "dataset",
+        "status",
+        "started_utc",
+        "finished_utc",
+        "command",
+        "required_api"
+      ],
+      "title": "ExpandedDataset",
+      "type": "object"
+    },
+    "JsonValue": {}
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "assessment-expanded-2.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "collector": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          },
+          "type": "object"
+        }
+      ],
+      "title": "Collector"
+    },
+    "project_id": {
+      "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$",
+      "title": "Project Id",
+      "type": "string"
+    },
+    "project_name": {
+      "anyOf": [
+        {
+          "maxLength": 300,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project Name"
+    },
+    "collected_utc": {
+      "format": "date-time",
+      "title": "Collected Utc",
+      "type": "string"
+    },
+    "scope": {
+      "const": "project",
+      "title": "Scope",
+      "type": "string"
+    },
+    "limitations": {
+      "$ref": "#/$defs/JsonValue"
+    },
+    "datasets": {
+      "items": {
+        "$ref": "#/$defs/ExpandedDataset"
+      },
+      "maxItems": 1024,
+      "minItems": 1,
+      "title": "Datasets",
+      "type": "array"
+    },
+    "dataset_origin": {
+      "default": "tool-generated",
+      "enum": [
+        "synthetic",
+        "tool-generated"
+      ],
+      "title": "Dataset Origin",
+      "type": "string"
+    },
+    "max_detail_items": {
+      "maximum": 100000,
+      "minimum": 0,
+      "title": "Max Detail Items",
+      "type": "integer"
+    },
+    "max_api_pages": {
+      "maximum": 100000,
+      "minimum": 0,
+      "title": "Max Api Pages",
+      "type": "integer"
+    },
+    "enabled_api_count": {
+      "maximum": 100000,
+      "minimum": 0,
+      "title": "Enabled Api Count",
+      "type": "integer"
+    },
+    "discovered_asset_types": {
+      "items": {
+        "$ref": "#/$defs/AssetTypeCount"
+      },
+      "maxItems": 4096,
+      "title": "Discovered Asset Types",
+      "type": "array"
+    },
+    "discovery_engine_detail_limit_reached": {
+      "title": "Discovery Engine Detail Limit Reached",
+      "type": "boolean"
+    },
+    "bigquery_dataset_detail_limit_reached": {
+      "title": "Bigquery Dataset Detail Limit Reached",
+      "type": "boolean"
+    }
+  },
+  "required": [
+    "schema_version",
+    "collector",
+    "project_id",
+    "collected_utc",
+    "scope",
+    "limitations",
+    "datasets",
+    "max_detail_items",
+    "max_api_pages",
+    "enabled_api_count",
+    "discovered_asset_types",
+    "discovery_engine_detail_limit_reached",
+    "bigquery_dataset_detail_limit_reached"
+  ],
+  "title": "ExpandedManifest",
+  "type": "object"
+}

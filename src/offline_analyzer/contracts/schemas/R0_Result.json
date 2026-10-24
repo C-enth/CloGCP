@@ -1,0 +1,396 @@
+{
+  "$defs": {
+    "EvidenceRef": {
+      "additionalProperties": false,
+      "properties": {
+        "schema_version": {
+          "const": "1.0",
+          "default": "1.0",
+          "title": "Schema Version",
+          "type": "string"
+        },
+        "artifact_id": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Artifact Id",
+          "type": "string"
+        },
+        "locator": {
+          "maxLength": 512,
+          "minLength": 1,
+          "title": "Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "artifact_id",
+        "locator"
+      ],
+      "title": "EvidenceRef",
+      "type": "object"
+    },
+    "Outcome": {
+      "enum": [
+        "PASS",
+        "FAIL",
+        "NOT_APPLICABLE",
+        "UNKNOWN",
+        "COLLECTION_ERROR",
+        "MANUAL_VALIDATION_REQUIRED"
+      ],
+      "title": "Outcome",
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "r0.1",
+      "default": "r0.1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "provider": {
+      "default": "AWS",
+      "enum": [
+        "AWS",
+        "GCP"
+      ],
+      "title": "Provider",
+      "type": "string"
+    },
+    "project_id": {
+      "anyOf": [
+        {
+          "pattern": "^[a-z][a-z0-9-]{4,28}[a-z0-9]$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project Id"
+    },
+    "project_number": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{1,20}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Project Number"
+    },
+    "organization_id": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Organization Id"
+    },
+    "folder_id": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Folder Id"
+    },
+    "methodology_id": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Methodology Id"
+    },
+    "mapping_status": {
+      "default": "UNRESOLVED",
+      "enum": [
+        "UNRESOLVED",
+        "PROPOSED"
+      ],
+      "title": "Mapping Status",
+      "type": "string"
+    },
+    "methodology_criteria": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Methodology Criteria",
+      "type": "array"
+    },
+    "methodology_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Methodology Sha256"
+    },
+    "evaluation_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Evaluation Id",
+      "type": "string"
+    },
+    "rule_id": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Rule Id",
+      "type": "string"
+    },
+    "rule_version": {
+      "maxLength": 512,
+      "minLength": 1,
+      "title": "Rule Version",
+      "type": "string"
+    },
+    "account_id": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9]{12}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Account Id"
+    },
+    "region": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Region"
+    },
+    "resource_id": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Resource Id"
+    },
+    "native_id": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "title": "Native Id"
+    },
+    "outcome": {
+      "$ref": "#/$defs/Outcome"
+    },
+    "evaluation_scope": {
+      "default": "RESOURCE",
+      "enum": [
+        "RESOURCE",
+        "COLLECTION_SCOPE"
+      ],
+      "title": "Evaluation Scope",
+      "type": "string"
+    },
+    "reasoning": {
+      "title": "Reasoning",
+      "type": "string"
+    },
+    "evidence": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/EvidenceRef"
+      },
+      "title": "Evidence",
+      "type": "array"
+    },
+    "supporting_observations": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Supporting Observations",
+      "type": "array"
+    },
+    "contradictory_observations": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Contradictory Observations",
+      "type": "array"
+    },
+    "missing_dependencies": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Missing Dependencies",
+      "type": "array"
+    },
+    "confidence": {
+      "enum": [
+        "HIGH",
+        "MEDIUM",
+        "LOW",
+        "UNASSESSED"
+      ],
+      "title": "Confidence",
+      "type": "string"
+    },
+    "limitations": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Limitations",
+      "type": "array"
+    },
+    "assessed_at": {
+      "format": "date-time",
+      "title": "Assessed At",
+      "type": "string"
+    },
+    "finding_class": {
+      "anyOf": [
+        {
+          "enum": [
+            "BASELINE_DEVIATION",
+            "POTENTIAL_EXPOSURE",
+            "SUPPORTED_SECURITY_GAP"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Finding Class"
+    },
+    "exposure_status": {
+      "anyOf": [
+        {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Exposure Status"
+    },
+    "suggested_severity": {
+      "anyOf": [
+        {
+          "enum": [
+            "INFO",
+            "LOW",
+            "MEDIUM",
+            "HIGH",
+            "CRITICAL"
+          ],
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Suggested Severity"
+    },
+    "evidence_needed": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Evidence Needed",
+      "type": "array"
+    },
+    "compensating_controls": {
+      "default": [],
+      "items": {
+        "maxLength": 512,
+        "minLength": 1,
+        "type": "string"
+      },
+      "title": "Compensating Controls",
+      "type": "array"
+    }
+  },
+  "required": [
+    "evaluation_id",
+    "rule_id",
+    "rule_version",
+    "account_id",
+    "region",
+    "resource_id",
+    "native_id",
+    "outcome",
+    "reasoning",
+    "confidence",
+    "assessed_at"
+  ],
+  "title": "Result",
+  "type": "object"
+}
