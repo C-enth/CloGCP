@@ -9,7 +9,7 @@ coverage reporting and read-only historical comparison. The reused GUI retains C
 
 This repository is public. Open the
 [release candidate](https://github.com/C-enth/CloGCP/releases/tag/v0.8.4-clogcp.1), and download
-**CloGCP.zip**, **CloGCP.zip.sha256** and **VERSION.json** from its assets. GitHub's green
+**CloGCP.zip** and **CloGCP.zip.sha256** from its assets. GitHub's green
 **Code → Download ZIP** button downloads development source, not the complete offline application.
 
 [Download CloGCP.zip](https://github.com/C-enth/CloGCP/releases/download/v0.8.4-clogcp.1/CloGCP.zip)
