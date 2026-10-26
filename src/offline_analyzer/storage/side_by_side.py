@@ -77,7 +77,10 @@ def workspace_sha256(path: Path) -> str:
     flags = os.O_RDONLY | getattr(os, "O_BINARY", 0) | getattr(os, "O_NOFOLLOW", 0)
     digest, total = hashlib.sha256(), 0
     with os.fdopen(os.open(path, flags), "rb") as stream:
-        if _file_identity(os.fstat(stream.fileno())) != _file_identity(before):
+        opened = os.fstat(stream.fileno())
+        # Windows path/handle APIs can expose different file identities. Compare
+        # each API with itself over time, rather than rejecting stable files.
+        if opened.st_size != before.st_size:
             raise InputError("WORKSPACE_FILE_CHANGED_DURING_HASH")
         while chunk := stream.read(HASH_CHUNK_BYTES):
             checkpoint()
@@ -86,7 +89,7 @@ def workspace_sha256(path: Path) -> str:
         after = os.fstat(stream.fileno())
     if (
         total != before.st_size
-        or _file_identity(after) != _file_identity(before)
+        or _file_identity(after) != _file_identity(opened)
         or _file_identity(_stat_no_links(path)) != _file_identity(before)
     ):
         raise InputError("WORKSPACE_FILE_CHANGED_DURING_HASH")

@@ -279,3 +279,22 @@ def test_native_windows_junctions_are_refused(workspace, tmp_path):
         recovery.file_inventory(junction)
     assert (external / "sentinel").read_text() == "do not follow"
     assert not (external / "target").exists()
+
+
+def test_path_and_handle_file_identities_may_differ(tmp_path, monkeypatch):
+    path = tmp_path / "synthetic.bin"
+    path.write_bytes(b"same stable file")
+    original = os.fstat
+
+    def distinct_handle_identity(fd):
+        value = original(fd)
+        return SimpleNamespace(
+            st_dev=value.st_dev + 1,
+            st_ino=value.st_ino + 1,
+            st_size=value.st_size,
+            st_mtime_ns=value.st_mtime_ns,
+            st_ctime_ns=value.st_ctime_ns,
+        )
+
+    monkeypatch.setattr(recovery.os, "fstat", distinct_handle_identity)
+    assert recovery.workspace_sha256(path) == hashlib.sha256(b"same stable file").hexdigest()

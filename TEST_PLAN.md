@@ -787,3 +787,9 @@ Version-bumped compiled browser workflow: **1 passed**, 32.27 s. It opens the re
 workspace, preserves frozen baseline/reviews, independently recalculates paths and exports
 through the existing workflow. Ruff lint/format and diff checks passed. Native Windows
 junction/recovery tests are provided in the pinned-action Windows CI workflow.
+
+Native Windows CI caught a path-versus-handle identity mismatch in the new hash race
+check before release. The correction compares path snapshots with path snapshots and
+handle snapshots with handle snapshots, retaining full-length and mutation checks.
+A regression simulates differing stable API identities. Local recovery/upgrade rerun:
+**18 passed, 1 native-junction skip**, 19.77 s. The Windows CI rerun validates the correction.
