@@ -759,3 +759,9 @@ Additional exact-asset verification is delivered in the release verification ass
 manifest/CRC/hash checks, source-module equality, fresh offline setup, packaged tests,
 independent finalizer and GitHub download verification. Native Windows/Excel/Tk and
 customer acceptance remain pending; the complete repository suite was not rerun.
+
+Exact release assets: **46 packaged engine/workflow/upgrade tests passed** in 30.78 s.
+Imports were asserted to use extracted application and finalizer modules. Fresh offline
+macOS x86_64 setup/pip check passed; packaged runtime/frontend identity is compatible.
+Standalone finalizer integrity and independent execution passed. All three package
+CRC/member digests and runtime-source byte equality passed. Native Windows remains pending.

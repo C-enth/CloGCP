@@ -1,0 +1,36 @@
+{
+  "version": "0.8.5-clogcp.1",
+  "application_source_commit": "fe3f3e39ceecbd2265565b7498511353fa9e06e5",
+  "publication_commit_note": "This following distribution-only commit updates the pinned application ZIP/bootstrap, checksums and test record. Runtime modules match the application source commit exactly.",
+  "assets": {
+    "CloGCP.zip": {
+      "sha256": "ff74699a68009a80efd71e2a22af2ba9b666be9f2b23fbe9703ed575096153ad",
+      "bytes": 63777484,
+      "members": 377,
+      "source_files_equal": 245,
+      "manifest_crc_hashes": "PASS"
+    },
+    "CloGCP-Delta-Collector.zip": {
+      "sha256": "f931e752da8c43d7111de8008d90b9f0ec97a11fe74e4657cbddb036ccc87505",
+      "bytes": 7661817,
+      "members": 30,
+      "source_files_equal": 6,
+      "manifest_crc_hashes": "PASS"
+    },
+    "CloGCP-Report-Finalizer.zip": {
+      "sha256": "f078ffc455aba99f86db35fd0ab3651d036ae08c0e1b044e124c17843711431e",
+      "bytes": 8504348,
+      "members": 41,
+      "source_files_equal": 8,
+      "manifest_crc_hashes": "PASS"
+    }
+  },
+  "packaged_tests": {
+    "passed": 46,
+    "seconds": 30.78
+  },
+  "offline_setup": "PASS_MACOS_X86_64",
+  "native_windows": "PENDING",
+  "native_excel": "PENDING",
+  "customer_acceptance": "PENDING"
+}

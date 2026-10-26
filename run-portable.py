@@ -11,7 +11,7 @@ import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
 
-EXPECTED_SHA256 = "e7e0be798760c50a2285de8c6634c64dd92c9a72c4ee87cd261dc6cdcaf50621"
+EXPECTED_SHA256 = "ff74699a68009a80efd71e2a22af2ba9b666be9f2b23fbe9703ed575096153ad"
 MAX_BYTES = 256 * 1024 * 1024
 
 
