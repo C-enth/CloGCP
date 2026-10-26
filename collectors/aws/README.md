@@ -1,8 +1,47 @@
-# CloSec AWS collector 0.3.2
+# CloSec AWS collector 0.3.3
 
-Downloaded as `CloSec_AWS_Collector_v0.3.2.zip`: one `CloSec_AWS_Collector/` folder with
-`assessment.py`, this README, `config.example.json`, `approved_accounts.example.txt`, the
-analyzer contract and `evidence/`, where each collected account's folder and ZIP are written.
+Downloaded as `CloSec_AWS_Collector_v0.3.3.zip`: one `CloSec_AWS_Collector/` folder with
+`assessment.py` (one account), `preflight.py` (access probe), `batch.py` (many accounts),
+`fleet.py` (shared helpers), this README, `AWS_COLLECTION_ACCESS.md` (every API action and the
+IAM policies), `policies/` (member role StackSet template, supplement, trust, hub and
+management-account policies), `config.example.json`, `approved_accounts.example.txt`,
+`accounts.example.csv`, the analyzer contract and `evidence/`.
+
+## 0.3.3 (journal schema `closec-provisional-0.3`; fields and outcomes added)
+
+- Distinct outcomes: ACCESS_DENIED, THROTTLED, CREDENTIALS_EXPIRED, TIMEOUT, CONNECTION_ERROR,
+  SERVICE_NOT_IN_USE (AWS subscription code or endpoint not offered), REGION_NOT_ENABLED
+  (opted-out Region journaled, no longer aborts the run). All are gaps; none is compliant.
+- Bounded read-only retries with exponential backoff and jitter (botocore retries off, so every
+  retry is journaled: `attempts`, `retried_statuses`, and one manifest entry per retry).
+  Configurable `timeouts` / `retries` in config.json (`connect_timeout`, `read_timeout`,
+  `operation_timeout`, `max_attempts`, `backoff_base`, `backoff_cap`, `session_duration`).
+- Organizations: SCP and RCP chain from the account to the root with policy content (root
+  included); organization ID and management account recorded; missing access recorded
+  explicitly (`collection_facts.organization.access`).
+- `collect --resume <run folder> [--services ...] [--regions ...]`: a new run that copies
+  COMPLETE evidence after re-verifying its SHA-256 and re-attempts only failed or missing
+  operations.
+- Package integrity: UTF-8 with LF on every OS, forward-slash ZIP entries, `<zip>.sha256`
+  sidecar, manifest `collection_facts` (retries, detail limits, dependency fallbacks, Regions
+  attempted / succeeded / partial / not enabled, organization access, resume).
+- Expired credentials stop the run and finalize it as INTERRUPTED (resume after signing in).
+
+Pre-flight before a large collection:
+
+```sh
+python preflight.py --accounts accounts.csv --role CloSecEvidenceReadOnly --regions ap-south-1
+```
+
+Batch (one package per account, checkpointed, `--retry-failed` resumes incomplete accounts):
+
+```sh
+python batch.py --accounts accounts.csv --role CloSecEvidenceReadOnly --regions ap-south-1 \
+    --output batch-2026-10 --assessment-id ACME-2026 --concurrency 4
+```
+
+Both are Python like the collector and run on Windows, macOS and Linux. Account IDs are masked
+in terminal output; credentials are never printed or stored.
 
 Read-only Python/boto3 evidence collector. One operator-selected account per run, through
 an approved spoke role (STS AssumeRole with refreshable credentials), restricted to an
@@ -39,7 +78,8 @@ The registry was validated offline against botocore 1.43.113 service models
 
 Python 3.9+ with boto3/botocore on the approved collection host (the existing Linux/SSM
 workflow is unchanged; Windows also works from 0.3.1). The spoke role needs read-only
-access; AWS-managed `SecurityAudit` plus `ViewOnlyAccess` cover the registered calls. Do not
+access: AWS-managed `SecurityAudit` plus the two-action `CloSecReadOnlySupplement`
+(`policies/member-supplement-policy.json`); see `AWS_COLLECTION_ACCESS.md`. Do not
 grant administrative or write permissions. No object bodies, secret values or function code
 are retrieved. Optional Prowler 5.x is supplementary and never proves coverage.
 
@@ -74,4 +114,6 @@ are out of scope. ACCESS_DENIED, API_ERROR and NOT_COLLECTED rows are evidence g
 never compliant. Resource control policies, effective SCP evaluation, Identity Center and
 some dynamic per-resource detail remain uncollected. Real-account execution of 0.3.1 has not
 been performed by the developer; it was exercised against a local AWS API emulator (moto)
-with synthetic resources only.
+with synthetic resources only. 0.3.3, the probe and the batch collector were exercised only
+against an in-process synthetic fake of boto3 (`tools/fixtures/aws_fake_cloud.py`); request
+parameters were not validated against botocore service models on this host.

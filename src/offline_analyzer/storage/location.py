@@ -349,6 +349,19 @@ def prepare_open(workspace: Path) -> dict:
         from offline_analyzer.clogcp_profile import ensure_workspace
 
         ensure_workspace(workspace)
+        from offline_analyzer.storage.side_by_side import compatible
+
+        compatible(workspace)
+        # The CloGCP profile never checkpoints, recovers or migrates on opening.
+        # Additive upgrades require the explicit verified-copy command.
+        return {
+            "opened": True,
+            "recovered": False,
+            "migrated": False,
+            "backup": None,
+            "integrity": "OK",
+            "read_only_preflight": True,
+        }
 
     report = {"opened": True, "recovered": False, "migrated": False, "backup": None}
     database = workspace / DATABASE

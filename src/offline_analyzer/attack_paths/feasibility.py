@@ -15,14 +15,16 @@ stated as an assumption.
 import json
 from collections import Counter
 
-from offline_analyzer.attack_paths.specs import BY_PATH
-from offline_analyzer.contracts.r0 import stable_id
+from offline_analyzer.attack_paths.specs import ALTERNATIVES, BY_PATH
+from offline_analyzer.contracts.r0 import Candidate, stable_id
 
 EVIDENCE_KINDS = {"CONFIG", "IAM_ENGINE", "REACHABILITY", "ORG_EVIDENCE"}
 FEASIBLE, BLOCKED, INSUFFICIENT = "FEASIBLE", "BLOCKED", "INSUFFICIENT_EVIDENCE"
 ORDER = {"INFO": 0, "LOW": 1, "MEDIUM": 2, "HIGH": 3, "CRITICAL": 4}
 # Feasible paths reaching administrative-equivalent access are CRITICAL; public data
 # exposure is at least HIGH (data classification unknown).
+CROSS_LIMIT = 300  # cross-project/cross-cloud paths listed per run
+INVESTIGATION_LIMIT = 100  # GCP candidate investigations listed per run or project
 PATH_SEVERITY = {"AP-04": "CRITICAL", "AP-06": "CRITICAL", "AP-05": "HIGH"}
 PATH_TITLES = {
     "AP-04": "Internet-exposed instance -> metadata credentials -> privileged role",
@@ -35,7 +37,19 @@ ASSUMPTION = " Assumption: asset business criticality is unknown; exploitation w
 
 def aws_feasibility(record) -> tuple[str, str]:
     spec = BY_PATH.get(record.path_id)
-    statuses = record.prerequisites
+    statuses = dict(record.prerequisites)
+    # Alternatives (specs.ALTERNATIVES): one VERIFIED member meets the group; the group is
+    # absent only when every member is verified absent.
+    for group in ALTERNATIVES.get(record.path_id, ()):
+        states = [statuses.get(k, "NOT_EVALUATED") for k in group]
+        merged = (
+            "VERIFIED"
+            if "VERIFIED" in states
+            else "NOT_PRESENT"
+            if all(s == "NOT_PRESENT" for s in states)
+            else "UNKNOWN"
+        )
+        statuses.update({k: merged for k in group})
     if record.state == "BLOCKED" or record.blockers or "NOT_PRESENT" in statuses.values():
         return BLOCKED, "A prerequisite is verified absent or a blocking control is verified."
     checkable = [p for p in (spec.prerequisites if spec else ()) if p.kind in EVIDENCE_KINDS]
@@ -122,7 +136,8 @@ def aws_evidence(store, run_id: str, stored: set[str]):
     return evidence_of
 
 
-def aws_paths(store, run_id: str) -> list[dict]:
+def aws_paths(store, run_id: str, truncation: list | None = None) -> list[dict]:
+    """AWS path items; `truncation` receives budget records that limited them."""
     from offline_analyzer.attack_paths.model import AWS_OBJECTIVES, aws_assumptions, aws_hops
     from offline_analyzer.attack_paths.model import summarize as summarize_hops
     from offline_analyzer.attack_paths.prerequisites import path_records
@@ -147,7 +162,7 @@ def aws_paths(store, run_id: str) -> list[dict]:
     stored = {f for (f,) in store.rows("SELECT finding_id FROM findings WHERE run_id=?", [run_id])}
     evidence_of = aws_evidence(store, run_id, stored)
     items = []
-    for record in path_records(store, run_id):
+    for record in path_records(store, run_id, truncation=truncation):
         verdict, reason = aws_feasibility(record)
         spec = BY_PATH.get(record.path_id)
         hops = aws_hops(record, spec, lambda key, record=record: evidence_of(record, key))
@@ -306,9 +321,11 @@ def calibrate(store, run_id: str) -> int:
             f"{severity}: {reason}{ASSUMPTION}"
         )
         data["suggested_severity"] = severity
+        # Canonical model JSON, as written at assessment: review and SRE fingerprints are the
+        # SHA-256 of these bytes (findings/sre.py:STAGE_SQL, generate.py:fingerprint).
         store.db.execute(
             "UPDATE findings SET data=? WHERE run_id=? AND finding_id=?",
-            [json.dumps(data), run_id, finding_id],
+            [Candidate.model_validate(data).model_dump_json(), run_id, finding_id],
         )
         updated += 1
     return updated
@@ -428,17 +445,70 @@ def path_coverage(store, run_id: str, items: list[dict]) -> dict[str, list[dict]
     return result
 
 
+def display_limits(store, run_id: str, project: str, cross_total: int, projection: dict) -> list:
+    """Truncation records for the cross-path and GCP investigation display limits."""
+    from offline_analyzer.attack_paths.gcp import INVESTIGATION_RULES
+    from offline_analyzer.provenance.truncation import record as truncated_view
+
+    truncation: list[dict] = []
+    if cross_total > CROSS_LIMIT:
+        truncation.append(
+            truncated_view(
+                "Cross-project attack-path display limit",
+                "run",
+                CROSS_LIMIT,
+                cross_total,
+                "further cross-project and cross-cloud paths are not listed; narrow the scope",
+                provider="GCP",
+            )
+        )
+    if projection["truncated"]:
+        eligible = sum(
+            c.provider == "GCP"
+            and c.rule_id in INVESTIGATION_RULES
+            and (not project or c.project_id == project)
+            for c in store.candidates(run_id)
+        )
+        truncation.append(
+            truncated_view(
+                "GCP investigation display limit",
+                project or "run",
+                len(projection["items"]),
+                eligible,
+                "further GCP candidate investigations are not listed; narrow the project scope",
+                provider="GCP",
+            )
+        )
+    return truncation
+
+
+def view_limits(store, run_id: str) -> list[dict]:
+    """Display-limit records for a whole run (Excel gaps sheet); IAM budgets come from the
+    workbook's own IAM analysis."""
+    from offline_analyzer.attack_paths.cross import cross_paths
+    from offline_analyzer.attack_paths.gcp import investigations
+
+    return display_limits(
+        store,
+        run_id,
+        "",
+        len(cross_paths(store, run_id, limit=None)),
+        investigations(store, run_id, "", INVESTIGATION_LIMIT),
+    )
+
+
 def attack_paths(store, run_id: str, project: str = "") -> dict:
     from offline_analyzer.attack_paths.cross import cross_paths
     from offline_analyzer.attack_paths.gcp import investigations
 
-    # Request one sentinel beyond the display budget so truncation is explicit.
-    cross_all = cross_paths(store, run_id, limit=301)
-    cross = [p for p in cross_all[:300] if not project or p["project_id"] == project]
-    projection = investigations(store, run_id, project, 100)
+    # Build every cross path, display the budget, and count what is not displayed.
+    cross_all = cross_paths(store, run_id, limit=None)
+    cross = [p for p in cross_all[:CROSS_LIMIT] if not project or p["project_id"] == project]
+    projection = investigations(store, run_id, project, INVESTIGATION_LIMIT)
+    truncation = display_limits(store, run_id, project, len(cross_all), projection)
     items = (
         gcp_paths(store, run_id, project, projection=projection)
-        + ([] if project else aws_paths(store, run_id))
+        + ([] if project else aws_paths(store, run_id, truncation))
         + cross
     )
     candidates = {c.finding_id: c for c in store.candidates(run_id)}
@@ -460,6 +530,14 @@ def attack_paths(store, run_id: str, project: str = "") -> dict:
             if linked
             else "UNMAPPED: no linked finding category"
         )
+        if not linked and path.get("provider") == "AWS" and path.get("hop_stride"):
+            # No rule finding links this AWS path (for example a broad iam:PassRole principal
+            # that no rule flags): the hop edge types carry the proposed mapping.
+            path["stride"] = list(path["hop_stride"])
+            path["stride_mapping_basis"] = (
+                "Hop edge types (model.EDGE_STRIDE); no linked finding, so exclusion works "
+                "through path review only. Proposed mapping, not verified exploitation."
+            )
     order = {FEASIBLE: 0, INSUFFICIENT: 1, BLOCKED: 2}
     items.sort(key=lambda p: order.get(p["feasibility"], 3))
     from offline_analyzer.attack_paths.review import attach
@@ -489,6 +567,9 @@ def attack_paths(store, run_id: str, project: str = "") -> dict:
     return {
         "items": items,
         "feasible": sum(p["feasibility"] == FEASIBLE for p in items),
-        "truncated": projection["truncated"] or len(cross_all) > 300,
+        # Every dropped record is named with shown/total counts; never "not truncated"
+        # while a budget limited the list (IAM investigation budgets included).
+        "truncated": bool(truncation),
+        **({"truncation": truncation} if truncation else {}),
         "coverage": path_coverage(store, run_id, items),
     }

@@ -72,7 +72,7 @@ class JobJournal:
         finally:
             Path(name).unlink(missing_ok=True)
 
-    def load(self) -> dict[str, dict]:
+    def load(self, *, persist_recovery: bool = True) -> dict[str, dict]:
         jobs = {}
         now = datetime.now(UTC).isoformat()
         for path in self.directory.glob("*.json"):
@@ -95,14 +95,15 @@ class JobJournal:
                     finished_at=datetime.now(UTC).timestamp(),
                     updated_at=now,
                 )
-                self.save(job)
+                if persist_recovery:
+                    self.save(job)
                 # Only job-owned scratch names under this workspace are eligible.
                 # Persisted raw evidence, uploads and reports are never removed here.
                 for parent, prefix in (
                     (self.workspace, f"work-{job['id']}-"),
                     (self.workspace / ".upload-staging", f"upload-{job['id']}-"),
                 ):
-                    if parent.is_dir() and not parent.is_symlink():
+                    if persist_recovery and parent.is_dir() and not parent.is_symlink():
                         for scratch in parent.glob(prefix + "*"):
                             if scratch.is_dir() and not scratch.is_symlink():
                                 shutil.rmtree(scratch)

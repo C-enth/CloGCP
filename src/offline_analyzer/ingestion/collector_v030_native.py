@@ -29,9 +29,28 @@ from offline_analyzer.ingestion.safety import resolve_under, sha256_file
 
 SCHEMA = "closec-provisional-0.3"
 PROFILE = "closec-v030-native-1"
-VERSIONS = {"0.3.0", "0.3.1", "0.3.2"}
+VERSIONS = {"0.3.0", "0.3.1", "0.3.2", "0.3.3"}
 DERIVED = ".closec-derived"
 OUTCOMES = {"COMPLETE", "PARTIAL", "API_ERROR", "ACCESS_DENIED", "NOT_ENABLED", "NOT_COLLECTED"}
+# 0.3.3 journal outcomes: distinct collection gaps, each FAILED (coverage ERROR) except
+# REGION_NOT_ENABLED, where no request was made (SKIPPED, coverage NOT_COLLECTED). Never PASS.
+OUTCOMES_033 = {
+    "THROTTLED",
+    "CREDENTIALS_EXPIRED",
+    "TIMEOUT",
+    "CONNECTION_ERROR",
+    "REGION_NOT_ENABLED",
+    "SERVICE_NOT_IN_USE",
+}
+OUTCOMES = OUTCOMES | OUTCOMES_033
+INTERPRETATIONS_033 = {
+    "THROTTLED": "AWS_THROTTLED_AFTER_RETRIES",
+    "CREDENTIALS_EXPIRED": "AWS_CREDENTIALS_EXPIRED",
+    "TIMEOUT": "AWS_TIMEOUT",
+    "CONNECTION_ERROR": "AWS_CONNECTION_ERROR",
+    "REGION_NOT_ENABLED": "AWS_REGION_NOT_ENABLED",
+    "SERVICE_NOT_IN_USE": "AWS_SERVICE_NOT_IN_USE",
+}
 TOKENS = {
     "NextToken",
     "nextToken",
@@ -161,6 +180,42 @@ def read_manifest(directory: Path) -> dict:
     return value
 
 
+BUSINESS_GROUP = re.compile(r"^[A-Za-z0-9 _.&()-]{1,64}$")
+FACTS_BYTES = 2 * 1024 * 1024
+
+
+def collection_facts(manifest: dict) -> dict | None:
+    """Validated 0.3.3 `collection_facts`: known keys only, bounded, never evidence."""
+    from offline_analyzer.reporting.aws_collection import FACT_CONSUMERS
+
+    facts = manifest.get("collection_facts")
+    if manifest["collector_version"] != "0.3.3":
+        if facts is not None:
+            raise InputError("COLLECTOR_V030_FACTS_UNSUPPORTED")
+        return None
+    if not isinstance(facts, dict) or not facts.keys() <= FACT_CONSUMERS.keys():
+        raise InputError("COLLECTOR_V030_FACTS_INVALID")
+    if len(json.dumps(facts)) > FACTS_BYTES or facts.get("encoding") != "UTF-8":
+        raise InputError("COLLECTOR_V030_FACTS_INVALID")
+    for key in ("regions_attempted", "regions_succeeded", "regions_partial", "regions_not_enabled"):
+        value = facts.get(key, [])
+        if not isinstance(value, list) or not all(isinstance(r, str) for r in value):
+            raise InputError("COLLECTOR_V030_FACTS_INVALID")
+    for key in ("retries", "detail_limits", "dependency_fallbacks", "organization", "options"):
+        if not isinstance(facts.get(key, {}), dict):
+            raise InputError("COLLECTOR_V030_FACTS_INVALID")
+    return facts
+
+
+def business_group(manifest: dict) -> str | None:
+    value = manifest.get("business_group")
+    if value is None:
+        return None
+    if not isinstance(value, str) or not BUSINESS_GROUP.fullmatch(value):
+        raise InputError("COLLECTOR_BUSINESS_GROUP_INVALID")
+    return value
+
+
 def prowler_profile(row: dict) -> str | None:
     match = re.search(r"([0-9]+\.[0-9]+\.[0-9]+)", str(row.get("source_tool_version") or ""))
     return PROWLER_PROFILES.get(match[1]) if match else None
@@ -219,7 +274,9 @@ def convert(directory: Path, manifest: dict, rows: list[dict], digests: dict[str
         if row["account_id"] != account or row["collection_id"] != manifest["collection_id"]:
             raise InputError("COLLECTOR_JOURNAL_SCOPE_MISMATCH")
         outcome = row["outcome"]
-        if outcome not in OUTCOMES:
+        if outcome not in OUTCOMES or (
+            outcome in OUTCOMES_033 and manifest["collector_version"] != "0.3.3"
+        ):
             raise InputError("COLLECTION_OUTCOME_UNSUPPORTED")
         service, method = str(row["service"]), str(row["operation"])
         files = row["files"]
@@ -321,6 +378,8 @@ def convert(directory: Path, manifest: dict, rows: list[dict], digests: dict[str
                 derivation = "AWS_DEFINED_ABSENCE_FROM_JOURNAL_ERROR_CODE"
             elif outcome == "NOT_COLLECTED":
                 record["status"] = "SKIPPED"
+            elif outcome == "REGION_NOT_ENABLED":
+                record.update(status="SKIPPED", error_code="REGION_NOT_ENABLED")
             else:
                 fallback = {"ACCESS_DENIED": "AccessDenied"}.get(outcome, outcome)
                 code = original_code if original_code != outcome else fallback
@@ -348,6 +407,10 @@ def interpretation(operation: str, outcome: str, code: str | None, derivation: s
         return "EVENT_SELECTOR_COVERAGE_UNKNOWN_RECOLLECT_WITH_COLLECTOR_0_3_1"
     if operation.startswith("prowler:") and outcome == "PARTIAL":
         return "PROWLER_NONZERO_EXIT_FAIL_CHECKS_OR_PARTIAL_SCAN_REVIEW_EXECUTION_LOG"
+    if outcome in INTERPRETATIONS_033:
+        return INTERPRETATIONS_033[outcome]
+    if outcome == "API_ERROR" and code == "TIMEOUT":
+        return "AWS_TIMEOUT"  # 0.3.0-0.3.2 journaled timeouts as API_ERROR
     if outcome == "ACCESS_DENIED":
         return "ACCESS_DENIED_FOR_THIS_ATTEMPT_SERVICE_STATE_UNKNOWN"
     if outcome == "NOT_ENABLED":
@@ -363,6 +426,8 @@ def inspect_native(directory: Path):
 
     digests = verify_checksums(directory)
     manifest = read_manifest(directory)
+    facts = collection_facts(manifest)
+    group = business_group(manifest)
     rows = read_index(directory)
     operations, provenance = convert(directory, manifest, rows, digests)
     try:
@@ -389,6 +454,10 @@ def inspect_native(directory: Path):
     summary["collector_schema_verified"] = True
     summary["collection_status"] = manifest.get("status")
     summary["original_outcomes"] = dict(sorted(Counter(r["outcome"] for r in rows).items()))
+    if facts is not None:
+        summary["collection_facts"] = facts
+    if group:
+        summary["business_group"] = group
     summary["transport_digests"] = {
         "manifest": digests["manifest.json"],
         "index": digests["operations.jsonl"],

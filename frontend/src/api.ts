@@ -30,13 +30,8 @@ function failure(data: Row, fallback: string): string {
 }
 /** Deletion previews and file lists read a whole scope; allow more than a normal read. */
 export const PREVIEW_TIMEOUT_MS = 180000;
-/** Dashboard parts of large estates (secondary measure; reads also retry on timeout). */
-export const DASHBOARD_TIMEOUT_MS = 60000;
-/** A read that times out is retried with a longer timeout instead of failing. */
-const READ_TIMEOUT_RETRIES = 2;
 /** Reads refused only because a local job owns the database are retried until it ends. */
 const BUSY = "WORKSPACE_OPERATION_IN_PROGRESS";
-const TIMEOUT = "LOCAL_API_TIMEOUT";
 const BUSY_RETRY_MS = 750;
 const BUSY_WAIT_LIMIT_MS = 60 * 60 * 1000; // The local job time budget.
 export async function api(
@@ -45,19 +40,10 @@ export async function api(
   timeoutMs = 15000,
 ): Promise<any> {
   const started = Date.now();
-  let timeouts = 0;
   for (;;) {
     try {
-      return await request(path, body, timeoutMs * (timeouts + 1));
+      return await request(path, body, timeoutMs);
     } catch (error: any) {
-      if (
-        body === undefined &&
-        error.code === TIMEOUT &&
-        timeouts < READ_TIMEOUT_RETRIES
-      ) {
-        timeouts += 1; // the view keeps its loading state while the read is retried
-        continue;
-      }
       if (
         body !== undefined ||
         error.code !== BUSY ||
@@ -94,11 +80,8 @@ async function request(
     return data;
   } catch (error: any) {
     if (error.name === "AbortError")
-      throw Object.assign(
-        new Error(
-          `Local API did not answer within ${Math.round(timeoutMs / 1000)} seconds. View job details or retry; keep the workspace intact.`,
-        ),
-        { code: TIMEOUT },
+      throw new Error(
+        `Local API did not answer within ${Math.round(timeoutMs / 1000)} seconds. View job details or retry; keep the workspace intact.`,
       );
     throw error;
   } finally {

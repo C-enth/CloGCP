@@ -59,6 +59,9 @@ class RelatedEvidence:
                 if len(items) >= MAX_RELATED_PER_SCOPE:
                     raise InputError("RELATED_EVIDENCE_LIMIT")
                 items.append(Normalized.model_validate_json(data))
+            known = self.__dict__.setdefault("_by_id", {})
+            for item in items:
+                known.setdefault(item.observation_id, item)
             cache[(kind, region)] = items
         return cache[(kind, region)]
 
@@ -71,19 +74,34 @@ class RelatedEvidence:
         """
         if not subnet or not vpc:
             return "ROUTE_EVIDENCE_MISSING", None
-        tables = self._index("AWS::EC2::RouteTable", region)
-        for table in tables:
-            for association in table.configuration.get("Associations") or []:
-                if association.get("SubnetId") == subnet:
-                    return internet_route(table, ipv6), table.observation_id
+        by_subnet, main_by_vpc = self._route_tables(region)
+        table = by_subnet.get(subnet)
+        if table is not None:
+            return internet_route(table, ipv6), table.observation_id
         if self.coverage("ec2:DescribeRouteTables", account, region) != "COMPLETE":
             return "ROUTE_EVIDENCE_MISSING", None
-        for table in tables:
-            if table.configuration.get("VpcId") == vpc and any(
-                a.get("Main") is True for a in table.configuration.get("Associations") or []
-            ):
-                return internet_route(table, ipv6), table.observation_id
+        table = main_by_vpc.get(vpc)
+        if table is not None:
+            return internet_route(table, ipv6), table.observation_id
         return "ROUTE_EVIDENCE_MISSING", None
+
+    def _route_tables(self, region: str):
+        """First route table (observation order) per associated subnet and per VPC main
+        association: the same answer as scanning the Region's tables in order."""
+        cache = self.__dict__.setdefault("_route_cache", {})
+        if region not in cache:
+            by_subnet, main_by_vpc = {}, {}
+            for table in self._index("AWS::EC2::RouteTable", region):
+                associations = table.configuration.get("Associations") or []
+                for association in associations:
+                    subnet = association.get("SubnetId")
+                    if isinstance(subnet, str):
+                        by_subnet.setdefault(subnet, table)
+                vpc = table.configuration.get("VpcId")
+                if isinstance(vpc, str) and any(a.get("Main") is True for a in associations):
+                    main_by_vpc.setdefault(vpc, table)
+            cache[region] = (by_subnet, main_by_vpc)
+        return cache[region]
 
     def _keyed(self, kind: str, region: str, key) -> dict[str, list[Normalized]]:
         cache = self.__dict__.setdefault("_keyed_cache", {})
@@ -96,6 +114,26 @@ class RelatedEvidence:
                     index.setdefault(value, []).append(item)
             cache[name] = index
         return cache[name]
+
+    def by_native(self, kind: str, region: str, native) -> list[Normalized]:
+        if not isinstance(native, str):  # same as the linear comparison it replaces
+            return [i for i in self._index(kind, region) if i.native_id == native]
+        return self._keyed(kind, region, native_key).get(native, [])
+
+    def by_account(self, kind: str, region: str, account) -> list[Normalized]:
+        if not isinstance(account, str):
+            return [i for i in self._index(kind, region) if i.account_id == account]
+        return self._keyed(kind, region, account_key).get(account, [])
+
+    def instances(self, region: str) -> dict:
+        """(account, instance ID) -> instance observation; the last observation wins, as a
+        dict built over the Region's instances in observation order."""
+        cache = self.__dict__.setdefault("_instance_cache", {})
+        if region not in cache:
+            cache[region] = {
+                (i.account_id, i.native_id): i for i in self._index("AWS::EC2::Instance", region)
+            }
+        return cache[region]
 
     def security_groups(self, region: str, group_id: str) -> list[Normalized]:
         return self._keyed("AWS::EC2::SecurityGroup", region, group_key).get(group_id, [])
@@ -138,7 +176,17 @@ class EvaluationContext(RelatedEvidence):
         self._interfaces: dict[str, dict[str, list[Normalized]]] = {}
 
     def coverage(self, operation: str, account: str | None, region: str | None) -> str:
-        return scope_coverage(self.sources, operation, account, region)
+        """scope_coverage over sources indexed once (same answer, no per-call scan)."""
+        index = self.__dict__.get("_coverage_index")
+        if index is None:
+            index = {}
+            for source in self.sources:
+                key = (source["operation"], source["account_id"], source["region"])
+                index.setdefault(key, []).append(source)
+            self._coverage_index = index
+        return scope_coverage(
+            index.get((operation, account, region), []), operation, account, region
+        )
 
     @property
     def iam(self):
@@ -148,6 +196,24 @@ class EvaluationContext(RelatedEvidence):
 
             self._iam = IamAnalysis(self.store, self.run_id, self.sources, self.registry)
         return self._iam
+
+    def observations_by_id(self, ids) -> list[Normalized]:
+        """Observations of this run by ID (related evidence a verdict already cites)."""
+        wanted = sorted(set(ids))
+        if not wanted:
+            return []
+        # Observations already loaded by this context are reused; only misses are queried.
+        known = self.__dict__.setdefault("_by_id", {})
+        missing = [i for i in wanted if i not in known]
+        if missing:
+            for (data,) in self.store.rows(
+                "SELECT data FROM observations WHERE run_id=? AND observation_id IN "
+                "(SELECT unnest(?)) ORDER BY observation_id",
+                [self.run_id, missing],
+            ):
+                item = Normalized.model_validate_json(data)
+                known[item.observation_id] = item
+        return [known[i] for i in wanted if i in known]
 
     def interfaces_for_group(self, region: str, group_id: str) -> list[Normalized]:
         """Network interfaces in the Region whose security-group list contains group_id.
@@ -167,6 +233,7 @@ class EvaluationContext(RelatedEvidence):
                 if count > MAX_RELATED_PER_SCOPE:
                     raise InputError("RELATED_EVIDENCE_LIMIT")
                 interface = Normalized.model_validate_json(data)
+                self.__dict__.setdefault("_by_id", {})[interface.observation_id] = interface
                 groups = interface.configuration.get("Groups")
                 for group in groups if isinstance(groups, list) else ():
                     if isinstance(group, str):

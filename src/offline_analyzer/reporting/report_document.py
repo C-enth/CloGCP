@@ -5,6 +5,7 @@ Restrained formatting: grey table rules, a light header band, bold labels, page 
 All text is escaped; spreadsheet text is written as literals, never formulas.
 """
 
+import json
 from collections import Counter
 from pathlib import Path
 
@@ -702,8 +703,15 @@ def write_excel(data: dict, path: Path, *, gcp_register: dict | None = None) -> 
         sheet.freeze_panes = "A2"
         sheet.auto_filter.ref = f"A1:{get_column_letter(len(headers))}{max(len(rows), 1) + 1}"
         sheet.append([cell(sheet, h, head=True) for h in headers])
+        # Write-only rows are serialized inside append(), so one styled cell per column is
+        # reused for every body row: same XML, without building a styled cell per value.
+        templates: list = []
         for row in rows:
-            sheet.append([cell(sheet, v) for v in row])
+            while len(templates) < len(row):
+                templates.append(cell(sheet, None))
+            for template, value in zip(templates, row, strict=False):
+                template.value = excel_literal(value) if isinstance(value, str) else value
+            sheet.append(templates[: len(row)])
         if not rows:
             sheet.append([cell(sheet, "No rows for this report scope.")])
 
@@ -1081,4 +1089,67 @@ def write_excel(data: dict, path: Path, *, gcp_register: dict | None = None) -> 
         from offline_analyzer.reporting.gcp_register import add_sheets
 
         add_sheets(wb, gcp_register)
+    if versioned := data.get("versioned_path_evaluation"):
+
+        def path_detail(value) -> str:
+            text = json.dumps(value)
+            return (
+                text
+                if len(text) <= 30000
+                else (
+                    text[:29900] + "\n[Truncated display; full evidence is in "
+                    "attack-path-evaluation-v2.json in this export ZIP.]"
+                )
+            )
+
+        table(
+            "GCP_Path_Evaluations_v2",
+            [
+                "Path ID",
+                "Project",
+                "Mechanism",
+                "Qualified state",
+                "Execution verification",
+                "Review",
+                "Entry point",
+                "Target",
+                "Prerequisites",
+                "Evidence provenance",
+            ],
+            [
+                [
+                    p["path_id"],
+                    p["project_id"],
+                    p["mechanism"],
+                    p["classification"],
+                    p["exploitation_verification"],
+                    p["analyst_review"],
+                    p["entry_point"],
+                    p["target"],
+                    path_detail(p["prerequisites"]),
+                    path_detail(p["evidence_provenance"]),
+                ]
+                for p in versioned["paths"]
+            ],
+            {"Prerequisites": 100, "Evidence provenance": 70},
+        )
+        table(
+            "GCP_Path_Comparison",
+            ["Old path", "Old state", "New path", "New state", "Change", "Reason"],
+            [
+                [
+                    r.get(k, "")
+                    for k in (
+                        "old_path_id",
+                        "old_state",
+                        "new_path_id",
+                        "new_state",
+                        "change",
+                        "reason",
+                    )
+                ]
+                for r in versioned["latest"]["comparison"]
+            ],
+            {"Reason": 100},
+        )
     wb.save(path)

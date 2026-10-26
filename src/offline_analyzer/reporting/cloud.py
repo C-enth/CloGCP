@@ -9,7 +9,7 @@ from offline_analyzer.inventory.accounts import workspace_registry
 from offline_analyzer.inventory.cloud import DOMAINS, domain
 from offline_analyzer.methodology.coverage_spec import COVERAGE, REVIEWED_METHODOLOGY_SHA256
 from offline_analyzer.normalization.gcp import PROFILES
-from offline_analyzer.reporting.coverage_reasons import reason_text
+from offline_analyzer.reporting.coverage_reasons import reason_text, source_category
 from offline_analyzer.rules.registry import PROVIDER_RULES
 
 COVERAGE_DEFINITIONS = {
@@ -130,7 +130,7 @@ def dataset_coverage(store, run: str, sources: list[dict]) -> list[dict]:
                 "limitations": metadata.get("completeness_limitations", [])
                 + source.get("limitations", []),
                 "coverage_reason": reason_text(
-                    metadata.get("error_category"), metadata.get("completeness_limitations")
+                    source_category(source), metadata.get("completeness_limitations")
                 ),
                 "denominator": "ONE_DECLARED_COLLECTION_OPERATION",
             }
@@ -171,15 +171,7 @@ def methodology_matrix() -> dict:
     }
 
 
-PANEL_KEYS = ("stride", "snapshot_validation", "finding_quality")
-
-
-def dashboard(store, run: str, provider: str = "Consolidated", part: str = "full") -> dict:
-    """`part`: "full" (everything), "summary" (all but the panels that need attack paths and
-    snapshot validation; those keys are None) or "panels" (only those keys). full equals
-    summary merged with panels."""
-    if part == "panels":
-        return dashboard_panels(store, run, provider)
+def dashboard(store, run: str, provider: str = "Consolidated") -> dict:
     store.require_run(run)
     providers = ("AWS", "GCP") if provider == "Consolidated" else (provider,)
     all_sources = list(store.source_data(run))
@@ -352,54 +344,6 @@ def dashboard(store, run: str, provider: str = "Consolidated", part: str = "full
             k: row["AWS"][k] + row["GCP"][k] for k in ("candidates", "confirmed", "approved")
         }
         domains.append(projected)
-    total_severity = Counter()
-    for p in providers:
-        total_severity.update(by_provider[p]["severity"])
-    posture = (
-        "Critical findings observed"
-        if total_severity["CRITICAL"]
-        else "High findings observed"
-        if total_severity["HIGH"]
-        else "Findings require review"
-        if sum(total_severity.values())
-        else "Insufficient evidence"
-        if not any(by_provider[p]["evaluations"] for p in providers)
-        or any(g["provider"] in providers for g in gaps)
-        else "No gaps in evaluated criteria"
-    )
-    view = {
-        "run_id": run,
-        "provider": provider,
-        "providers": {p: by_provider[p] for p in providers},
-        "domains": domains,
-        "gaps": [g for g in gaps if g["provider"] in providers],
-        "datasets": [d for d in datasets if d["provider"] in providers],
-        "coverage_definitions": COVERAGE_DEFINITIONS,
-        "stride": None,
-        "posture": {
-            "rating": posture,
-            "basis": "Observed technical findings in the selected "
-            "run. Partial criteria and missing evidence cannot establish an estate-wide "
-            "secure rating; business risk and analyst approval are separate.",
-        },
-        "snapshot_validation": None,
-        "finding_quality": None,
-        "qualification": (
-            "Assessed scopes have at least one resource evaluation; they are not "
-            "fully assessed. Resource counts are inventory, not control coverage. No "
-            "security completeness percentage is calculated."
-        ),
-    }
-    if part == "summary":
-        return view
-    view.update(dashboard_panels(store, run, provider))
-    return view
-
-
-def dashboard_panels(store, run: str, provider: str = "Consolidated") -> dict:
-    """STRIDE coverage (needs attack paths), snapshot validation and finding readiness."""
-    store.require_run(run)
-    providers = ("AWS", "GCP") if provider == "Consolidated" else (provider,)
     from offline_analyzer.attack_paths.feasibility import attack_paths
     from offline_analyzer.enterprise.validation import validate_snapshot
     from offline_analyzer.findings.quality import run_quality
@@ -428,14 +372,50 @@ def dashboard_panels(store, run: str, provider: str = "Consolidated") -> dict:
                 "state": "PARTIAL" if evaluated else "NOT_ASSESSED",
             }
         )
-
-    return {
+    total_severity = Counter()
+    for p in providers:
+        total_severity.update(by_provider[p]["severity"])
+    posture = (
+        "Critical findings observed"
+        if total_severity["CRITICAL"]
+        else "High findings observed"
+        if total_severity["HIGH"]
+        else "Findings require review"
+        if sum(total_severity.values())
+        else "Insufficient evidence"
+        if not any(by_provider[p]["evaluations"] for p in providers)
+        or any(g["provider"] in providers for g in gaps)
+        else "No gaps in evaluated criteria"
+    )
+    view = {
+        "run_id": run,
+        "provider": provider,
+        "providers": {p: by_provider[p] for p in providers},
+        "domains": domains,
+        "gaps": [g for g in gaps if g["provider"] in providers],
+        "datasets": [d for d in datasets if d["provider"] in providers],
+        "coverage_definitions": COVERAGE_DEFINITIONS,
         "stride": stride,
+        "posture": {
+            "rating": posture,
+            "basis": "Observed technical findings in the selected "
+            "run. Partial criteria and missing evidence cannot establish an estate-wide "
+            "secure rating; business risk and analyst approval are separate.",
+        },
         "snapshot_validation": validate_snapshot(store, run),
         "finding_quality": {
             key: value for key, value in run_quality(store, run).items() if key != "items"
         },
+        "qualification": (
+            "Assessed scopes have at least one resource evaluation; they are not "
+            "fully assessed. Resource counts are inventory, not control coverage. No "
+            "security completeness percentage is calculated."
+        ),
     }
+    from offline_analyzer.reporting.gcp_feed import linked, merge_dashboard
+
+    record = linked(store, run)
+    return merge_dashboard(view, record, provider) if record else view
 
 
 def collection_requests(store, run: str) -> list[dict]:

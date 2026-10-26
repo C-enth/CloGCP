@@ -11,10 +11,18 @@ from offline_analyzer.ingestion.json_input import InputError
 from offline_analyzer.ingestion.safety import resolve_under, sha256_file
 from offline_analyzer.inventory.accounts import workspace_registry
 from offline_analyzer.provenance.execution import checkpoint, committing
+from offline_analyzer.rules.aws_identity import enrich
 from offline_analyzer.rules.configuration import as_verdict
 from offline_analyzer.rules.context import EvaluationContext
 from offline_analyzer.rules.methodology_links import mapping_fields
-from offline_analyzer.rules.registry import ALL_RULES, primary_operations, rule_operations
+from offline_analyzer.rules.registry import (
+    ALL_RULES,
+    AWS_IDENTITY_ENRICHED,
+    AWS_PRINCIPAL_CONTEXT_RULES,
+    DEPENDENT_PARENTS,
+    primary_operations,
+    rule_operations,
+)
 
 GLOBAL = "global"
 ENGINE_VERSION = "1.7.0"
@@ -108,7 +116,10 @@ def evaluate_resource(
             verdict = as_verdict(
                 rule.evaluate(obs, context) if rule.contextual else rule.evaluate(obs)
             )
-            verdicts[obs.observation_id] = rule.annotate(obs, verdict) if rule.annotate else verdict
+            verdict = rule.annotate(obs, verdict) if rule.annotate else verdict
+            if rule.rule_id in AWS_IDENTITY_ENRICHED | AWS_PRINCIPAL_CONTEXT_RULES:
+                verdict = enrich(rule.rule_id, obs, verdict, context)
+            verdicts[obs.observation_id] = verdict
             if source["effective_coverage"] != "COMPLETE":
                 limitations.append(
                     "Collection is partial; result applies only to the observed resource"
@@ -203,8 +214,102 @@ def risk_context(rule, outcome, answers) -> dict:
     }
 
 
-def scope_result(rule, account, region, native_sources, store, run_id, assessed_at):
+PER_RESOURCE_LIMITATION = "filtered or resource-selected request"
+
+
+def parent_listings(store, run_id) -> dict:
+    """(account, region, parent operation) -> latest journal rows of the parent listings in the
+    run's own collection summary, or in its members' summaries for an enterprise snapshot."""
+    from offline_analyzer.ingestion.collector import stored_summary
+
+    row = store.db.execute(
+        "SELECT members FROM enterprise_snapshots WHERE run_id=?", [run_id]
+    ).fetchone()
+    members = json.loads(row[0]) if row else [run_id]
+    parents = set(DEPENDENT_PARENTS.values())
+    found = {}
+    for member in members:
+        summary = stored_summary(store.workspace, member) or {}
+        for op in summary.get("operations", ()):
+            # Only collector 0.3.x journals record the original outcome and record count.
+            if op.get("operation") not in parents or "original_outcome" not in op:
+                continue
+            key = (summary.get("account_id"), op.get("region"), op["operation"])
+            stamp = op.get("completed_at") or ""
+            latest = found.get(key)
+            if latest is None or stamp > latest[0]:
+                found[key] = (stamp, [op])
+            elif stamp == latest[0]:
+                latest[1].append(op)
+    return {key: rows for key, (_stamp, rows) in found.items()}
+
+
+def parent_state(rows) -> tuple[str, int] | None:
+    """("EMPTY", 0), ("LISTED", n) or ("FAILED", 0) when the latest parent rows agree."""
+    states = set()
+    for op in rows or ():
+        records = op.get("records_returned")
+        if (
+            op.get("status") == "SUCCEEDED"
+            and op.get("original_outcome") == "COMPLETE"
+            and op.get("pagination") != "TRUNCATED"
+            and type(records) is int
+        ):
+            states.add(("EMPTY", 0) if records == 0 else ("LISTED", records))
+        elif op.get("status") == "FAILED":
+            states.add(("FAILED", 0))
+        else:
+            return None
+    return states.pop() if len(states) == 1 else None
+
+
+def dependent_scope(rule, native_sources, parent) -> tuple[str, str] | None:
+    """Scope decided by the parent listing of a per-resource dataset, or None (unchanged).
+
+    COMPLETE when every listed resource has its dependent evidence (per-resource requests are
+    complete for their resource); NOT_APPLICABLE when the complete listing is empty;
+    COLLECTION_ERROR when the listing failed, so no dependent call was made."""
+    operation = next(iter(primary_operations(rule) & DEPENDENT_PARENTS.keys()), None)
+    if operation is None or parent is None:
+        return None
+    state, listed = parent
+    if not native_sources:
+        if state == "EMPTY":
+            return "NOT_APPLICABLE", (
+                f"The complete {DEPENDENT_PARENTS[operation]} listing returned no resources; "
+                "no account-wide PASS is asserted."
+            )
+        if state == "FAILED":
+            return "COLLECTION_ERROR", (
+                f"{DEPENDENT_PARENTS[operation]} failed, so {operation} was not collected for "
+                "any resource in this scope."
+            )
+        return "UNKNOWN", (
+            f"{DEPENDENT_PARENTS[operation]} listed {listed} resource(s) but {operation} "
+            "was not collected for them; their state is unresolved."
+        )
+    if state != "LISTED" or any(s["errors"] for s in native_sources):
+        return None
+    if not all(
+        s["effective_coverage"] == "COMPLETE"
+        or (
+            s["effective_coverage"] == "PARTIAL"
+            and set(s.get("limitations") or ()) == {PER_RESOURCE_LIMITATION}
+        )
+        for s in native_sources
+    ):
+        return None
+    subjects = {
+        json.dumps(s.get("request_parameters") or {}, sort_keys=True) for s in native_sources
+    }
+    return ("COMPLETE", "") if len(subjects) >= listed else None
+
+
+def scope_result(rule, account, region, native_sources, store, run_id, assessed_at, parent=None):
     """Collection-scope row; None when complete evidence makes per-resource rows sufficient."""
+    dependent = dependent_scope(rule, native_sources, parent)
+    if dependent and dependent[0] == "COMPLETE":
+        return None
     complete = bool(native_sources) and all(
         s["effective_coverage"] == "COMPLETE" for s in native_sources
     )
@@ -219,7 +324,9 @@ def scope_result(rule, account, region, native_sources, store, run_id, assessed_
             shadow_only = not bool(owned)
         if not shadow_only:
             return None
-    if any(s["effective_coverage"] == "ERROR" or s["errors"] for s in native_sources):
+    if dependent:
+        outcome, reason = Outcome(dependent[0]), dependent[1]
+    elif any(s["effective_coverage"] == "ERROR" or s["errors"] for s in native_sources):
         outcome = Outcome.COLLECTION_ERROR
         reason = "Collection error prevents complete scope assessment."
     elif shadow_only:
@@ -269,10 +376,22 @@ def scope_result(rule, account, region, native_sources, store, run_id, assessed_
     )
 
 
-def supplied_rules(sources) -> list:
-    """Ungated rules always report scope gaps; gated rules only when evidence was supplied."""
+def parent_of(rule) -> str | None:
+    return next(
+        (DEPENDENT_PARENTS[o] for o in sorted(primary_operations(rule)) if o in DEPENDENT_PARENTS),
+        None,
+    )
+
+
+def supplied_rules(sources, listed=frozenset()) -> list:
+    """Ungated rules always report scope gaps; gated rules only when evidence was supplied.
+    A per-resource rule is supplied when its parent listing was journaled (it may be empty)."""
     supplied = {s["operation"] for s in sources}
-    return [r for r in ALL_RULES if not r.family_gated or primary_operations(r) & supplied]
+    return [
+        r
+        for r in ALL_RULES
+        if not r.family_gated or primary_operations(r) & supplied or parent_of(r) in listed
+    ]
 
 
 def assess(store, run_id: str) -> str:
@@ -312,7 +431,8 @@ def assess(store, run_id: str) -> str:
     regional_scopes = sorted((a, r) for a, r in scopes if r != GLOBAL)
     accounts = sorted({a for a, _ in scopes})
     context = EvaluationContext(store, run_id, sources, workspace_registry(store.workspace))
-    reported = supplied_rules(sources)
+    parents = parent_listings(store, run_id)
+    reported = supplied_rules(sources, {operation for _a, _r, operation in parents})
     with store.transaction():
         for table in ("evaluations", "findings", "finding_resources", "security_investigations"):
             store.db.execute(f"DELETE FROM {table} WHERE run_id=?", [run_id])
@@ -357,7 +477,14 @@ def assess(store, run_id: str) -> str:
                         if s["account_id"] == account and s["operation"] in operations
                     ]
                     result = scope_result(
-                        rule, account, GLOBAL, native_sources, store, run_id, assessed_at
+                        rule,
+                        account,
+                        GLOBAL,
+                        native_sources,
+                        store,
+                        run_id,
+                        assessed_at,
+                        parent_state(parents.get((account, GLOBAL, parent_of(rule)))),
                     )
                     if result:
                         persist_result(store, run_id, result)
@@ -371,7 +498,14 @@ def assess(store, run_id: str) -> str:
                     and s["operation"] in operations
                 ]
                 result = scope_result(
-                    rule, account, region, native_sources, store, run_id, assessed_at
+                    rule,
+                    account,
+                    region,
+                    native_sources,
+                    store,
+                    run_id,
+                    assessed_at,
+                    parent_state(parents.get((account, region, parent_of(rule)))),
                 )
                 if result:
                     persist_result(store, run_id, result)

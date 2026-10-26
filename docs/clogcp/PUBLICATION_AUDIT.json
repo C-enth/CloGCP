@@ -1,0 +1,14 @@
+{
+  "schema_version": "clogcp-publication-audit-1",
+  "date": "2026-10-26",
+  "status": "PASS",
+  "history_blobs_scanned": 419,
+  "staged_paths_scanned": 543,
+  "customer_identifier_scan": "PASS",
+  "credential_scan": "PASS_WITH_REVIEWED_SYNTHETIC_TEST_LITERALS",
+  "reviewed_history_test_literal_matches": 8,
+  "staged_test_literal_matches": 8,
+  "review_basis": "Deterministic synthetic fixture identity constants, explicit out-of-scope sentinel, and intentionally fake credential masking test. No credential or client scope value is recorded here.",
+  "unreviewed_issues": [],
+  "published_history_source": "Existing CloGCP main only; no CloSec Git history transferred."
+}

@@ -22,7 +22,10 @@ def is_gcp(directory: Path) -> bool:
     if path.stat().st_size > 1024 * 1024:
         raise InputError("MANIFEST_BYTE_LIMIT")
     shape = inspect_json(path)
-    return shape["fields"].get("contract_version", (None, None))[1] == "closec-gcp-1"
+    return shape["fields"].get("contract_version", (None, None))[1] in {
+        "closec-gcp-1",
+        "gcp-delta-1",
+    }
 
 
 def read_manifest(directory: Path) -> GCPManifest:
@@ -61,6 +64,13 @@ def coverage(dataset: GCPDataset, provenance: str) -> str:
 
 
 def inspect_package(directory: Path) -> tuple[Package, dict]:
+    manifest_path = resolve_under(directory, "manifest.json")
+    if manifest_path.is_file():
+        shape = inspect_json(manifest_path)
+        if shape["fields"].get("contract_version", (None, None))[1] == "gcp-delta-1":
+            from offline_analyzer.ingestion.gcp_delta import inspect_package as delta_package
+
+            return delta_package(directory)
     if (directory / "collection_manifest.json").is_file():
         from offline_analyzer.ingestion.gcp_legacy import inspect_package as legacy_package
 

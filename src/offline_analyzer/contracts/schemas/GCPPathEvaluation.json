@@ -1,0 +1,223 @@
+{
+  "$defs": {
+    "Condition": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "state": {
+          "enum": [
+            "AVAILABLE",
+            "CONTRADICTED",
+            "CONDITIONAL",
+            "UNCOLLECTED",
+            "UNSUPPORTED"
+          ],
+          "title": "State",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "observation_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Observation Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "state",
+        "reason"
+      ],
+      "title": "Condition",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "gcp-attack-path-2",
+      "default": "gcp-attack-path-2",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "engine_version": {
+      "default": "2.0.1",
+      "enum": [
+        "2.0.0",
+        "2.0.1"
+      ],
+      "title": "Engine Version",
+      "type": "string"
+    },
+    "path_id": {
+      "title": "Path Id",
+      "type": "string"
+    },
+    "canonical_key": {
+      "title": "Canonical Key",
+      "type": "string"
+    },
+    "root_cause_id": {
+      "title": "Root Cause Id",
+      "type": "string"
+    },
+    "family": {
+      "title": "Family",
+      "type": "string"
+    },
+    "project_id": {
+      "title": "Project Id",
+      "type": "string"
+    },
+    "root_security_gap": {
+      "title": "Root Security Gap",
+      "type": "string"
+    },
+    "entry_point": {
+      "title": "Entry Point",
+      "type": "string"
+    },
+    "target": {
+      "title": "Target",
+      "type": "string"
+    },
+    "identity": {
+      "title": "Identity",
+      "type": "string"
+    },
+    "mechanism": {
+      "title": "Mechanism",
+      "type": "string"
+    },
+    "relationships": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Relationships",
+      "type": "array"
+    },
+    "prerequisites": {
+      "items": {
+        "$ref": "#/$defs/Condition"
+      },
+      "minItems": 1,
+      "title": "Prerequisites",
+      "type": "array"
+    },
+    "classification": {
+      "enum": [
+        "SUPPORTED",
+        "CONDITIONAL",
+        "BLOCKED",
+        "INSUFFICIENT_EVIDENCE",
+        "UNSUPPORTED"
+      ],
+      "title": "Classification",
+      "type": "string"
+    },
+    "exploitation_verification": {
+      "const": "UNVERIFIED",
+      "default": "UNVERIFIED",
+      "title": "Exploitation Verification",
+      "type": "string"
+    },
+    "exploitation_requirements": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Exploitation Requirements",
+      "type": "array"
+    },
+    "finding_validation": {
+      "const": "NOT_INHERITED",
+      "default": "NOT_INHERITED",
+      "title": "Finding Validation",
+      "type": "string"
+    },
+    "analyst_review": {
+      "const": "UNREVIEWED",
+      "default": "UNREVIEWED",
+      "title": "Analyst Review",
+      "type": "string"
+    },
+    "potential_impact": {
+      "title": "Potential Impact",
+      "type": "string"
+    },
+    "severity": {
+      "enum": [
+        "HIGH",
+        "MEDIUM"
+      ],
+      "title": "Severity",
+      "type": "string"
+    },
+    "severity_rationale": {
+      "title": "Severity Rationale",
+      "type": "string"
+    },
+    "evidence_provenance": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Evidence Provenance",
+      "type": "array"
+    },
+    "original_finding_ids": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Original Finding Ids",
+      "type": "array"
+    },
+    "legacy_paths": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Legacy Paths",
+      "type": "array"
+    },
+    "recommended_remediation": {
+      "title": "Recommended Remediation",
+      "type": "string"
+    },
+    "remaining_verification": {
+      "items": {
+        "type": "string"
+      },
+      "title": "Remaining Verification",
+      "type": "array"
+    }
+  },
+  "required": [
+    "path_id",
+    "canonical_key",
+    "root_cause_id",
+    "family",
+    "project_id",
+    "root_security_gap",
+    "entry_point",
+    "target",
+    "identity",
+    "mechanism",
+    "relationships",
+    "prerequisites",
+    "classification",
+    "potential_impact",
+    "severity",
+    "severity_rationale",
+    "recommended_remediation",
+    "remaining_verification"
+  ],
+  "title": "GCPPathEvaluation",
+  "type": "object"
+}

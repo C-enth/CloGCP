@@ -266,3 +266,31 @@ legacy integrity qualifiers are preserved. The public schema set now contains 32
 LocalJob and SanitizedDiagnostic include positively constrained manifest-detection metadata
 before parsing, so unsupported versions retain actionable filename/version/adapter/reason
 details without customer identities, paths or values.
+
+## GCP attack-path evaluation v2 (2026-10-25)
+
+`contracts/gcp_attack_path.py` adds `gcp-attack-path-2` and
+`gcp-attack-path-register-2`, exported as GCPPathEvaluation/GCPAttackPathRegister JSON
+schemas. The public set contains 42 schemas. These are separate artifacts, not a
+database migration or a coercion of historical statuses. Mandatory prerequisites use
+AVAILABLE / CONTRADICTED / CONDITIONAL / UNCOLLECTED / UNSUPPORTED; decisive positive
+and blocking states require observation IDs. The path classification is validated
+against these prerequisites. Execution remains UNVERIFIED, finding validation is
+NOT_INHERITED, and path review starts UNREVIEWED. Source and canonical evidence schemas,
+methodology mappings and original finding IDs are unchanged.
+
+## Supplementary GCP evidence and composition candidate
+
+`clogcp_delta.models` defines strict Pydantic v2 plan/result/manifest contracts
+(`gcp-delta-plan-1`, `gcp-delta-1`). Explicit scope, approval/matrix hash, collection times,
+coverage, pagination, redactions, raw/semantic digests and repeated-resource references are
+retained. The native adapter verifies bytes, record counts, resource scope, semantic
+hashes and normalization before accepting either GUI preview or import. Failed sources
+remain gaps; skipped old operations do not become fabricated new evidence.
+
+`EvidenceComposition.json` adds a versioned provenance contract without altering source
+records or source IDs. References pin both original runs, collection dates, precedence,
+conflicts, reconciliation and the materialized source/observation/ref digest. Broader
+security analysis uses a distinct run; repeated composition reuses its stable ID. Source
+raw artifacts are referenced, not overwritten. Independent attack-path evaluations and
+old/new comparisons live in new immutable artifact directories, outside original tables.

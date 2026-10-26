@@ -1,3 +1,4 @@
+import { TruncationBanner } from "./Truncation";
 import { ChoiceFilter, ChoiceNotice } from "./Filters";
 import React, { useEffect, useState } from "react";
 import { api, display, type Row } from "./api";
@@ -90,8 +91,12 @@ export function EnterpriseMetrics({
           Build a new enterprise assessment to include them.
         </p>
       )}
-      {data.projection?.truncation?.length > 0 && (
-        <p role="alert">{data.projection.truncation.join("; ")}</p>
+      {data.projection?.truncation_detail?.length > 0 ? (
+        <TruncationBanner entries={data.projection.truncation_detail} />
+      ) : (
+        data.projection?.truncation?.length > 0 && (
+          <p role="alert">{data.projection.truncation.join("; ")}</p>
+        )
       )}
       <details>
         <summary>Account groups with HIGH / CRITICAL candidates</summary>

@@ -1,0 +1,48 @@
+"""Approved export headers, independently usable without the analyzer."""
+
+COLUMNS = (
+    "Record ID (internal)",
+    "Observation / gap",
+    "Affected asset / scope",
+    "Affected objects / services",
+    "Criticality",
+    "Why this criticality?",
+    "Rating confidence (automatic)",
+    "Possible business impact",
+    "Recommended action",
+    "Assessor record type",
+    "What the evidence shows",
+    "Evidence reference",
+    "Expected control / requirement",
+    "Evidence at assessment",
+    "What the evidence does not establish",
+    "Possible attack scenario",
+    "Conditions needed for the scenario",
+    "Source-reported result",
+    "Domain / tool",
+    "Control area",
+    "Evidence type",
+    "Evidence limits / data quality",
+    "Assessor conclusion / evidence basis",
+    "Related observations",
+    "Attack-path evidence level",
+    "Assessor evidence result (automatic)",
+    "Report sequence (automatic)",
+    "Common asset reference (hostname / ID)",
+    "Issue group / summary title",
+    "Risk rating decision",
+    "Show in Overall?",
+    "Shown in Overall (automatic)",
+    "Record count (automatic)",
+    "Applicability (SPOC)",
+    "SPOC assessment",
+    "SPOC justification / comments",
+    "Supporting evidence / reference",
+    "Reviewed by",
+    "Review date",
+    "Final review conclusion (automatic)",
+)
+
+REGISTER = "GCP_Observation_Register"
+CLIENT_REGISTER = "Client_Observation_Register"
+VERSION = "1.0.0rc1"

@@ -9,6 +9,8 @@ from collections import Counter
 from offline_analyzer.contracts.r0 import Candidate, stable_id
 
 SEVERITY_ORDER = {"CRITICAL": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1, "INFO": 0}
+# AWS resource-keyed rules whose native IDs are not account-qualified.
+ACCOUNT_QUALIFIED = frozenset({"R1-EC2-SG-SENSITIVE-INGRESS", "SEC-EC2-SG-LATENT-EXPOSURE"})
 ORG_NODE = re.compile(r"(?:^|/)((?:organizations|folders)/\d+)(?:$|/)")
 
 
@@ -25,6 +27,10 @@ def group_key(finding: Candidate) -> tuple[str, str, str]:
             value = finding.native_id  # the IAM role itself
     elif kind == "resource":
         value = finding.native_id or ""
+        if value and finding.rule_id in ACCOUNT_QUALIFIED:
+            # Security-group IDs are only Region-unique: qualify by account and Region so the
+            # same ID in two accounts never forms one group.
+            value = f"{finding.account_id or 'account?'}/{finding.region or 'region?'}/{value}"
     elif kind == "org_node":
         match = ORG_NODE.search(finding.native_id or "")
         value = match[1] if match else ""

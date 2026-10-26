@@ -21,6 +21,7 @@ from types import SimpleNamespace
 
 from offline_analyzer.attack_paths.model import BLOCKED, HYPOTHESIS, PROVEN, hop, summarize
 from offline_analyzer.contracts.r0 import stable_id
+from offline_analyzer.iam.gcp_permissions import ACCESS_TOKEN, PermissionIndex
 from offline_analyzer.rules.gcp_org import (
     BASIC,
     DATA,
@@ -99,6 +100,18 @@ def item(
     impact="",
     assumptions=None,
 ):
+    hops = list(hops)
+    unresolved = list(unresolved)
+    if "GCP" in provider:
+        # These legacy projections are observed relationships, not the v2 evaluator.
+        # Never let an observed role/empty project deny export imply end-to-end proof.
+        unresolved.append("effective IAM and service-specific restrictions require v2 evaluation")
+        if hops and all(h["status"] == PROVEN for h in hops):
+            hops[-1] = {
+                **hops[-1],
+                "status": HYPOTHESIS,
+                "missing_evidence": [*hops[-1]["missing_evidence"], unresolved[-1]],
+            }
     verdict = INSUFFICIENT if unresolved else FEASIBLE
     record = {
         "path_id": stable_id("cross-path", [kind, *steps]),
@@ -122,6 +135,11 @@ def item(
         "confidence": "MEDIUM" if verdict == FEASIBLE else "LOW",
         "qualification": QUALIFICATION,
         "scope": "cross-cloud" if kind.startswith("XC") else "cross-project",
+        "evidence_classification": "BLOCKED"
+        if any(h["status"] == BLOCKED and h["observation_ids"] for h in hops)
+        else "INSUFFICIENT_EVIDENCE",
+        "exploitation_verification": "UNVERIFIED",
+        "evaluation_version": "2.0.0",
     }
     return summarize(
         record,
@@ -217,7 +235,7 @@ def classify(records, numbers: dict[str, str], fallback) -> SimpleNamespace:
                     found.impersonators[target_sa[2]].append((member, role, project, resource))
                 elif kind in HIERARCHY:
                     found.scope_grants.append((member, role, project, resource, kind))
-            # Google-managed service agents cannot be impersonated by customer principals.
+            # Management class is context, never proof that IAM impersonation is impossible.
             if member.startswith("serviceAccount:") and role in ADMIN and kind in HIERARCHY:
                 if is_agent(member):
                     found.counts["agent_admin"] += 1
@@ -233,7 +251,7 @@ def classify(records, numbers: dict[str, str], fallback) -> SimpleNamespace:
     return found
 
 
-def cross_paths(store, run_id: str, limit: int = 300) -> list[dict]:
+def cross_paths(store, run_id: str, limit: int | None = 300) -> list[dict]:
     observations = list(store.observations(run_id, provider="GCP"))
     records = org_records(observations)
     if not records:
@@ -272,6 +290,7 @@ def cross_paths(store, run_id: str, limit: int = 300) -> list[dict]:
     privileged, public, grant_obs = found.privileged, found.public, found.grant_obs
 
     items: list[dict] = []
+    permissions = PermissionIndex(observations, store.source_data(run_id))
     # XP-01: impersonation of privileged service accounts, one path per source grant.
     reach: dict[tuple, dict] = {}
     for email, grants in privileged.items():
@@ -308,6 +327,17 @@ def cross_paths(store, run_id: str, limit: int = 300) -> list[dict]:
         source_gap = unverified(project) + (
             ["folder ancestry of the impersonated accounts"] if entry["folder"] else []
         )
+        for email in accounts:
+            home = sa_home(email, numbers)
+            result = permissions.evaluate(
+                member,
+                ACCESS_TOKEN,
+                f"projects/{home or project}/serviceAccounts/{email}",
+                home or project,
+            )
+            if result.state != "AVAILABLE":
+                source_gap.append(f"{email}: getAccessToken {result.state}: {result.reason}")
+        source_gap.append("control of source principal credentials and token request not verified")
         target_gap = unverified(*entry["projects"])
         account_label = f"{len(accounts)} privileged service account(s): " + ", ".join(accounts[:5])
         hops = [
@@ -316,9 +346,9 @@ def cross_paths(store, run_id: str, limit: int = 300) -> list[dict]:
                 member,
                 account_label,
                 "can-impersonate",
-                f"{member} holds {role} on {resource}; that role lets its holder act as or "
-                "mint tokens for the service account(s), so access flows "
-                f"{member} → service account.",
+                f"{member} holds {role} on {resource}; direct access-token generation requires "
+                "iam.serviceAccounts.getAccessToken. actAs alone permits workload attachment, "
+                "whose deployment and execution permissions require separate evidence.",
                 HYPOTHESIS if source_gap else PROVEN,
                 rule_ids=["GCP-ORG-IMPERSONATION"],
                 finding_ids=finding("GCP-ORG-IMPERSONATION", project, resource),
@@ -363,7 +393,7 @@ def cross_paths(store, run_id: str, limit: int = 300) -> list[dict]:
                 project,
                 [
                     f"{member} holds {role} on {resource}",
-                    f"can impersonate {len(accounts)} privileged service account(s): "
+                    f"delegation requires verification for {len(accounts)} service account(s): "
                     + ", ".join(accounts[:5])
                     + (f" +{len(accounts) - 5} more" if len(accounts) > 5 else ""),
                     f"reaching {len(targets)} privileged grant(s) in "
@@ -371,7 +401,8 @@ def cross_paths(store, run_id: str, limit: int = 300) -> list[dict]:
                     + "; ".join(targets[:5])
                     + (f" +{len(targets) - 5} more" if len(targets) > 5 else ""),
                 ],
-                unverified(project, *entry["projects"])
+                source_gap
+                + unverified(project, *entry["projects"])
                 + (["folder ancestry of the impersonated accounts"] if entry["folder"] else []),
                 entry["findings"],
                 paths=("AP-06",),

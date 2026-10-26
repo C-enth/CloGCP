@@ -90,7 +90,11 @@ def test_restart_marks_unscheduled_transfer_interrupted(tmp_path):
         recovered = second.status(job["id"])
         assert recovered["state"] == "INTERRUPTED" and recovered["error"] == "JOB_INTERRUPTED"
         assert not recovered["cancel_supported"]
-        assert not scratch.exists() and (preserved / "keep.json").is_file()
+        # Opening a new application preserves historical files. Interrupted status is
+        # projected in memory; explicit maintenance owns scratch cleanup.
+        assert scratch.exists() and (preserved / "keep.json").is_file()
+        persisted = json.loads((tmp_path / "jobs" / (job["id"] + ".json")).read_text())
+        assert persisted["status"] == "QUEUED"
     finally:
         first.close()
         second.close()

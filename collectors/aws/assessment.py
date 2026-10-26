@@ -11,7 +11,7 @@ completed scan; `resource` is optional so the collector also starts on Windows;
 bounded per-operation pages; Organizations parent/SCP attempts; interrupted runs finalize.
 """
 
-import argparse, base64, datetime, hashlib, json, os, pathlib, re, shutil, subprocess, sys, time, uuid, zipfile
+import argparse, base64, datetime, hashlib, json, os, pathlib, platform, random, re, shutil, subprocess, sys, threading, time, uuid, zipfile
 
 try:
     import resource  # POSIX only; peak RSS is informational.
@@ -19,14 +19,34 @@ except ImportError:  # pragma: no cover - Windows
     resource = None
 from collections import Counter
 import boto3
+import botocore
 from botocore.config import Config
 from botocore.exceptions import ClientError, BotoCoreError
 
-VERSION = "0.3.2"
+VERSION = "0.3.3"
 UTC = lambda: datetime.datetime.now(datetime.timezone.utc).isoformat().replace("+00:00", "Z")
-CONFIG = Config(
-    retries={"max_attempts": 4, "mode": "standard"}, connect_timeout=10, read_timeout=60
-)
+# Defaults; `timeouts` and `retries` in config.json (or batch options) override them.
+DEFAULT_OPTIONS = {
+    "connect_timeout": 10,
+    "read_timeout": 60,
+    "operation_timeout": 900,  # wall-clock bound for one operation including all pages
+    "max_attempts": 4,  # collector-managed attempts per operation (botocore retries off)
+    "backoff_base": 1.0,
+    "backoff_cap": 20.0,
+    "session_duration": 3600,
+}
+
+
+def client_config(options):
+    # botocore's own retries are disabled so that every retry is journaled by the collector.
+    return Config(
+        retries={"max_attempts": 1, "mode": "standard"},
+        connect_timeout=options["connect_timeout"],
+        read_timeout=options["read_timeout"],
+    )
+
+
+CONFIG = client_config(DEFAULT_OPTIONS)
 MAX_PAGES = 5000  # Per-operation page bound; reaching it is recorded as PARTIAL, never COMPLETE.
 TOKENS = (
     "NextToken",
@@ -166,6 +186,23 @@ DEPENDENT = {
     "guardduty": ["get_detector"],
     "lambda": ["get_policy"],
 }
+# Per-resource calls issued inline in collect_all/organization_scope (outside DEPENDENT).
+# The contract and access-policy generators read this registry; a static test checks that
+# every api() call site uses a registered operation.
+INLINE = [
+    ("iam", "get_policy_version"),
+    ("elbv2", "describe_listeners"),
+    ("elbv2", "describe_rules"),
+    ("ec2", "get_transit_gateway_route_table_associations"),
+    ("ec2", "get_transit_gateway_route_table_propagations"),
+    ("ec2", "search_transit_gateway_routes"),
+    ("ecs", "describe_clusters"),
+    ("eks", "describe_cluster"),
+    ("dynamodb", "describe_table"),
+    ("organizations", "list_policies_for_target"),
+    ("organizations", "describe_policy"),
+    ("organizations", "list_parents"),
+]
 NOT_CONFIGURED = {
     "NoSuchPublicAccessBlockConfiguration",
     "NoSuchBucketPolicy",
@@ -222,10 +259,15 @@ def clean(obj):
 def write_json(path, obj):
     path.parent.mkdir(parents=True, exist_ok=True)
     temp = path.with_suffix(path.suffix + ".tmp")
-    with temp.open("w", encoding="utf-8") as f:
+    # UTF-8 with LF line ends on every OS, so package bytes do not depend on the host.
+    with temp.open("w", encoding="utf-8", newline="\n") as f:
         json.dump(clean(obj), f, ensure_ascii=False, separators=(",", ":"))
         f.write("\n")
     temp.replace(path)
+
+
+def read_json(path):
+    return json.loads(pathlib.Path(path).read_text(encoding="utf-8"))
 
 
 def sha(path):
@@ -236,22 +278,158 @@ def sha(path):
     return h.hexdigest()
 
 
-def outcome(exc):
+# botocore standard-mode throttling codes.
+THROTTLED = {
+    "Throttling",
+    "ThrottlingException",
+    "ThrottledException",
+    "RequestThrottledException",
+    "TooManyRequestsException",
+    "ProvisionedThroughputExceededException",
+    "TransactionInProgressException",
+    "RequestLimitExceeded",
+    "BandwidthLimitExceeded",
+    "LimitExceededException",
+    "RequestThrottled",
+    "SlowDown",
+    "PriorRequestNotComplete",
+    "EC2ThrottledException",
+}
+EXPIRED = {"ExpiredToken", "ExpiredTokenException", "TokenRefreshRequired"}
+# Credential-provider failures (SSO sign-in expired, no credentials, refresh failed).
+CREDENTIAL_ERRORS = {
+    "NoCredentialsError",
+    "PartialCredentialsError",
+    "CredentialRetrievalError",
+    "UnauthorizedSSOTokenError",
+    "SSOTokenLoadError",
+    "TokenRetrievalError",
+    "RefreshWithMFAUnsupportedError",
+    "CredentialsExpired",
+}
+# The account is not subscribed to the service (AWS-defined codes only, never inferred).
+NOT_IN_USE = {"SubscriptionRequiredException", "OptInRequired"}
+SERVER_ERRORS = {
+    "InternalError",
+    "InternalFailure",
+    "InternalServerError",
+    "InternalServerException",
+    "ServiceUnavailable",
+    "ServiceUnavailableException",
+    "RequestTimeout",
+    "RequestTimeoutException",
+}
+TIMEOUTS = {"ConnectTimeoutError", "ReadTimeoutError"}
+CONNECTION = {
+    "EndpointConnectionError",
+    "ConnectionClosedError",
+    "ProxyConnectionError",
+    "SSLError",
+    "HTTPClientError",
+    "ConnectionError",
+}
+# Journal outcomes added in 0.3.3. All are evidence gaps; none is ever compliant.
+RETRYABLE = {"THROTTLED", "TIMEOUT", "CONNECTION_ERROR", "SERVER_ERROR"}
+
+
+class CredentialsExpired(Exception):
+    """Credentials could not be obtained or refreshed; stop the run and finalize it."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+class NoEnabledRegion(ValueError):
+    """No requested Region is enabled in the account; nothing can be collected."""
+
+
+class AssumeRoleFailed(Exception):
+    """The member role could not be assumed (not deployed, trust mismatch, SCP denial)."""
+
+    def __init__(self, code):
+        super().__init__(code)
+        self.code = code
+
+
+def classify(exc):
+    """(journal outcome, code) for an exception. SERVER_ERROR is retried, then journaled as
+    API_ERROR with the AWS code."""
+    if isinstance(exc, CredentialsExpired):
+        return "CREDENTIALS_EXPIRED", exc.code
+    if isinstance(exc, AssumeRoleFailed):
+        return ("THROTTLED" if "_THROTTLED_" in exc.code else "ACCESS_DENIED"), exc.code
     if isinstance(exc, ClientError):
         code = exc.response.get("Error", {}).get("Code", "Unknown")
+        if code in EXPIRED:
+            return "CREDENTIALS_EXPIRED", code
+        if code in THROTTLED:
+            return "THROTTLED", code
         if code in DENIED or "AccessDenied" in code:
             return "ACCESS_DENIED", code
         if code in NOT_CONFIGURED:
             return "NOT_ENABLED", code
+        if code in NOT_IN_USE:
+            return "SERVICE_NOT_IN_USE", code
+        status = exc.response.get("ResponseMetadata", {}).get("HTTPStatusCode")
+        if code in SERVER_ERRORS or (isinstance(status, int) and status >= 500):
+            return "SERVER_ERROR", code
         return "API_ERROR", code
     name = type(exc).__name__
-    if name in ("EndpointConnectionError", "UnknownEndpointError", "UnknownRegionError"):
-        return "API_ERROR", "ENDPOINT_UNAVAILABLE"
+    if name in CREDENTIAL_ERRORS:
+        return "CREDENTIALS_EXPIRED", name
+    if name in TIMEOUTS:
+        return "TIMEOUT", name
+    if name in CONNECTION:
+        return "CONNECTION_ERROR", name
+    if name in ("UnknownEndpointError", "UnknownRegionError"):
+        return "SERVICE_NOT_IN_USE", "ENDPOINT_NOT_OFFERED_IN_REGION"
     if name == "ParamValidationError":
         return "API_ERROR", "COLLECTOR_PARAMETER_ERROR"
-    if name in ("ConnectTimeoutError", "ReadTimeoutError"):
-        return "API_ERROR", "TIMEOUT"
     return "API_ERROR", name
+
+
+def outcome(exc):
+    """0.3.2 interface: journal outcome after retries are exhausted."""
+    status, code = classify(exc)
+    return ("API_ERROR" if status == "SERVER_ERROR" else status), code
+
+
+class Throttle:
+    """Throttle-aware pause shared by every worker of one process (batch collection).
+
+    A throttled call widens a global pause; every call waits for it first, so concurrent
+    accounts back off together instead of amplifying the throttling."""
+
+    def __init__(self, base=1.0, cap=30.0):
+        self.base, self.cap = base, cap
+        self.lock = threading.Lock()
+        self.until = 0.0
+        self.level = 0
+        self.events = 0
+
+    def wait(self):
+        with self.lock:
+            delay = self.until - time.monotonic()
+        if delay > 0:
+            time.sleep(delay)
+
+    def signal(self):
+        with self.lock:
+            self.events += 1
+            self.level = min(self.level + 1, 6)
+            pause = min(self.cap, self.base * (2 ** self.level)) * random.uniform(0.5, 1.0)
+            self.until = max(self.until, time.monotonic() + pause)
+
+    def relax(self):
+        with self.lock:
+            self.level = max(0, self.level - 1)
+
+
+def backoff(options, attempt):
+    """Exponential backoff with full jitter for retry `attempt` (1-based)."""
+    ceiling = min(options["backoff_cap"], options["backoff_base"] * (2 ** (attempt - 1)))
+    return round(random.uniform(0, ceiling), 3)
 
 
 def residual_token(payload):
@@ -260,8 +438,11 @@ def residual_token(payload):
     return next((k for k in TOKENS if payload.get(k)), None)
 
 
+JOURNAL_LOCK = threading.Lock()
+
+
 def record(root, rec):
-    with (root / "operations.jsonl").open("a", encoding="utf-8") as f:
+    with JOURNAL_LOCK, (root / "operations.jsonl").open("a", encoding="utf-8", newline="\n") as f:
         f.write(json.dumps(rec, sort_keys=True) + "\n")
 
 
@@ -303,7 +484,7 @@ def load_approved_accounts(cfg):
         path = pathlib.Path(filename).expanduser()
         if not path.is_absolute():
             path = pathlib.Path(cfg["_config_dir"]) / path
-        for line in path.read_text().splitlines():
+        for line in path.read_text(encoding="utf-8").splitlines():
             item = line.split("#", 1)[0].strip()
             if item:
                 values.add(item)
@@ -316,34 +497,43 @@ def discovered(root, ctx, service, operation, region, why):
     return skipped(root, ctx, service, operation, region, why, status="NOT_COLLECTED")
 
 
-def api(session, root, ctx, service, operation, region, params=None, rel=None):
-    params = params or {}
-    start = time.monotonic()
-    began = UTC()
-    pages = 0
-    files = []
-    count = 0
-    error = None
-    status = "COMPLETE"
-    paginated = False
-    truncation = None
-    api_name = None
-    key = (
-        rel
-        or f"accounts/{ctx['account_id']}/{'global' if region == 'global' else 'regions/' + region}/{service}/{operation}"
-    )
+FACTS_LOCK = threading.Lock()
+
+
+def note(ctx, kind, entry):
+    """Append a manifest fact (retry, detail limit, dependency fallback); thread-safe."""
+    with FACTS_LOCK:
+        ctx.setdefault(kind, []).append(entry)
+
+
+def attempt(session, root, ctx, service, operation, region, params, key, options):
+    """One collection attempt of an operation (all pages). Never raises."""
+    began = time.monotonic()
+    result = {
+        "status": "COMPLETE",
+        "retry_status": None,
+        "error": None,
+        "files": [],
+        "pages": 0,
+        "count": 0,
+        "paginated": False,
+        "truncation": None,
+        "api_name": None,
+    }
     client = session.client(
-        service, region_name=(ctx["home_region"] if region == "global" else region), config=CONFIG
+        service,
+        region_name=(ctx["home_region"] if region == "global" else region),
+        config=ctx.get("config", CONFIG),
     )
     try:
         method = getattr(client, operation)
-        api_name = getattr(client.meta, "method_to_api_mapping", {}).get(operation)
+        result["api_name"] = getattr(client.meta, "method_to_api_mapping", {}).get(operation)
         manual = MANUAL_PAGINATION.get((service, operation))
         if client.can_paginate(operation):
-            paginated = True
+            result["paginated"] = True
             iterator = client.get_paginator(operation).paginate(**params)
         elif manual:
-            paginated = True
+            result["paginated"] = True
 
             def follow():
                 request = dict(params)
@@ -359,36 +549,116 @@ def api(session, root, ctx, service, operation, region, params=None, rel=None):
         else:
             iterator = iter([method(**params)])
         for response in iterator:
-            if pages >= MAX_PAGES:
-                status = "PARTIAL"
-                truncation = "PAGE_LIMIT_REACHED"
+            limit = None
+            if result["pages"] >= MAX_PAGES:
+                limit = "PAGE_LIMIT_REACHED"
+            elif time.monotonic() - began > options["operation_timeout"]:
+                limit = "OPERATION_TIME_LIMIT_REACHED"
+            if limit:
+                result["status"], result["truncation"] = "PARTIAL", limit
+                note(
+                    ctx,
+                    "detail_limits_reached",
+                    {"service": service, "operation": operation, "region": region, "limit": limit},
+                )
                 break
-            pages += 1
-            path = root / key / f"page-{pages:06d}.json"
+            result["pages"] += 1
+            path = root / key / f"page-{result['pages']:06d}.json"
             # Write each page before requesting next; do not buffer entire inventory.
             payload = clean(response)
             write_json(path, payload)
             relpath = path.relative_to(root).as_posix()
-            files.append({"path": relpath, "sha256": sha(path), "bytes": path.stat().st_size})
-            count += sum(
+            result["files"].append(
+                {"path": relpath, "sha256": sha(path), "bytes": path.stat().st_size}
+            )
+            result["count"] += sum(
                 len(v)
                 for k, v in payload.items()
                 if isinstance(v, list) and k not in ("ResponseMetadata",)
             )
-            if not paginated and residual_token(payload):
-                status = "PARTIAL"
-                truncation = "RESPONSE_TRUNCATED_" + residual_token(payload)
+            if not result["paginated"] and residual_token(payload):
+                result["status"] = "PARTIAL"
+                result["truncation"] = "RESPONSE_TRUNCATED_" + residual_token(payload)
     except (AttributeError, ValueError, TypeError) as exc:
-        status = "NOT_COLLECTED"
-        code = "UNSUPPORTED_OR_INVALID_OPERATION"
-        error = {"code": code, "message": str(exc)[:300].replace("\n", " ")}
-        if pages:
-            status = "PARTIAL"
+        result["status"] = "PARTIAL" if result["pages"] else "NOT_COLLECTED"
+        result["error"] = {
+            "code": "UNSUPPORTED_OR_INVALID_OPERATION",
+            "message": str(exc)[:300].replace("\n", " "),
+        }
     except Exception as exc:
-        status, code = outcome(exc)
-        error = {"code": code, "message": str(exc)[:300].replace("\n", " ")}
-        if pages:
-            status = "PARTIAL"
+        status, code = classify(exc)
+        if status == "CONNECTION_ERROR" and region != "global":
+            # A Region missing from botocore's endpoint data does not offer the service.
+            try:
+                offered = session.get_available_regions(service, ctx["partition"])
+            except Exception:
+                offered = []
+            if offered and region not in offered:
+                status, code = "SERVICE_NOT_IN_USE", "ENDPOINT_NOT_OFFERED_IN_REGION"
+        result["retry_status"] = status
+        final = "API_ERROR" if status == "SERVER_ERROR" else status
+        result["status"] = "PARTIAL" if result["pages"] and final not in RETRYABLE else final
+        result["error"] = {"code": code, "message": str(exc)[:300].replace("\n", " ")}
+    return result
+
+
+def discard(root, files):
+    for item in files:
+        try:
+            (root / item["path"]).unlink()
+        except FileNotFoundError:
+            pass
+
+
+def api(session, root, ctx, service, operation, region, params=None, rel=None):
+    params = params or {}
+    key = (
+        rel
+        or f"accounts/{ctx['account_id']}/{'global' if region == 'global' else 'regions/' + region}/{service}/{operation}"
+    )
+    carried = carry(root, ctx, service, operation, region, params)
+    if carried is not None:
+        return carried
+    options = ctx.get("options", DEFAULT_OPTIONS)
+    throttle = ctx.get("throttle")
+    start = time.monotonic()
+    began = UTC()
+    attempts, retried = 0, []
+    while True:
+        attempts += 1
+        if throttle:
+            throttle.wait()
+        result = attempt(session, root, ctx, service, operation, region, params, key, options)
+        status = result["retry_status"]
+        if status not in RETRYABLE or attempts >= options["max_attempts"]:
+            break
+        # Bounded read-only retry: discard this attempt's pages, back off, try again.
+        if status == "THROTTLED" and throttle:
+            throttle.signal()
+        delay = backoff(options, attempts)
+        retried.append(status)
+        note(
+            ctx,
+            "retries",
+            {
+                "service": service,
+                "operation": operation,
+                "region": region,
+                "attempt": attempts,
+                "status": status,
+                "code": result["error"]["code"],
+                "delay_seconds": delay,
+                "at": UTC(),
+            },
+        )
+        discard(root, result["files"])
+        time.sleep(delay)
+    if result["status"] == "COMPLETE" and throttle:
+        throttle.relax()
+    status, files, error = result["status"], result["files"], result["error"]
+    if status in RETRYABLE and files:
+        # Retries exhausted mid-listing: pages already written stay, coverage is partial.
+        status = "PARTIAL"
     rec = {
         "collection_id": ctx["collection_id"],
         "assessment_id": ctx["assessment_id"],
@@ -404,25 +674,65 @@ def api(session, root, ctx, service, operation, region, params=None, rel=None):
         "completed_at": UTC(),
         "duration_seconds": round(time.monotonic() - start, 3),
         "request_parameters": scrub_params(params),
-        "pagination_expected": paginated,
+        "pagination_expected": result["paginated"],
         "pagination_complete": status == "COMPLETE",
-        "pages_processed": pages,
-        "records_returned": count,
+        "pages_processed": result["pages"],
+        "records_returned": result["count"],
         "output_bytes": sum(f["bytes"] for f in files),
         "outcome": status,
         "error": error,
         "files": files,
         "sensitivity": "CONFIDENTIAL",
-        "api_operation": api_name,
-        "truncation": truncation,
+        "api_operation": result["api_name"],
+        "truncation": result["truncation"],
+        "attempts": attempts,
+        "retried_statuses": retried,
     }
-    if truncation and not error:
-        rec["error"] = {"code": truncation, "message": "Response incomplete; not complete coverage"}
+    if result["truncation"] and not error:
+        rec["error"] = {
+            "code": result["truncation"],
+            "message": "Response incomplete; not complete coverage",
+        }
     record(root, rec)
+    if result["retry_status"] == "CREDENTIALS_EXPIRED":
+        ctx["credentials_expired"] = error["code"]
+        raise CredentialsExpired(error["code"])
     return rec
 
 
-def skipped(root, ctx, service, operation, region, reason, status="NOT_COLLECTED"):
+def carry(root, ctx, service, operation, region, params):
+    """Resume: reuse a verified COMPLETE (or AWS-defined absence) row of the previous run
+    instead of calling AWS again. Rows outside the resume filter are carried as they were."""
+    previous = ctx.get("carry")
+    if not previous:
+        return None
+    key = (region, service, operation, json.dumps(scrub_params(params), sort_keys=True))
+    row = previous["rows"].get(key)
+    if row is None:
+        return None
+    definitive = row["outcome"] in ("COMPLETE", "NOT_ENABLED")
+    selected = (not previous["services"] or service in previous["services"]) and (
+        not previous["regions"] or region in previous["regions"] or region == "global"
+    )
+    if not definitive and selected:
+        return None  # re-attempt
+    source = previous["root"]
+    for item in row["files"]:
+        target = root / item["path"]
+        origin = source / item["path"]
+        if not origin.is_file() or sha(origin) != item["sha256"]:
+            return None  # previous evidence changed; collect again
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copyfile(origin, target)
+    rec = dict(row)
+    rec.update(collection_id=ctx["collection_id"], carried_from=row["collection_id"])
+    record(root, rec)
+    with FACTS_LOCK:
+        ctx["carried"] = ctx.get("carried", 0) + 1
+    return rec
+
+
+def skipped(root, ctx, service, operation, region, reason, status="NOT_COLLECTED", code=None):
     rec = {
         "collection_id": ctx["collection_id"],
         "assessment_id": ctx["assessment_id"],
@@ -444,7 +754,7 @@ def skipped(root, ctx, service, operation, region, reason, status="NOT_COLLECTED
         "records_returned": 0,
         "output_bytes": 0,
         "outcome": status,
-        "error": {"code": status, "message": reason},
+        "error": {"code": code or status, "message": reason},
         "files": [],
         "sensitivity": "CONFIDENTIAL",
     }
@@ -454,23 +764,38 @@ def skipped(root, ctx, service, operation, region, reason, status="NOT_COLLECTED
 
 def load_pages(root, rec, key):
     for f in rec["files"]:
-        data = json.loads((root / f["path"]).read_text())
+        data = read_json(root / f["path"])
         for x in data.get(key, []):
             yield x
 
 
-def account_session(master, account, role, region):
-    # botocore refreshable assume-role provider via profile-free credential resolver.
+def account_session(master, account, role, region, duration=3600, config=None):
+    """Refreshable assume-role session. botocore refreshes before expiry; a refresh failure
+    (hub sign-in expired, role no longer assumable) raises CredentialsExpired."""
     from botocore.credentials import DeferredRefreshableCredentials
     from botocore.session import get_session
 
-    sts = master.client("sts", config=CONFIG)
-    role_arn = f"arn:{master.client('sts').get_caller_identity()['Arn'].split(':')[1]}:iam::{account}:role/{role}"
+    config = config or CONFIG
+    sts = master.client("sts", config=config)
+    try:
+        partition = sts.get_caller_identity()["Arn"].split(":")[1]
+    except Exception as exc:
+        status, code = classify(exc)
+        if status == "CREDENTIALS_EXPIRED":
+            raise CredentialsExpired(code) from None
+        raise
+    role_arn = f"arn:{partition}:iam::{account}:role/{role}"
 
     def refresh():
-        c = sts.assume_role(
-            RoleArn=role_arn, RoleSessionName="csao-evidence", DurationSeconds=3600
-        )["Credentials"]
+        try:
+            c = sts.assume_role(
+                RoleArn=role_arn, RoleSessionName="csao-evidence", DurationSeconds=duration
+            )["Credentials"]
+        except Exception as exc:
+            status, code = classify(exc)
+            if status == "CREDENTIALS_EXPIRED":
+                raise CredentialsExpired(code) from None
+            raise AssumeRoleFailed(f"ASSUME_ROLE_{status}_{code}"[:128]) from None
         return {
             "access_key": c["AccessKeyId"],
             "secret_key": c["SecretAccessKey"],
@@ -506,7 +831,7 @@ def run_prowler(root, ctx, role, regions, executable):
     start = UTC()
     t = time.monotonic()
     try:
-        with (folder / "execution.log").open("w") as f:
+        with (folder / "execution.log").open("w", encoding="utf-8") as f:
             result = subprocess.run(
                 cmd, stdout=f, stderr=subprocess.STDOUT, timeout=7200, check=False
             )
@@ -567,8 +892,76 @@ def run_prowler(root, ctx, role, regions, executable):
     return rec
 
 
+def region_outcomes(ops, declared):
+    """(succeeded, partial) declared Regions: succeeded when every regional row there is
+    COMPLETE or an AWS-defined absence."""
+    seen = {r: [] for r in declared}
+    for r in ops:
+        if r["region"] in seen and r["service"] not in SCANNERS:
+            seen[r["region"]].append(r["outcome"])
+    succeeded = [
+        r for r, values in seen.items() if values and all(v in DEFINITIVE for v in values)
+    ]
+    return succeeded, [r for r in declared if r not in succeeded]
+
+
+SCANNERS = {"prowler", "cloudsplaining", "steampipe"}
+DEFINITIVE = {"COMPLETE", "NOT_ENABLED"}
+MAX_FACT_ENTRIES = 5000
+
+
+def bounded(entries):
+    entries = list(entries or [])
+    return entries[:MAX_FACT_ENTRIES], max(0, len(entries) - MAX_FACT_ENTRIES)
+
+
+def collection_facts(ctx, ops):
+    options = ctx.get("options", DEFAULT_OPTIONS)
+    retries, retries_dropped = bounded(ctx.get("retries"))
+    limits, limits_dropped = bounded(ctx.get("detail_limits_reached"))
+    fallbacks, fallbacks_dropped = bounded(ctx.get("dependency_fallbacks"))
+    succeeded, partial = region_outcomes(ops, ctx["regions"])
+    return {
+        "collector_runtime": {
+            "python": platform.python_version(),
+            "boto3": boto3.__version__,
+            "botocore": botocore.__version__,
+            "os": platform.system(),
+        },
+        "encoding": "UTF-8",
+        "options": {k: options[k] for k in sorted(DEFAULT_OPTIONS)},
+        "retries": {
+            "total": len(ctx.get("retries") or []),
+            "operations_retried": sum(1 for r in ops if r.get("retried_statuses")),
+            "entries": retries,
+            "entries_omitted": retries_dropped,
+        },
+        "detail_limits": {
+            "max_pages_per_operation": MAX_PAGES,
+            "operation_timeout_seconds": options["operation_timeout"],
+            "reached": limits,
+            "reached_omitted": limits_dropped,
+        },
+        "dependency_fallbacks": {"entries": fallbacks, "entries_omitted": fallbacks_dropped},
+        "regions_attempted": ctx.get("regions_attempted", ctx["regions"]),
+        "regions_succeeded": succeeded,
+        "regions_partial": partial,
+        "regions_not_enabled": ctx.get("regions_not_enabled", []),
+        "region_status_source": ctx.get("region_status_source", "ec2:DescribeRegions"),
+        "organization": ctx.get("organization") or {"access": "NOT_ATTEMPTED"},
+        "resumed_from": ctx.get("resumed_from"),
+        "resumed_at": ctx.get("resumed_at"),
+        "carried_operations": ctx.get("carried", 0),
+        "credentials_expired": ctx.get("credentials_expired"),
+    }
+
+
 def finalize(root, ctx, allowed_ops):
-    ops = [json.loads(x) for x in (root / "operations.jsonl").read_text().splitlines() if x.strip()]
+    ops = [
+        json.loads(x)
+        for x in (root / "operations.jsonl").read_text(encoding="utf-8").splitlines()
+        if x.strip()
+    ]
     missing = []
     duplicates = []
     seen = set()
@@ -593,6 +986,7 @@ def finalize(root, ctx, allowed_ops):
                 not target.is_relative_to(root.resolve())
                 or not target.is_file()
                 or target.is_symlink()
+                or "\\" in p
             ):
                 bad.append(p)
                 continue
@@ -613,6 +1007,7 @@ def finalize(root, ctx, allowed_ops):
                     "operation": r["operation"],
                     "reason": r["error"],
                     "status": r["outcome"],
+                    "request_parameters": r["request_parameters"],
                 }
             )
     write_json(
@@ -620,16 +1015,22 @@ def finalize(root, ctx, allowed_ops):
     )
     statuses = Counter(r["outcome"] for r in ops)
     total_bytes = sum(p.stat().st_size for p in root.rglob("*") if p.is_file())
+    interrupted = ctx.get("interrupted") or ctx.get("credentials_expired")
     summary = {
         "collection_id": ctx["collection_id"],
         "account_id": ctx["account_id"],
         "status": "FAILED_VALIDATION"
         if bad or duplicates
         else "INTERRUPTED"
-        if ctx.get("interrupted")
+        if interrupted
         else "COMPLETE"
         if all(r["outcome"] == "COMPLETE" for r in ops)
         else "PARTIAL",
+        "interruption_reason": "CREDENTIALS_EXPIRED"
+        if ctx.get("credentials_expired")
+        else "OPERATOR"
+        if ctx.get("interrupted")
+        else None,
         "operations": dict(statuses),
         "operations_total": len(ops),
         "missing_or_failed": len(missing),
@@ -658,10 +1059,12 @@ def finalize(root, ctx, allowed_ops):
         "status": summary["status"],
         "dataset_origin": ctx.get("dataset_origin", "TOOL_GENERATED"),
         "account_name": ctx.get("account_name") or None,
+        "business_group": ctx.get("business_group") or None,
         "analyzer_contract_status": "CLOSEC_ANALYZER_ADAPTER_closec-v030-native-1",
+        "collection_facts": collection_facts(ctx, ops),
     }
     write_json(root / "manifest.json", manifest)
-    with (root / "checksums.sha256").open("w") as f:
+    with (root / "checksums.sha256").open("w", encoding="utf-8", newline="\n") as f:
         for p in sorted(root.rglob("*")):
             if p.is_file() and p.name != "checksums.sha256":
                 if p.is_symlink():
@@ -678,9 +1081,9 @@ def peak_rss_kb():
 
 
 def verify(root):
-    manifest = json.loads((root / "manifest.json").read_text())
-    summary = json.loads((root / "collection-summary.json").read_text())
-    entries = (root / "checksums.sha256").read_text().splitlines()
+    manifest = read_json(root / "manifest.json")
+    summary = read_json(root / "collection-summary.json")
+    entries = (root / "checksums.sha256").read_text(encoding="utf-8").splitlines()
     if not all(
         k in manifest
         for k in (
@@ -697,7 +1100,8 @@ def verify(root):
         digest, rel = line.split("  ", 1)
         p = (root / rel).resolve()
         if (
-            not p.is_relative_to(root.resolve())
+            "\\" in rel
+            or not p.is_relative_to(root.resolve())
             or not p.is_file()
             or p.is_symlink()
             or sha(p) != digest
@@ -712,9 +1116,12 @@ def verify(root):
 
 
 def package(root):
+    """Immutable ZIP (forward-slash entry names under AWS-EVIDENCE/) plus a SHA-256 sidecar
+    `<name>.zip.sha256` written after the archive is closed."""
     verify(root)
     target = root.parent / (root.name + ".zip")
-    if target.exists():
+    sidecar = root.parent / (root.name + ".zip.sha256")
+    if target.exists() or sidecar.exists():
         raise FileExistsError(target)
     with zipfile.ZipFile(
         target, "x", compression=zipfile.ZIP_DEFLATED, compresslevel=6, allowZip64=True
@@ -723,7 +1130,12 @@ def package(root):
             if p.is_file():
                 if p.is_symlink():
                     raise RuntimeError("Symlink not allowed")
-                z.write(p, arcname="AWS-EVIDENCE/" + p.relative_to(root).as_posix())
+                name = "AWS-EVIDENCE/" + p.relative_to(root).as_posix()
+                if "\\" in name or ".." in name.split("/"):
+                    raise RuntimeError("Unsafe archive entry: " + name)
+                z.write(p, arcname=name)
+    with sidecar.open("w", encoding="utf-8", newline="\n") as f:
+        f.write(f"{sha(target)}  {target.name}\n")
     return target
 
 
@@ -794,79 +1206,202 @@ def choose_account(master, approved, search):
     return item["id"], item["name"]
 
 
-def collect(args):
-    config_path = pathlib.Path(args.config) if args.config else SCRIPT_DIR / "config.json"
+def load_config(path):
+    config_path = pathlib.Path(path) if path else SCRIPT_DIR / "config.json"
     if not config_path.is_file():
         raise ValueError(f"Configuration not found: {config_path}. Copy config.example.json to config.json")
-    cfg = json.loads(config_path.read_text())
+    cfg = read_json(config_path)
     cfg["_config_dir"] = str(config_path.resolve().parent)
+    return cfg
+
+
+def resolve_options(cfg, overrides=None):
+    """DEFAULT_OPTIONS overridden by config `timeouts`/`retries` and explicit overrides."""
+    options = dict(DEFAULT_OPTIONS)
+    for section in ("timeouts", "retries"):
+        for key, value in (cfg.get(section) or {}).items():
+            if key in options:
+                options[key] = value
+    for key, value in (overrides or {}).items():
+        if value is not None and key in options:
+            options[key] = value
+    for key in ("connect_timeout", "read_timeout", "operation_timeout", "session_duration"):
+        if not isinstance(options[key], (int, float)) or options[key] <= 0:
+            raise ValueError(f"{key} must be a positive number")
+    if not isinstance(options["max_attempts"], int) or not 1 <= options["max_attempts"] <= 10:
+        raise ValueError("max_attempts must be an integer from 1 to 10")
+    if not 900 <= options["session_duration"] <= 43200:
+        raise ValueError("session_duration must be 900-43200 seconds")
+    return options
+
+
+def previous_run(path, account):
+    """Verified previous run of the same account and collector version, for resume."""
+    folder = pathlib.Path(path).expanduser().resolve()
+    verify(folder)
+    manifest = read_json(folder / "manifest.json")
+    if manifest.get("account_id") != account:
+        raise ValueError("Resume run belongs to a different account")
+    if manifest.get("collector_version") != VERSION:
+        raise ValueError(f"Resume needs a {VERSION} run; collect again instead")
+    rows = {}
+    for line in (folder / "operations.jsonl").read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            row = json.loads(line)
+            key = (
+                row["region"],
+                row["service"],
+                row["operation"],
+                json.dumps(row["request_parameters"], sort_keys=True),
+            )
+            rows[key] = row  # the last attempt of an operation wins
+    return folder, manifest, rows
+
+
+def region_scope(session, selected, config):
+    """Enabled requested Regions. Opted-out Regions are journaled, not aborted (0.3.3)."""
     try:
-        accounts = load_approved_accounts(cfg)
-    except (ValueError, OSError):
-        if cfg.get("approved_accounts") or cfg.get("approved_accounts_file"):
-            raise
-        accounts = []  # No allowlist: each selection requires typed authorization.
-    approved = cfg["approved_regions"]
-    selected = args.regions or approved
-    if not selected or any(r not in approved for r in selected):
-        raise ValueError("Requested regions outside allowlist")
-    master = boto3.Session(region_name=selected[0])
-    account_name = ""
-    if not args.account:
-        args.account, account_name = choose_account(master, accounts, args.search)
-    if not re.fullmatch(r"\d{12}", args.account):
-        raise ValueError("Account ID must be 12 digits")
-    if accounts and args.account not in accounts:
-        raise ValueError("Account not in approved allowlist")
-    # Evidence is written next to this script unless the configuration names a folder.
-    base = pathlib.Path(cfg.get("output_directory") or SCRIPT_DIR / "evidence").expanduser().resolve()
-    base.mkdir(parents=True, exist_ok=True)
-    session, role = account_session(master, args.account, cfg["spoke_role_name"], selected[0])
-    ident = session.client("sts", config=CONFIG).get_caller_identity()
-    if ident["Account"] != args.account:
-        raise RuntimeError("Assumed identity does not match target account")
-    partition = ident["Arn"].split(":")[1]
-    enabled = session.client("ec2", region_name=selected[0], config=CONFIG).describe_regions(
-        AllRegions=True
-    )["Regions"]
-    enabled_names = {
+        enabled = session.client("ec2", region_name=selected[0], config=config).describe_regions(
+            AllRegions=True
+        )["Regions"]
+    except Exception as exc:
+        status, code = classify(exc)
+        if status == "CREDENTIALS_EXPIRED":
+            raise CredentialsExpired(code) from None
+        # Opt-in state unknown: attempt every requested Region and say so in the manifest.
+        return list(selected), [], f"UNAVAILABLE_{status}_{code}"[:128], None
+    names = {
         r["RegionName"]
         for r in enabled
         if r.get("OptInStatus") in ("opt-in-not-required", "opted-in")
     }
-    if any(r not in enabled_names for r in selected):
-        raise ValueError("Requested region not enabled: " + str(set(selected) - enabled_names))
-    stamp = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    declared = [r for r in selected if r in names]
+    return declared, [r for r in selected if r not in names], "ec2:DescribeRegions", sorted(names)
+
+
+def collect_account(
+    cfg,
+    account,
+    regions,
+    *,
+    account_name="",
+    business_group=None,
+    options=None,
+    throttle=None,
+    prowler=False,
+    make_package=True,
+    resume=None,
+    resume_services=(),
+    resume_regions=(),
+    master=None,
+    log=print,
+):
+    """Collect one account into one run directory and (optionally) one ZIP.
+
+    Raises AssumeRoleFailed or CredentialsExpired before any evidence is written when the
+    member role cannot be assumed; afterwards credential expiry finalizes the run as
+    INTERRUPTED (resume it once signed in again)."""
+    options = options or resolve_options(cfg)
+    config = client_config(options)
+    approved = cfg["approved_regions"]
+    selected = list(regions or approved)
+    if not selected or any(r not in approved for r in selected):
+        raise ValueError("Requested regions outside allowlist")
+    if not re.fullmatch(r"\d{12}", account):
+        raise ValueError("Account ID must be 12 digits")
+    carried = None
+    if resume:
+        folder, prior, rows = previous_run(resume, account)
+        carried = {
+            "root": folder,
+            "rows": rows,
+            "services": set(resume_services or ()),
+            "regions": set(resume_regions or ()),
+        }
+        account_name = account_name or prior.get("account_name") or ""
+        business_group = business_group or prior.get("business_group")
+    master = master or boto3.Session(region_name=selected[0])
+    # Evidence is written next to this script unless the configuration names a folder.
+    base = pathlib.Path(cfg.get("output_directory") or SCRIPT_DIR / "evidence").expanduser().resolve()
+    base.mkdir(parents=True, exist_ok=True)
+    session, role = account_session(
+        master,
+        account,
+        cfg["spoke_role_name"],
+        selected[0],
+        duration=options["session_duration"],
+        config=config,
+    )
+    try:
+        ident = session.client("sts", config=config).get_caller_identity()
+    except (AssumeRoleFailed, CredentialsExpired):
+        raise
+    except Exception as exc:
+        status, code = classify(exc)
+        if status == "CREDENTIALS_EXPIRED":
+            raise CredentialsExpired(code) from None
+        raise AssumeRoleFailed(f"ASSUME_ROLE_{status}_{code}"[:128]) from None
+    if ident["Account"] != account:
+        raise RuntimeError("Assumed identity does not match target account")
+    partition = ident["Arn"].split(":")[1]
+    declared, not_enabled, region_source, enabled_names = region_scope(session, selected, config)
+    if not declared:
+        raise NoEnabledRegion("None of the requested Regions is enabled: " + ", ".join(selected))
+    stamp =datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     run_id = f"{stamp}-{uuid.uuid4().hex[:8]}"
     label = safe_segment(account_name or "account")[:60]
-    root = base / f"{label}__{args.account}__{run_id}"
+    root = base / f"{label}__{account}__{run_id}"
     root.mkdir(parents=True, exist_ok=False)
     origin = cfg.get("dataset_origin", "TOOL_GENERATED")
     if origin not in ("TOOL_GENERATED", "SYNTHETIC"):
         raise ValueError("dataset_origin must be TOOL_GENERATED or SYNTHETIC")
     ctx = {
-        "account_id": args.account,
+        "account_id": account,
         "assessment_id": cfg["assessment_id"],
         "collection_id": run_id,
         "partition": partition,
-        "home_region": selected[0],
-        "regions": selected,
+        "home_region": (declared or selected)[0],
+        "regions": declared,
+        "regions_attempted": selected,
+        "regions_not_enabled": not_enabled,
+        "region_status_source": region_source,
         "role_arn": role,
-        "started_at": UTC(),
+        # A resumed package spans the original run: carried rows keep their timestamps.
+        "started_at": prior["started_at"] if carried else UTC(),
+        "resumed_at": UTC() if carried else None,
         "dataset_origin": origin,
         "account_name": account_name,
+        "business_group": business_group,
+        "options": options,
+        "config": config,
+        "throttle": throttle,
+        "carry": carried,
+        "resumed_from": carried and prior["collection_id"],
     }
-    write_json(root / "accounts" / args.account / "identity.json", ident)
+    write_json(root / "accounts" / account / "identity.json", ident)
     write_json(
-        root / "accounts" / args.account / "regions.json",
+        root / "accounts" / account / "regions.json",
         {
-            "enabled_regions": sorted(enabled_names),
+            "enabled_regions": enabled_names,
             "approved_regions": approved,
             "selected_regions": selected,
+            "declared_regions": declared,
+            "regions_not_enabled": not_enabled,
+            "region_status_source": region_source,
         },
     )
+    for region in not_enabled:
+        skipped(
+            root,
+            ctx,
+            "collector",
+            "region_scope",
+            region,
+            "Region not enabled (opted out) for this account; no request was made",
+            status="REGION_NOT_ENABLED",
+        )
     try:
-        collect_all(session, root, ctx, args, selected)
+        collect_all(session, root, ctx, account, declared)
     except KeyboardInterrupt:
         ctx["interrupted"] = True
         skipped(
@@ -877,59 +1412,183 @@ def collect(args):
             "global",
             "Interrupted by operator; remaining operations not attempted",
         )
-    if not ctx.get("interrupted"):
-        if not args.no_prowler:
-            run_prowler(root, ctx, role, selected, cfg.get("prowler_executable"))
+    except CredentialsExpired as exc:
+        ctx["credentials_expired"] = exc.code
+        skipped(
+            root,
+            ctx,
+            "collector",
+            "remaining_operations",
+            "global",
+            "Credentials expired; remaining operations not attempted (sign in again and resume)",
+            code="CREDENTIALS_EXPIRED",
+        )
+    if not ctx.get("interrupted") and not ctx.get("credentials_expired"):
+        if prowler:
+            run_prowler(root, ctx, role, declared, cfg.get("prowler_executable"))
         else:
-            skipped(root, ctx, "prowler", "scan", ",".join(selected), "Disabled by operator")
+            skipped(root, ctx, "prowler", "scan", ",".join(declared), "Disabled by operator")
         for tool in ("cloudsplaining", "steampipe"):
             skipped(
                 root,
                 ctx,
                 tool,
                 "scan",
-                ",".join(selected),
+                ",".join(declared),
                 "Supplementary scanner deferred; native collection continues",
             )
     summary = finalize(root, ctx, GLOBAL)
-    print(json.dumps({"run_directory": str(root), "summary": summary}, indent=2))
-    if not args.no_package:
-        if summary["status"] == "FAILED_VALIDATION":
-            raise RuntimeError("Evidence integrity validation failed; ZIP not finalized")
-        print("ZIP:", package(root))
+    result = {"run_directory": str(root), "summary": summary, "zip": None, "zip_sha256": None}
+    if make_package and summary["status"] != "FAILED_VALIDATION":
+        target = package(root)
+        result["zip"] = str(target)
+        result["zip_sha256"] = sha(target)
+    return result
+
+
+def collect(args):
+    cfg = load_config(args.config)
+    try:
+        accounts = load_approved_accounts(cfg)
+    except (ValueError, OSError):
+        if cfg.get("approved_accounts") or cfg.get("approved_accounts_file"):
+            raise
+        accounts = []  # No allowlist: each selection requires typed authorization.
+    selected = args.regions or cfg["approved_regions"]
+    if not selected or any(r not in cfg["approved_regions"] for r in selected):
+        raise ValueError("Requested regions outside allowlist")
+    options = resolve_options(
+        cfg,
+        {
+            "connect_timeout": args.connect_timeout,
+            "read_timeout": args.read_timeout,
+            "operation_timeout": args.operation_timeout,
+            "max_attempts": args.max_attempts,
+        },
+    )
+    master = boto3.Session(region_name=selected[0])
+    account_name = ""
+    if args.resume and not args.account:
+        args.account = read_json(pathlib.Path(args.resume) / "manifest.json")["account_id"]
+    if not args.account:
+        args.account, account_name = choose_account(master, accounts, args.search)
+    if not re.fullmatch(r"\d{12}", args.account):
+        raise ValueError("Account ID must be 12 digits")
+    if accounts and args.account not in accounts:
+        raise ValueError("Account not in approved allowlist")
+    result = collect_account(
+        cfg,
+        args.account,
+        selected,
+        account_name=account_name,
+        options=options,
+        prowler=not args.no_prowler,
+        make_package=not args.no_package,
+        resume=args.resume,
+        resume_services=args.services or (),
+        resume_regions=args.regions if args.resume else (),
+        master=master,
+    )
+    print(json.dumps({"run_directory": result["run_directory"], "summary": result["summary"]}, indent=2))
+    if result["summary"]["status"] == "FAILED_VALIDATION" and not args.no_package:
+        raise RuntimeError("Evidence integrity validation failed; ZIP not finalized")
+    if result["zip"]:
+        print("ZIP:", result["zip"])
+        print("ZIP SHA-256:", result["zip_sha256"])
+
+
+SCP, RCP = "SERVICE_CONTROL_POLICY", "RESOURCE_CONTROL_POLICY"
+POLICY_FOLDERS = {SCP: "scp", RCP: "rcp"}
+
+
+def first_page(root, rec):
+    if rec and rec["outcome"] == "COMPLETE" and rec["files"]:
+        return read_json(root / rec["files"][0]["path"])
+    return {}
 
 
 def organization_scope(session, root, ctx):
-    """Attempt the account's SCP inheritance chain. Member accounts normally receive
-    AccessDenied; that is journaled and never interpreted as an absent policy."""
+    """Organization facts plus the account's SCP and RCP inheritance chain with policy
+    content (root included). Member accounts normally receive AccessDenied; that is journaled
+    and recorded as missing organization access, never as an absent policy."""
     account = ctx["account_id"]
     base = f"accounts/{account}/global/organizations"
+    described = ctx.get("_org_describe")
+    org = {
+        "access": "NOT_ATTEMPTED",
+        "organization_id": None,
+        "management_account_id": None,
+        "describe_organization": described["outcome"] if described else "NOT_ATTEMPTED",
+        "hierarchy_reached_root": False,
+        "policy_types": {},
+    }
+    ctx["organization"] = org
+    details = first_page(root, described).get("Organization") or {}
+    org["organization_id"] = details.get("Id")
+    org["management_account_id"] = details.get("MasterAccountId")
+    if described and described["outcome"] == "NOT_ENABLED":
+        org["access"] = "NOT_IN_ORGANIZATION"
+        return
+    roots = [r for r in first_page(root, ctx.get("_org_roots")).get("Roots") or []]
+    enabled_types = None
+    if roots and isinstance(roots[0].get("PolicyTypes"), list):
+        enabled_types = {
+            t.get("Type") for t in roots[0]["PolicyTypes"] if t.get("Status") == "ENABLED"
+        }
+    states = {}
+    for ptype in (SCP, RCP):
+        if enabled_types is not None and ptype not in enabled_types:
+            states[ptype] = {"status": "NOT_ENABLED_AT_ROOT", "targets_listed": 0, "policies_described": 0, "failures": 0}
+        else:
+            states[ptype] = {"status": None, "targets_listed": 0, "policies_described": 0, "failures": 0}
+    described_ids = set()
     node = account
-    for depth in range(10):
-        rec = api(
-            session,
-            root,
-            ctx,
-            "organizations",
-            "list_policies_for_target",
-            "global",
-            {"TargetId": node, "Filter": "SERVICE_CONTROL_POLICY"},
-            f"{base}/targets/{safe_segment(node)}/list_policies_for_target",
-        )
-        if rec["outcome"] == "COMPLETE":
+    denied = incomplete = False
+    for _depth in range(10):
+        for ptype, state in states.items():
+            if state["status"] in ("NOT_ENABLED_AT_ROOT", "ACCESS_DENIED"):
+                continue
+            rec = api(
+                session,
+                root,
+                ctx,
+                "organizations",
+                "list_policies_for_target",
+                "global",
+                {"TargetId": node, "Filter": ptype},
+                f"{base}/targets/{safe_segment(node)}/{POLICY_FOLDERS[ptype]}/list_policies_for_target",
+            )
+            if rec["outcome"] == "ACCESS_DENIED":
+                state["status"] = "ACCESS_DENIED"
+                continue
+            if rec["outcome"] != "COMPLETE":
+                state["failures"] += 1
+                state["status"] = "INCOMPLETE"
+                continue
+            state["targets_listed"] += 1
             for policy in load_pages(root, rec, "Policies"):
                 pid = policy.get("Id")
-                if pid:
-                    api(
-                        session,
-                        root,
-                        ctx,
-                        "organizations",
-                        "describe_policy",
-                        "global",
-                        {"PolicyId": pid},
-                        f"{base}/policies/{safe_segment(pid)}/describe_policy",
-                    )
+                if not pid or pid in described_ids:
+                    continue
+                described_ids.add(pid)
+                content = api(
+                    session,
+                    root,
+                    ctx,
+                    "organizations",
+                    "describe_policy",
+                    "global",
+                    {"PolicyId": pid},
+                    f"{base}/policies/{safe_segment(pid)}/describe_policy",
+                )
+                if content["outcome"] == "COMPLETE":
+                    state["policies_described"] += 1
+                else:
+                    state["failures"] += 1
+                    state["status"] = "INCOMPLETE"
+        if node.startswith("r-"):
+            org["hierarchy_reached_root"] = True
+            break
         parents = api(
             session,
             root,
@@ -941,30 +1600,47 @@ def organization_scope(session, root, ctx):
             f"{base}/targets/{safe_segment(node)}/list_parents",
         )
         if parents["outcome"] != "COMPLETE":
-            return
+            denied = denied or parents["outcome"] == "ACCESS_DENIED"
+            incomplete = True
+            break
         found = [p.get("Id") for p in load_pages(root, parents, "Parents")]
         if not found or not found[0]:
-            return
+            incomplete = True
+            break
         node = found[0]
-        if node.startswith("r-"):
-            api(
-                session,
-                root,
-                ctx,
-                "organizations",
-                "list_policies_for_target",
-                "global",
-                {"TargetId": node, "Filter": "SERVICE_CONTROL_POLICY"},
-                f"{base}/targets/{safe_segment(node)}/list_policies_for_target",
-            )
-            return
+    for state in states.values():
+        if state["status"] is None:
+            state["status"] = "COLLECTED" if org["hierarchy_reached_root"] else "INCOMPLETE"
+    org["policy_types"] = states
+    if any(s["status"] == "ACCESS_DENIED" for s in states.values()) or denied:
+        org["access"] = "ACCESS_DENIED"
+    elif incomplete or any(s["status"] == "INCOMPLETE" for s in states.values()):
+        org["access"] = "INCOMPLETE"
+    else:
+        org["access"] = "COLLECTED"
 
 
-def collect_all(session, root, ctx, args, selected):
+# Regional listings whose dependent per-resource calls run only after a COMPLETE outcome.
+PARENTS = {
+    ("kms", "list_keys"),
+    ("cloudtrail", "describe_trails"),
+    ("guardduty", "list_detectors"),
+    ("lambda", "list_functions"),
+    ("elbv2", "describe_load_balancers"),
+    ("ec2", "describe_transit_gateway_route_tables"),
+    ("ecs", "list_clusters"),
+    ("eks", "list_clusters"),
+    ("dynamodb", "list_tables"),
+}
+
+
+def collect_all(session, root, ctx, account, selected):
     for service, operations in GLOBAL.items():
         for op in operations:
-            params = operation_params(service, op, "global", args.account)
+            params = operation_params(service, op, "global", account)
             rec = api(session, root, ctx, service, op, "global", params)
+            if service == "organizations":
+                ctx["_org_describe" if op == "describe_organization" else "_org_roots"] = rec
             if service == "s3" and op == "list_buckets" and rec["outcome"] == "COMPLETE":
                 buckets = list(load_pages(root, rec, "Buckets"))
                 for bucket in buckets:
@@ -977,11 +1653,11 @@ def collect_all(session, root, ctx, args, selected):
                         "get_bucket_location",
                         "global",
                         {"Bucket": name},
-                        f"accounts/{args.account}/global/s3/buckets/{safe_segment(name)}/get_bucket_location",
+                        f"accounts/{account}/global/s3/buckets/{safe_segment(name)}/get_bucket_location",
                     )
                     bucket_region = ctx["home_region"]
                     if loc["outcome"] == "COMPLETE" and loc["files"]:
-                        location = json.loads((root / loc["files"][0]["path"]).read_text()).get(
+                        location = read_json(root / loc["files"][0]["path"]).get(
                             "LocationConstraint"
                         )
                         bucket_region = (
@@ -990,6 +1666,19 @@ def collect_all(session, root, ctx, args, selected):
                             else "eu-west-1"
                             if location == "EU"
                             else location
+                        )
+                    else:
+                        # Location unknown: details are requested through the home Region.
+                        note(
+                            ctx,
+                            "dependency_fallbacks",
+                            {
+                                "dependency": "s3.get_bucket_location",
+                                "parent_outcome": loc["outcome"],
+                                "fallback": "HOME_REGION_ENDPOINT",
+                                "region": bucket_region,
+                                "subject": name,
+                            },
                         )
                     for dep in DEPENDENT["s3"]:
                         if dep == "get_bucket_location":
@@ -1012,9 +1701,19 @@ def collect_all(session, root, ctx, args, selected):
                             dep,
                             bucket_region,
                             {"Bucket": name},
-                            f"accounts/{args.account}/regions/{bucket_region}/s3/buckets/{safe_segment(name)}/{dep}",
+                            f"accounts/{account}/regions/{bucket_region}/s3/buckets/{safe_segment(name)}/{dep}",
                         )
             elif service == "s3" and op == "list_buckets":
+                note(
+                    ctx,
+                    "dependency_fallbacks",
+                    {
+                        "dependency": "s3.list_buckets",
+                        "parent_outcome": rec["outcome"],
+                        "fallback": "DEPENDENT_CALLS_NOT_MADE",
+                        "region": "global",
+                    },
+                )
                 skipped(
                     root,
                     ctx,
@@ -1046,15 +1745,26 @@ def collect_all(session, root, ctx, args, selected):
                             "get_policy_version",
                             "global",
                             {"PolicyArn": arn, "VersionId": ver},
-                            f"accounts/{args.account}/global/iam/policy_versions/{safe_segment(arn)}/{safe_segment(ver)}",
+                            f"accounts/{account}/global/iam/policy_versions/{safe_segment(arn)}/{safe_segment(ver)}",
                         )
     organization_scope(session, root, ctx)
     for region in selected:
         for service, operations in REGIONAL.items():
             for op in operations:
-                params = operation_params(service, op, region, args.account)
+                params = operation_params(service, op, region, account)
                 rec = api(session, root, ctx, service, op, region, params)
                 if rec["outcome"] != "COMPLETE":
+                    if (service, op) in PARENTS:
+                        note(
+                            ctx,
+                            "dependency_fallbacks",
+                            {
+                                "dependency": f"{service}.{op}",
+                                "parent_outcome": rec["outcome"],
+                                "fallback": "DEPENDENT_CALLS_NOT_MADE",
+                                "region": region,
+                            },
+                        )
                     continue
                 if service == "kms" and op == "list_keys":
                     for k in load_pages(root, rec, "Keys"):
@@ -1073,7 +1783,7 @@ def collect_all(session, root, ctx, args, selected):
                                 dep,
                                 region,
                                 params,
-                                f"accounts/{args.account}/regions/{region}/kms/keys/{k['KeyId']}/{dep}",
+                                f"accounts/{account}/regions/{region}/kms/keys/{k['KeyId']}/{dep}",
                             )
                 if service == "cloudtrail" and op == "describe_trails":
                     for trail in load_pages(root, rec, "trailList"):
@@ -1087,7 +1797,7 @@ def collect_all(session, root, ctx, args, selected):
                                 dep,
                                 region,
                                 {key: trail["TrailARN"]},
-                                f"accounts/{args.account}/regions/{region}/cloudtrail/trails/{safe_segment(trail['Name'])}/{dep}",
+                                f"accounts/{account}/regions/{region}/cloudtrail/trails/{safe_segment(trail['Name'])}/{dep}",
                             )
                 if service == "guardduty" and op == "list_detectors":
                     for detector in load_pages(root, rec, "DetectorIds"):
@@ -1099,7 +1809,7 @@ def collect_all(session, root, ctx, args, selected):
                             "get_detector",
                             region,
                             {"DetectorId": detector},
-                            f"accounts/{args.account}/regions/{region}/guardduty/detectors/{safe_segment(detector)}",
+                            f"accounts/{account}/regions/{region}/guardduty/detectors/{safe_segment(detector)}",
                         )
                 if service == "lambda" and op == "list_functions":
                     # Resource-based policies decide who may invoke; absence is ResourceNotFoundException.
@@ -1114,7 +1824,7 @@ def collect_all(session, root, ctx, args, selected):
                                 "get_policy",
                                 region,
                                 {"FunctionName": name},
-                                f"accounts/{args.account}/regions/{region}/lambda/functions/{safe_segment(fn.get('FunctionName', name))}/get_policy",
+                                f"accounts/{account}/regions/{region}/lambda/functions/{safe_segment(fn.get('FunctionName', name))}/get_policy",
                             )
                 if service == "elbv2" and op == "describe_load_balancers":
                     for lb in load_pages(root, rec, "LoadBalancers"):
@@ -1129,7 +1839,7 @@ def collect_all(session, root, ctx, args, selected):
                                     dep,
                                     region,
                                     {"LoadBalancerArn": arn},
-                                    f"accounts/{args.account}/regions/{region}/elbv2/load_balancers/{safe_segment(arn)}/{dep}",
+                                    f"accounts/{account}/regions/{region}/elbv2/load_balancers/{safe_segment(arn)}/{dep}",
                                 )
                                 if dep == "describe_listeners" and dr["outcome"] == "COMPLETE":
                                     for listener in load_pages(root, dr, "Listeners"):
@@ -1143,7 +1853,7 @@ def collect_all(session, root, ctx, args, selected):
                                                 "describe_rules",
                                                 region,
                                                 {"ListenerArn": larn},
-                                                f"accounts/{args.account}/regions/{region}/elbv2/listeners/{safe_segment(larn)}/describe_rules",
+                                                f"accounts/{account}/regions/{region}/elbv2/listeners/{safe_segment(larn)}/describe_rules",
                                             )
                 if service == "ec2" and op == "describe_transit_gateway_route_tables":
                     for rt in load_pages(root, rec, "TransitGatewayRouteTables"):
@@ -1161,7 +1871,7 @@ def collect_all(session, root, ctx, args, selected):
                                     dep,
                                     region,
                                     {"TransitGatewayRouteTableId": rtid},
-                                    f"accounts/{args.account}/regions/{region}/ec2/tgw_routes/{safe_segment(rtid)}/{dep}",
+                                    f"accounts/{account}/regions/{region}/ec2/tgw_routes/{safe_segment(rtid)}/{dep}",
                                 )
                             # AWS SearchTransitGatewayRoutes is filtered; do not label as exhaustive.
                             api(
@@ -1177,7 +1887,7 @@ def collect_all(session, root, ctx, args, selected):
                                         {"Name": "state", "Values": ["active", "blackhole"]}
                                     ],
                                 },
-                                f"accounts/{args.account}/regions/{region}/ec2/tgw_routes/{safe_segment(rtid)}/search_routes",
+                                f"accounts/{account}/regions/{region}/ec2/tgw_routes/{safe_segment(rtid)}/search_routes",
                             )
                 if service == "ecs" and op == "list_clusters":
                     for arn in load_pages(root, rec, "clusterArns"):
@@ -1189,7 +1899,7 @@ def collect_all(session, root, ctx, args, selected):
                             "describe_clusters",
                             region,
                             {"clusters": [arn], "include": ["SETTINGS", "STATISTICS", "TAGS"]},
-                            f"accounts/{args.account}/regions/{region}/ecs/clusters/{safe_segment(arn)}/describe_clusters",
+                            f"accounts/{account}/regions/{region}/ecs/clusters/{safe_segment(arn)}/describe_clusters",
                         )
                 if service == "eks" and op == "list_clusters":
                     for name in load_pages(root, rec, "clusters"):
@@ -1201,7 +1911,7 @@ def collect_all(session, root, ctx, args, selected):
                             "describe_cluster",
                             region,
                             {"name": name},
-                            f"accounts/{args.account}/regions/{region}/eks/clusters/{safe_segment(name)}/describe_cluster",
+                            f"accounts/{account}/regions/{region}/eks/clusters/{safe_segment(name)}/describe_cluster",
                         )
                 if service == "dynamodb" and op == "list_tables":
                     for name in load_pages(root, rec, "TableNames"):
@@ -1213,17 +1923,18 @@ def collect_all(session, root, ctx, args, selected):
                             "describe_table",
                             region,
                             {"TableName": name},
-                            f"accounts/{args.account}/regions/{region}/dynamodb/tables/{safe_segment(name)}/describe_table",
+                            f"accounts/{account}/regions/{region}/dynamodb/tables/{safe_segment(name)}/describe_table",
                         )
                 # Lambda list_functions includes function configuration metadata; avoid retrieving code or secret payloads.
-    # Resource control policies, delegated administration and effective policy evaluation remain unenumerated.
+    # Delegated administration and effective policy evaluation are not enumerated here.
     skipped(
         root,
         ctx,
         "organizations",
         "effective_scp_rcp_hierarchy",
         "global",
-        "RCPs and effective SCP evaluation not enumerated; SCP chain attempted separately",
+        "Effective SCP/RCP evaluation is performed offline by the analyzer; the SCP and RCP "
+        "chain with policy content is attempted separately",
     )
 
 
@@ -1237,6 +1948,17 @@ def main():
     c.add_argument("--regions", nargs="+")
     c.add_argument("--no-prowler", action="store_true")
     c.add_argument("--no-package", action="store_true")
+    c.add_argument(
+        "--resume",
+        metavar="RUN_DIRECTORY",
+        help="re-attempt failed or missing operations of a previous 0.3.3 run into a new run; "
+        "COMPLETE evidence is copied after its SHA-256 is re-verified",
+    )
+    c.add_argument("--services", nargs="+", help="with --resume: only re-attempt these services")
+    c.add_argument("--connect-timeout", type=float)
+    c.add_argument("--read-timeout", type=float)
+    c.add_argument("--operation-timeout", type=float, help="seconds per operation (all pages)")
+    c.add_argument("--max-attempts", type=int, help="attempts per operation (1-10)")
     v = sub.add_parser("verify")
     v.add_argument("run_directory")
     z = sub.add_parser("package")
@@ -1251,7 +1973,10 @@ def main():
         print(package(pathlib.Path(a.run_directory)))
     elif a.command == "registry":
         print(
-            json.dumps({"global": GLOBAL, "regional": REGIONAL, "dependent": DEPENDENT}, indent=2)
+            json.dumps(
+                {"global": GLOBAL, "regional": REGIONAL, "dependent": DEPENDENT, "inline": INLINE},
+                indent=2,
+            )
         )
 
 

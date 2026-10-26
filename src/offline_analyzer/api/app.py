@@ -63,15 +63,6 @@ KINDS = {
 }
 
 
-# GET views that only read the database: served on reader connections (last committed
-# state), also while a job runs.
-READ_ROUTES = re.compile(
-    r"/api/runs/[^/]+/(cloud/(dashboard|paths|relationships|scc)|dashboard|records/[a-z]+|"
-    r"finding-groups|reconciliation|collection|report-limitations|iam-context|gcp/principals?|"
-    r"enterprise/(dashboard|accounts|relationships|graph|investigations|filter-choices))"
-)
-
-
 class Body(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -103,6 +94,18 @@ class ReviewBody(Body):
 
 class EnterpriseBody(Body):
     members: list[str] | None = Field(default=None, max_length=2048)
+
+
+class BulkImportBody(Body):
+    # Local folder of collector packages (batch.py output); the application is local-only.
+    folder: str = Field(min_length=1, max_length=1024)
+    expected_accounts: str = Field(default="", max_length=60000)
+    analyze: bool = True
+
+
+class ShardBody(Body):
+    members: list[str] | None = Field(default=None, max_length=8192)
+    force: bool = False
 
 
 class RefreshBody(Body):
@@ -155,14 +158,14 @@ def create_app(
     if not re.fullmatch(r"http://127\.0\.0\.1:[0-9]{1,5}", origin):
         raise ValueError("loopback origin required")
     workspace = workspace.resolve()
+    from offline_analyzer.storage.side_by_side import compatible
+
+    compatible(workspace)
     coordinator = Coordinator(workspace)
     from offline_analyzer.api.runtime import RuntimeIdentity
 
     runtime = RuntimeIdentity()
-    # Interrupted exports never publish; discard their private partial files at startup.
-    if (workspace / "reports").is_dir():
-        for stale in (workspace / "reports").glob("*.partial"):
-            stale.unlink(missing_ok=True)
+    # Opening a selected workspace never removes historical or interrupted artifacts.
     views = Views(workspace)
     enterprise = EnterpriseViews()
     cookie, csrf = secrets.token_urlsafe(32), secrets.token_urlsafe(32)
@@ -289,23 +292,6 @@ def create_app(
             return result
 
         return coordinator.submit("Replace scope data", execute)
-
-    from offline_analyzer.api.coordinator import READ_ONLY
-    from offline_analyzer.api.run_cache import RunCache
-
-    cache = RunCache()
-    app.state.run_cache = cache
-
-    @app.middleware("http")
-    async def read_routes(request: Request, call_next):
-        # Pure read views use reader connections: never queued behind jobs or writes.
-        token = READ_ONLY.set(
-            request.method == "GET" and bool(READ_ROUTES.fullmatch(request.url.path))
-        )
-        try:
-            return await call_next(request)
-        finally:
-            READ_ONLY.reset(token)
 
     @app.middleware("http")
     async def guard(request: Request, call_next):
@@ -570,6 +556,145 @@ def create_app(
             context={"provider": "Consolidated"},
         )
 
+    @app.post("/api/bulk-import")
+    def bulk_import_folder(body: BulkImportBody):
+        from offline_analyzer.ingestion.bulk import bulk_import, expected_accounts
+
+        expected, problems = (
+            expected_accounts(body.expected_accounts)
+            if body.expected_accounts.strip()
+            else (None, [])
+        )
+
+        def execute(store):
+            report = bulk_import(
+                store,
+                Path(body.folder),
+                expected=expected,
+                analyze=body.analyze,
+                progress=coordinator.progress,
+            )
+            for row in report["packages"]:
+                if row.get("run_id"):
+                    views.iam_cache.pop(row["run_id"], None)
+            report["expected_list_problems"] = problems
+            return report
+
+        return coordinator.submit(
+            "Bulk import", execute, key="bulk-import:" + body.folder, cancellable=True
+        )
+
+    @app.get("/api/bulk-import/{identifier}")
+    async def bulk_import_report(identifier: str):
+        from offline_analyzer.ingestion.bulk import load_report
+
+        report = await coordinator.call(lambda store: load_report(store, identifier))
+        if report is None:
+            raise InputError("BULK_IMPORT_NOT_FOUND")
+        return report
+
+    @app.post("/api/enterprise/shard-plan")
+    async def shard_plan(body: ShardBody):
+        from offline_analyzer.enterprise.shards import plan
+
+        return await coordinator.call(lambda store: plan(store, body.members, force=body.force))
+
+    @app.post("/api/enterprise/assess-sharded")
+    def assess_sharded_view(body: ShardBody):
+        from offline_analyzer.enterprise.shards import assess_sharded, plan
+
+        def execute(store):
+            layout = plan(store, body.members, force=body.force)
+            result = assess_sharded(store, body.members, force=body.force)
+            for shard, run in zip(layout["shards"], result["runs"], strict=False):
+                members = shard["members"] if result["shard_set"] else body.members
+                record_run_origin(workspace, run, enterprise_origin(store, members))
+            return result
+
+        return coordinator.submit(
+            "Sharded enterprise assessment",
+            execute,
+            cancellable=True,
+            key="shards:" + ",".join(sorted(body.members or [])),
+            context={"provider": "Consolidated"},
+        )
+
+    @app.get("/api/enterprise/shards/{shard_set}")
+    async def shard_view(shard_set: str):
+        from offline_analyzer.enterprise.shards import combined
+
+        return await coordinator.call(lambda store: combined(store, shard_set))
+
+    @app.get("/api/runs/{run}/enterprise/shard")
+    async def run_shard(run: str):
+        from offline_analyzer.enterprise.shards import shard_of
+
+        return {"shard": await coordinator.call(lambda store: shard_of(store, run))}
+
+    class EditionImportBody(Body):
+        path: str = Field(min_length=1, max_length=1024)
+        key: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    class EditionLinkBody(Body):
+        edition_id: str = Field(pattern=r"^gcp-edition-[0-9a-f]{64}$")
+
+    @app.get("/api/gcp-editions")
+    async def gcp_editions():
+        from offline_analyzer.reporting.gcp_feed import editions
+
+        return {"items": await coordinator.call(editions)}
+
+    @app.post("/api/runs/{run}/gcp-edition/export")
+    async def gcp_edition_export(run: str):
+        from offline_analyzer.reporting.gcp_feed import export_edition
+
+        def execute(store):
+            result = export_edition(store, run, workspace / "reports" / "gcp-editions")
+            return {**result, "file": Path(result["file"]).name}
+
+        # A direct call, not a journaled job: the signing key is returned once in this
+        # response and never written to the workspace or the job journal.
+        return await coordinator.call(execute)
+
+    @app.get("/api/gcp-editions/exports/{name}")
+    def gcp_edition_download(name: str):
+        if not re.fullmatch(r"CloSec-GCP-frozen-edition-[0-9a-f]{16}\.zip", name):
+            raise InputError("GCP_EDITION_NOT_FOUND")
+        path = workspace / "reports" / "gcp-editions" / name
+        if path.is_symlink() or not path.is_file():
+            raise InputError("GCP_EDITION_NOT_FOUND")
+        return Response(
+            path.read_bytes(),
+            media_type="application/zip",
+            headers={"Content-Disposition": f'attachment; filename="{name}"'},
+        )
+
+    @app.post("/api/gcp-editions/import")
+    def gcp_edition_import(body: EditionImportBody):
+        from offline_analyzer.reporting.gcp_feed import import_edition
+
+        return coordinator.submit(
+            "GCP edition import",
+            lambda store: import_edition(store, Path(body.path), body.key),
+            key="gcp-import:" + body.path,
+        )
+
+    @app.post("/api/runs/{run}/gcp-edition")
+    async def gcp_edition_link(run: str, body: EditionLinkBody):
+        from offline_analyzer.reporting.gcp_feed import link
+
+        return await coordinator.call(lambda store: link(store, run, body.edition_id))
+
+    @app.get("/api/runs/{run}/gcp-edition")
+    async def gcp_edition_of(run: str):
+        from offline_analyzer.reporting.gcp_feed import linked, summary
+
+        def execute(store):
+            record = linked(store, run)
+            return {"edition": summary(store, record["edition"]["edition_id"]) if record else None}
+
+        return await coordinator.call(execute)
+
     @app.get("/api/runs/{run}/enterprise/dashboard")
     async def enterprise_dashboard(run: str):
         return await coordinator.call(lambda store: enterprise.dashboard(store, run))
@@ -752,29 +877,12 @@ def create_app(
         return await coordinator.call(execute)
 
     @app.get("/api/runs/{run}/cloud/dashboard")
-    async def cloud_dashboard(run: str, provider: str = "Consolidated", part: str = "full"):
+    async def cloud_dashboard(run: str, provider: str = "Consolidated"):
         if provider not in {"AWS", "GCP", "Consolidated"}:
             raise InputError("INVALID_PROVIDER")
         from offline_analyzer.reporting.cloud import dashboard
 
-        if part not in {"full", "summary", "panels"}:
-            raise InputError("INVALID_PAGE")
-
-        def execute(store):
-            store.require_run(run)
-            running = coordinator.running_job()
-            view = cache.get(
-                store,
-                run,
-                f"dashboard:{provider}:{part}",
-                lambda: dashboard(store, run, provider, part),
-                coordinator.generation(),
-                job_running=running is not None,
-            )
-            # Reads come from the last completed state; say so while a job is running.
-            return {**view, "running_job": running}
-
-        return await coordinator.call(execute)
+        return await coordinator.call(lambda store: dashboard(store, run, provider))
 
     @app.get("/api/runs/{run}/cloud/relationships")
     async def cloud_relationships(run: str, project: str = "", limit: int = 200):
@@ -804,23 +912,67 @@ def create_app(
         from offline_analyzer.attack_paths.feasibility import attack_paths
 
         def execute(store):
-            def compute():
-                result = attack_paths(store, run, project)
-                for path in result["items"]:
-                    path["diagram"] = diagram(path)
-                return result
+            from offline_analyzer.reporting.gcp_feed import frozen_paths, linked, summary
 
-            store.require_run(run)
-            return cache.get(
-                store,
-                run,
-                f"paths:{project}",
-                compute,
-                coordinator.generation(),
-                job_running=coordinator.running_job() is not None,
-            )
+            result = attack_paths(store, run, project)
+            for path in result["items"]:
+                path["diagram"] = diagram(path)
+            record = linked(store, run)
+            if record:
+                # Read-only GCP paths of the linked frozen edition, labelled by source.
+                frozen = [
+                    p for p in frozen_paths(record) if not project or p["project_id"] == project
+                ]
+                for path in frozen:
+                    path["diagram"] = None
+                result["items"] = result["items"] + frozen
+                result["frozen_edition"] = summary(store, record["edition"]["edition_id"])
+            return result
 
         return await coordinator.call(execute)
+
+    @app.post("/api/runs/{run}/attack-path-evaluations")
+    async def recalculate_attack_paths(run: str):
+        from offline_analyzer.attack_paths.versioned import recalculate
+
+        return await coordinator.exclusive(lambda: recalculate(workspace, run))
+
+    @app.get("/api/runs/{run}/attack-path-evaluations")
+    async def attack_path_versions(run: str):
+        from offline_analyzer.attack_paths.versioned import latest
+
+        return await coordinator.exclusive(lambda: latest(workspace, run))
+
+    class SupplementaryBody(Body):
+        delta_run: str = Field(pattern=r"^[A-Za-z0-9_-]{1,200}$")
+
+    @app.get("/api/supplementary-imports")
+    async def supplementary_imports():
+        def execute(store):
+            return {
+                "items": [
+                    {"run_id": run, "created_at": created}
+                    for run, created in store.db.execute(
+                        "SELECT r.run_id,r.created_at FROM runs r WHERE EXISTS "
+                        "(SELECT 1 FROM sources s WHERE s.run_id=r.run_id AND "
+                        "json_extract_string(s.data,'$.gcp_metadata.contract_version')="
+                        "'gcp-delta-1') AND NOT json_exists(r.package,'$.evidence_composition') "
+                        "ORDER BY r.created_at DESC"
+                    ).fetchall()
+                ]
+            }
+
+        return await coordinator.call(execute)
+
+    @app.post("/api/runs/{run}/supplementary-analysis")
+    async def supplementary_analysis(run: str, body: SupplementaryBody):
+        from offline_analyzer.evidence.composition import compose, description
+
+        def execute(store):
+            new_run = compose(store, run, body.delta_run)
+            return {"run_id": new_run, "composition": description(store, new_run)}
+
+        return coordinator.submit("Supplementary evidence analysis", execute)
 
     @app.get("/api/runs/{run}/cloud/requests")
     async def cloud_requests(run: str):

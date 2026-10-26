@@ -234,6 +234,9 @@ export function ExcludedFindings({
 
 export const FALSE_POSITIVE_PRESETS = [
   "Google-managed service agent (platform-managed)",
+  "AWS service-linked role (platform-managed)",
+  "AWS IAM Identity Center reserved role (platform-managed)",
+  "AWS Organizations / Control Tower management access role (platform-managed)",
 ];
 
 /** Reason picker for a false-positive disposition: a preset or free text (required). */

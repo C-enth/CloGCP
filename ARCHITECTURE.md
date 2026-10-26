@@ -23,6 +23,12 @@ launcher and frontend. General graph and STRIDE engines remain unimplemented.
   analyst fields. See docs/REPORTING_ALIGNMENT.md.
 
 ## Module boundaries and flow
+
+GCP attack-path evaluation v2 adds `iam/gcp_permissions.py` for bounded permission
+semantics and `attack_paths/gcp_engine.py` for finding-independent discovery from existing
+normalized records. A separate CLI opens Store read-only, verifies retained evidence,
+and exports a new versioned register. Assessment tables and frozen editions are not
+migrated. See [GCP attack-path engine](docs/GCP_ATTACK_ENGINE.md) for limits.
 | Module | Owns | Depends on |
 |---|---|---|
 | ingestion | integrity, manifests, parser protocol, bounded imports | contracts |
@@ -202,3 +208,27 @@ cancellation without making parsers/rules depend on API code. Startup marks unfi
 jobs INTERRUPTED and removes only their reserved scratch directories. Backup includes
 journals. Diagnostic exports use an explicit Pydantic allowlist; runtime identity pins
 backend source and compiled frontend compatibility. No service/framework was added.
+
+## Versioned GCP final workflow candidate (2026-10-26)
+
+ADR-011 in `docs/adr/` extends existing services without a new framework or database.
+The app checks stored-schema compatibility read-only before opening a workspace and does
+not perform scope recovery, table migration, report cleanup or persisted job recovery on
+opening. Explicit side-by-side copying verifies all files and every table row.
+`attack_paths/versioned.py` is an independent path-only service and GUI action; its
+versioned artifacts never update assessment or review tables. `evidence/composition.py`
+references immutable base/delta runs and materializes precedence-qualified observations
+in a new run. Shared IAM context currently requires existing evaluators in that new run;
+the baseline is never reassessed. Collection dates remain separate, conflicting/failed
+attempts fail closed, and unchanged review validity follows existing fingerprints.
+
+`clogcp_delta` is a separate explicit-execution collector. Its output enters the existing
+bounded import/normalization pipeline; the analyzer never executes cloud reads.
+`clogcp_report_finalizer` is a separate reporting-only entry point, with no analyzer or
+DuckDB dependency. See `docs/GCP_FINAL_WORKFLOW.md` for supported flows and limitations.
+
+The 0.8.5-clogcp.1 distribution retains the isolated CloGCP profile. Its launcher workspace
+preflight is read-only and does not invoke implicit checkpoint/recovery/migration. An
+explicit `side_by_side --upgrade-additive` command verifies a new workspace copy, creates
+only known missing empty consolidation tables there and checks every original row/hash.
+The original remains unchanged. Unknown schemas and pending journals stop for operator action.

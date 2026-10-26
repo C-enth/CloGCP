@@ -24,6 +24,8 @@ EXECUTABLES = frozenset({"CloSec.command", "setup-macos.sh", "start-macos.sh"})
 
 
 DOCUMENTS = (
+    "GCP_ATTACK_ENGINE.md",
+    "GCP_FINAL_WORKFLOW.md",
     "OPERATOR_GUIDE.md",
     "ASSESSMENT_COVERAGE.md",
     "RELEASE_0.7.0.md",
@@ -66,7 +68,9 @@ def candidates(root: Path, *, working_tree: bool = False) -> dict[str, Path]:
         .split("\0")
     )
     for name in filter(None, tracked):
-        if name.startswith(("src/offline_analyzer/", "frontend/")) and allowed(name):
+        if name.startswith(("src/offline_analyzer/", "src/clogcp_delta/", "frontend/")) and allowed(
+            name
+        ):
             if name.startswith("src/offline_analyzer/api/assets/"):
                 # Current compiled assets are indexed below, independently of git staging.
                 continue
@@ -77,7 +81,12 @@ def candidates(root: Path, *, working_tree: bool = False) -> dict[str, Path]:
             paths[name] = path
     if working_tree:
         # Explicit source-only inventory; never enumerate private/workspace/artifact trees.
-        for directory in ("src/offline_analyzer", "frontend/src", "frontend/public"):
+        for directory in (
+            "src/offline_analyzer",
+            "src/clogcp_delta",
+            "frontend/src",
+            "frontend/public",
+        ):
             for path in (root / directory).rglob("*"):
                 name = path.relative_to(root).as_posix()
                 if path.is_file() and allowed(name):

@@ -9,7 +9,7 @@ so no path in this specification can reach SUPPORTED from configuration alone.
 
 from dataclasses import dataclass
 
-SPEC_VERSION = "1.1.0"
+SPEC_VERSION = "1.2.0"  # 1.2.0: AP-06 P1/P2 are alternatives (ALTERNATIVES)
 KINDS = (
     "CONFIG",
     "IAM_ENGINE",
@@ -493,6 +493,9 @@ PATHS = (
     ),
 )
 BY_PATH = {path.path_id: path for path in PATHS}
+# Prerequisites of which any one suffices (the path's ANY hop): a group is met when one member
+# is VERIFIED and is absent only when every member is verified absent.
+ALTERNATIVES = {"AP-06": (("AP-06.P1", "AP-06.P2"),)}
 
 # STRIDE scenario AWS applicability; prerequisites are expressed via the linked paths.
 THREAT_SCOPE = {

@@ -178,17 +178,6 @@ export function EstateSummary({
 
 export function PostureSummary({ data }: { data: Row }) {
   const validation = data.snapshot_validation;
-  if (!data.stride || !validation || !data.finding_quality)
-    return (
-      <section aria-label="Security posture">
-        <h3>Security posture rating</h3>
-        <p className="posture-rating">{data.posture.rating}</p>
-        <p>{data.posture.basis}</p>
-        <p role="status">
-          Loading STRIDE coverage, finding readiness and build validation…
-        </p>
-      </section>
-    );
   return (
     <>
       <section aria-label="Security posture">

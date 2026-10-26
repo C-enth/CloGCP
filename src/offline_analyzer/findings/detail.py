@@ -16,7 +16,7 @@ from offline_analyzer.findings.recommendations import recommendation
 from offline_analyzer.findings.sre import STAGES, VERDICTS, latest_sre, stage
 from offline_analyzer.ingestion.json_input import SECRET_KEYS, SECRET_VALUE, InputError
 from offline_analyzer.ingestion.safety import resolve_under, sha256_file
-from offline_analyzer.reporting.coverage_reasons import reason_text
+from offline_analyzer.reporting.coverage_reasons import reason_text, source_category
 
 VERSION = "finding-detail-1.0.0"
 SNIPPET_LIMIT = 12000
@@ -506,7 +506,7 @@ def finding_detail(store, run: str, finding_id: str) -> dict:
                 "coverage": source.get("effective_coverage"),
                 "collection_errors": source.get("errors") or [],
                 "coverage_reason": reason_text(
-                    metadata.get("error_category"), metadata.get("completeness_limitations")
+                    source_category(source), metadata.get("completeness_limitations")
                 ),
                 "artifact_sha256": sha,
                 "integrity_verified": intact,

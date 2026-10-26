@@ -14,9 +14,11 @@ def main() -> None:
     output.mkdir(parents=True, exist_ok=False)
     from offline_analyzer.contracts.diagnostic import SanitizedDiagnostic
     from offline_analyzer.contracts.enterprise import Edge, EnterpriseSnapshot
+    from offline_analyzer.contracts.evidence_composition import EvidenceComposition
     from offline_analyzer.contracts.exclusion import ExclusionRequest, FindingExclusion
     from offline_analyzer.contracts.finalisation import FrozenAssessment
     from offline_analyzer.contracts.gcp import CloudTransition, GCPManifest
+    from offline_analyzer.contracts.gcp_attack_path import GCPAttackPathRegister, GCPPathEvaluation
     from offline_analyzer.contracts.gcp_expanded import ExpandedManifest
     from offline_analyzer.contracts.gcp_legacy import Pilot15Manifest, PilotManifest
     from offline_analyzer.contracts.investigation import SecurityInvestigation
@@ -41,10 +43,13 @@ def main() -> None:
 
     for contract in (
         FrozenAssessment,
+        EvidenceComposition,
         PathReview,
         LocalJob,
         SanitizedDiagnostic,
         GCPManifest,
+        GCPAttackPathRegister,
+        GCPPathEvaluation,
         PilotManifest,
         Pilot15Manifest,
         ExpandedManifest,

@@ -1,5 +1,21 @@
 # CloSec implementation status
 
+## Implemented GCP attack-path correction candidate (2026-10-25)
+
+Engine 2.0.0 traces/corrects the actual XP-01 generator, separates authentication and
+workload permission mechanisms, discovers bounded candidates independently of findings,
+and exports an isolated five-state register from existing evidence using read-only
+Store access. Historical findings, decisions, SRE validations, editions and reports
+are not reassessed or migrated. Generic legacy chains split by mechanism with prior
+status retained; unmatched legacy records remain explicit reconciliation ambiguities.
+See [usage and remaining semantics](docs/GCP_ATTACK_ENGINE.md).
+
+Complete inherited deny/PAB/CEL/group/federation/service authorization, generalized
+reachability and exploitation verification remain unimplemented. Workload execution
+permission checks do not resolve image, service-agent or organization-policy context.
+The operator must execute this candidate locally with authorized client evidence
+before any Batch 1 correction claim. Current validation results are in TEST_PLAN.md.
+
 ## Implemented GCP configuration increment (2026-10-16; synthetic validation)
 
 Completed the previously unfinished 23 evaluators: network/firewall, Compute metadata,
@@ -145,3 +161,22 @@ field-acceptance checklist in docs/RELEASE_0.7.0.md.
 - Actual launcher/compiled GUI regressions cover Chromium/WebKit, AWS/GCP ZIP/folder,
   analyst review/approval, RTF/Excel, consolidation, retries and restart recovery.
 - Original customer evidence and native Windows execution remain field-validation gates.
+
+## GCP final-workflow integration candidate — implemented 2026-10-26
+
+- Independent stored-evidence path action, immutable evaluations and old/new comparison.
+- Read-only compatibility preflight; verified explicit side-by-side workspace copy.
+- One multi-project delta plan/job with successful-operation skipping, shared-folder
+  deduplication, bounded workers/pacing/retries/pagination, explicit partial/access states.
+- Immutable native supplementary import and versioned evidence composition; resource/date
+  precedence, conflicts, reconciliation and stable repeated-run identities.
+- Existing shared IAM evaluators operate in the new version as a documented broader-analysis
+  fallback. Fine-grained rule-result caching is not implemented; the baseline stays intact.
+- Separate finalizer with the exact 40-column schema, focused evidence, conservative issue
+  consolidation, retained source records/ratings/approvals, internal navigation and separate QA.
+- New report exports retain selected versioned path JSON/comparison and composition history.
+
+Pending field/platform gates: actual approved collector execution and tool-generated input
+verification, customer B1/B2 validation, native Windows build/execution, native desktop Excel
+and Tk file-picker acceptance. Missing exact bucket and Discovery collection scopes remain
+pending in private operator material; no resource identities or permissions are guessed.

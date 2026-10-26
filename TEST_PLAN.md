@@ -613,3 +613,149 @@ sprint. No Windows artifact was built or executed, no native Office acceptance w
 and no actual customer collector-export compatibility is claimed. Release verification,
 backup location and installed SHA-256 are retained under ignored
 `artifacts/gcp-register-sprint/` and in the final handoff.
+## GCP attack-path engine 2.0.0 candidate — 2026-10-25
+
+Synthetic inputs only, on `feature/offline-security-analyzer`; no project commit or push.
+Implementation and operating limits are in docs/GCP_ATTACK_ENGINE.md. Source methodology
+mappings, original AP/TS IDs, collectors and canonical evidence contracts are unchanged.
+
+Actual validation:
+
+- Broad suite with existing AWS, GCP, reporting and GUI tests: **1,264 passed, 2 failed**
+  in 1,814.81 seconds. This is not a clean full-suite pass. One failure exposed grouped
+  register rows being computed before linked frozen findings were merged. The new-report
+  projection now rebuilds those groups without modifying the original frozen edition.
+  The other failure was the existing GUI folder-upload locator timing out under load.
+- Final focused acceptance after corrections: **75 passed** in 98.36 seconds, including
+  all **27** new engine tests, existing hop/checklist/methodology/runtime checks, frozen
+  reports, report templates and GCP observation registers. Private reconciliation passed.
+  One existing Starlette TestClient deprecation warning remains.
+- Fresh final AWS operational and GCP GUI reruns: **2 passed** in 76.48 seconds. No
+  assertions, source-staleness protections or reconciliation checks were disabled.
+- Final extracted candidate: **27 engine tests passed** in 6.25 seconds, with its import
+  location checked to prevent accidentally testing checkout code.
+- Frontend Vitest: **5 passed**; TypeScript passed. Existing compiled assets are unchanged.
+  `npm` was absent from PATH, so the installed Node/Vitest/TypeScript binaries were used.
+- Ruff lint/format, compileall, dependency check, generated collector contract and
+  bundled schema equality passed. There are **42** public schemas; both v2 records were
+  also round-tripped through Pydantic. Private paths and derived artifacts remain ignored.
+- An initial sandboxed browser run was stopped after 402 passes and five loopback-bind
+  failures, then rerun with local-server permission. Startup also exposed an optional
+  three-second Git metadata timeout: unavailable working-tree state now remains unknown
+  instead of aborting the application. Source-change detection remains enforced.
+
+New tests cover distinct authentication permissions; actAs-only and individual Compute/Run
+workload mechanisms; unresolved execution prerequisites; custom roles, inactive/conflicting
+roles and role scope; inheritance; empty/CEL conditions; exact denies and unresolved deny/PAB
+context; managed identities; public/authenticated invocation; VM network potential blockers;
+serverless/GKE identity references; storage public-access prevention; incomplete evidence;
+root-cause grouping while retaining distinct chains; bounds; CSV formula safety; explicit
+unmatched legacy reconciliation; and no inherited path approval. Missing evidence alone never
+supports or blocks a path. Configuration never verifies exploitation.
+
+Synthetic reclassification: **2** prior generic PROVEN conclusions split into **8** qualified
+mechanism records: **4 CONDITIONAL, 3 INSUFFICIENT_EVIDENCE, 1 UNSUPPORTED**. This is not a
+Batch 1 result. Final benchmark: **1,002** normalized resources, **1,000** capped candidates,
+**0.571 seconds**, with explicit truncation and no supported conclusion from incomplete
+discovery. Node/depth/candidate/binding and permission-comparison budgets are enforced.
+This is a bounded low-density benchmark, not maximum-estate certification.
+
+Preservation checks compare every database table after confirmed analyst/SRE decisions,
+original report files and evidence references. A durable synthetic workspace was reanalyzed
+using read-only DuckDB with **103 original files hash-unchanged**, including the database and
+raw evidence. Its **8** new candidates remain unreviewed and execution-unverified.
+
+Isolated candidate: `artifacts/CloGCP-attack-path-engine-2.0.0rc1/`. Final ZIP CRC, SHA-256
+and all **360** manifest entries passed. All **64** existing platform wheels matched their
+hash locks. Fresh final macOS x86_64 setup used only bundled wheels with `--no-index` and
+passed pip check; packaged runtime identity and read-only reanalysis passed. A documentation
+refresh changed portable CLI instructions only; runtime source bytes remained identical
+to the tested extraction. The previous intermediate candidate is retained separately.
+
+No actual Batch 1/client evidence was reanalyzed. No working release was replaced or
+published. Complete IAM/reachability/exploitation semantics, Windows execution, native
+Office acceptance and authorized client field validation remain explicit limits. See
+docs/handoff/GCP_ATTACK_ENGINE_20261025.md for the candidate hash and next task.
+
+## GCP final workflow integration — actual candidate checks, 2026-10-26
+
+Synthetic inputs only. `docs/GCP_FINAL_WORKFLOW.md` describes the implemented flow;
+`docs/handoff/GCP_FINAL_WORKFLOW_20261026.md` records delivery artifacts and limits.
+
+- Broader selected regression: **200 passed** in 237.71 seconds (GCP native/expanded
+  import, API, reviews/defaults, frozen feeds/registers, runtime/jobs, packaging and
+  contracts). This is a selected regression run, not the complete repository suite.
+- Final focused engine/workflow/finalizer/recovery/portable checks after hardening:
+  **66 passed** in 42.47 seconds, including interrupted-new-version retry, numeric
+  Discovery identity aliases, scoped exports and mixed-date historical blockers.
+  Expanded export/register regression: **81 passed** in 148.33 seconds.
+- Final integrated export/finalizer/methodology checks: **16 passed** in 15.96 seconds;
+  the local private-methodology reconciliation passed. Source mapping/spec files did
+  not change. No source methodology content appears in new distributable material.
+- Final compiled browser runs: **2 passed** in 86.98 seconds; the final exact-source acceptance rerun
+  passed **1 test** in 28.65 seconds. The new acceptance test
+  exercises B1 frozen + B2 imported -> verified side-by-side copy -> independent path
+  action twice -> one multi-project delta job -> guided folder import -> new composed
+  analysis -> finding reconciliation -> independent path action -> real report download
+  -> external finalizer. Every baseline table, review history and original artifact is
+  compared. Rule/import/enterprise rebuild functions are forbidden during the independent
+  path action. The existing AWS/GCP operational browser test also passed, with no external
+  asset requests or page errors.
+- Extracted final application: **45 engine/workflow tests passed** (see delivery verification for timing);
+  import paths were asserted to use the extracted analyzer/delta source. The extracted imports were asserted before pytest ran with isolated configuration;
+  no test failed.
+- Frontend: TypeScript and Vite build passed; **5 Vitest tests passed**. Ruff lint/format,
+  compileall, dependency checks, diff checks and generated/bundled **43-schema** equality
+  passed. The three new versioned contracts match their bundled JSON schemas.
+- Application ZIP: CRC and every **378** manifest member hash passed; all runtime source
+  bytes matched the tested checkout. Fresh macOS x86_64 setup installed exclusively from
+  the bundled hash-locked wheels, pip check passed, and runtime/frontend identity matched.
+- Standalone finalizer: fresh offline environment with no analyzer or DuckDB installed;
+  current packaged CLI and reuse-existing-Python launcher passed. Collector launcher/help
+  passed without cloud calls. Package CRC/member hashes and scope-identifier exclusion
+  checks passed for all three final packages. Prior RC1 ZIP hash remains unchanged.
+- Synthetic client sample: **14** source/40-column rows retained, **13** consolidated
+  issues, **1** exact equivalent supporting duplicate, **12** QA entries and **47** focused
+  evidence parts. All protected values, source file hashes, links, formulas-as-text and
+  source-to-output mappings were checked. **16** worksheet/range previews rendered locally;
+  the sample is a review copy, not engine or assessor sign-off.
+
+Early test corrections are retained in the implementation: guided-import preview required
+native delta diagnostics and normalization checks; old source exports contained links to
+empty evidence cells, now repaired only in the finalizer copy with an audit/QA record;
+startup scratch deletion conflicted with the new preservation contract. Browser test
+locators/output-directory reuse were corrected without weakening application safeguards.
+One existing Starlette TestClient deprecation warning remains.
+
+No actual client B1/B2 data, approved cloud execution, production acceptance, native Windows
+build/run, native Excel rendering or Tk file-picker acceptance was performed. Optional IAM
+recommendations remain unsupported. Fine-grained rule-result caching is not implemented:
+shared IAM dependencies use the existing evaluators only in a new analysis version.
+
+## CloGCP GitHub prerelease 0.8.5-clogcp.1 publication integration
+
+The isolated CloGCP `main` checkout retains existing rule/profile/bootstrap corrections
+and incorporates actual current development source, including the frozen-feed runtime.
+Application version is 0.8.5rc1; engine version is 2.0.1. The original CloSec checkout and
+remote are not publication targets. Earlier 66/45 results above describe the development
+candidate; publication integration was independently checked:
+
+- Focused engine, final workflow, finalizer and explicit copy-only upgrade: **58 passed**
+  in 39.00 s. The new upgrade test proves every original row/file remains unchanged,
+  old-schema opening refuses writes, and only two empty tables are added in a new copy.
+- Existing CloGCP corrections/domains/identity/reconciliation/isolation, clone/bootstrap,
+  frozen feed/registers, recovery and portable packaging: **323 passed, 2 skipped**
+  in 85.67 s. Skips require native Windows. The first integration run exposed outdated
+  collector fixture dependencies and missing generic packaging launchers; copying the
+  current tracked source dependencies fixed them. The affected ten checks passed before
+  the complete selected rerun. No assertion or product safeguard was weakened.
+- Compiled final-workflow and CloGCP-profile browser acceptance: **2 passed**, 67.71 s.
+- TypeScript/Vite build passed; Vitest **5 passed**. Ruff lint/format passed.
+- Incoming methodology specifications match the validated development source and passed
+  **3 local private reconciliation tests**;
+  no private source text is distributed.
+
+Additional exact-asset verification is delivered in the release verification asset:
+manifest/CRC/hash checks, source-module equality, fresh offline setup, packaged tests,
+independent finalizer and GitHub download verification. Native Windows/Excel/Tk and
+customer acceptance remain pending; the complete repository suite was not rerun.

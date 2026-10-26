@@ -109,9 +109,10 @@ class Views:
                 "(SELECT count(*) FROM findings f WHERE f.run_id=r.run_id) FROM runs r"
             )
         }
-        from offline_analyzer.enterprise.snapshot import superseded_imports
+        from offline_analyzer.enterprise.snapshot import partially_superseded, superseded_imports
 
         superseded = superseded_imports(store)
+        partial = partially_superseded(store)
         result = []
         for r, t, a in store.rows(
             "SELECT r.run_id,r.created_at,a.assessed_at FROM runs r LEFT JOIN assessments a "
@@ -147,6 +148,9 @@ class Views:
                     ),
                     # A newer import exists for every scope: not a snapshot member by default.
                     "superseded_by": superseded.get(r, []),
+                    # Some AWS account/Region scopes are newer elsewhere: those scopes are left
+                    # out of a snapshot (key present only when it applies).
+                    **({"superseded_scopes": partial[r]} if r in partial else {}),
                 }
             )
         return result

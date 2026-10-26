@@ -19,9 +19,19 @@ ROOT = Path(__file__).resolve().parents[3] / "collectors"
 FIXED_TIME = (2026, 1, 1, 0, 0, 0)
 AWS_FILES = (
     "aws/assessment.py",
+    "aws/fleet.py",
+    "aws/preflight.py",
+    "aws/batch.py",
     "aws/README.md",
     "aws/config.example.json",
     "aws/approved_accounts.example.txt",
+    "aws/accounts.example.csv",
+    "aws/policies/member-role-stackset.cfn.json",
+    "aws/policies/member-supplement-policy.json",
+    "aws/policies/member-trust-policy.json",
+    "aws/policies/hub-operator-policy.json",
+    "aws/policies/management-organizations-read-policy.json",
+    "aws/AWS_COLLECTION_ACCESS.md",
     "collector-analyzer-contract.json",
 )
 GCP_FILES = (
@@ -47,8 +57,12 @@ def _kit_zip(key: str) -> bytes:
     buffer = io.BytesIO()
     with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
         for relative in files:
-            # Deterministic bytes: fixed timestamps and order.
-            info = zipfile.ZipInfo(f"{folder}/{Path(relative).name}", FIXED_TIME)
+            # Deterministic bytes: fixed timestamps and order. Paths below the provider
+            # folder are kept (aws/policies/...); other files sit at the kit root.
+            inner = (
+                relative.split("/", 1)[1] if relative.startswith(key + "/") else Path(relative).name
+            )
+            info = zipfile.ZipInfo(f"{folder}/{inner}", FIXED_TIME)
             info.compress_type = zipfile.ZIP_DEFLATED
             archive.writestr(info, _read(relative))
         for sub in subfolders:
@@ -92,7 +106,8 @@ def listing() -> list[dict]:
     descriptions = {
         "aws": (
             "AWS",
-            "Python/boto3, read-only. Folder with assessment.py, README and evidence/",
+            "Python/boto3, read-only. Collector, pre-flight probe, batch collector, IAM "
+            "policies and evidence/",
         ),
         "gcp": (
             "GCP",

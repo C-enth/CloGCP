@@ -1,0 +1,21 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloSecOrganizationsRead",
+      "Effect": "Allow",
+      "Action": [
+        "organizations:DescribeAccount",
+        "organizations:DescribeOrganization",
+        "organizations:DescribePolicy",
+        "organizations:ListAccounts",
+        "organizations:ListParents",
+        "organizations:ListPolicies",
+        "organizations:ListPoliciesForTarget",
+        "organizations:ListRoots",
+        "organizations:ListTargetsForPolicy"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

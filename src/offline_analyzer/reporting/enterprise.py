@@ -85,10 +85,14 @@ def enterprise_sheets(workbook, store, run: str) -> None:
             "Cross-Account Evidence Gaps",
         )
     }
+    from offline_analyzer.findings.exclusions import excluded_ids, without_excluded
+
+    hidden = set(excluded_ids(store, run))
     for (data,) in store.rows(
         "SELECT data FROM enterprise_edges WHERE run_id=? ORDER BY relationship_id", [run]
     ):
-        e = json.loads(data)
+        # Excluded findings are not cited by relationship rows (the edge itself is evidence).
+        e = without_excluded(json.loads(data), hidden, "related_findings")
         row = [
             e.get(k)
             for k in (
@@ -156,7 +160,6 @@ def enterprise_sheets(workbook, store, run: str) -> None:
         ["Investigation", "Account", "Resource", "Ownership qualification"],
     )
     from offline_analyzer.enterprise.queries import VISIBLE_ISSUE
-    from offline_analyzer.findings.exclusions import excluded_ids
 
     for (data,) in store.rows(
         "SELECT data FROM enterprise_issues WHERE run_id=? AND "
@@ -164,7 +167,9 @@ def enterprise_sheets(workbook, store, run: str) -> None:
         + " ORDER BY investigation_id",
         [run, excluded_ids(store, run)],
     ):
-        i = views.review_state(store, json.loads(data))
+        i = without_excluded(
+            views.review_state(store, json.loads(data)), hidden, "finding_ids", "primary_finding"
+        )
         append(
             issues,
             [

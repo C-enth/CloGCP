@@ -31,6 +31,8 @@ import { PrincipalRoles, usePrincipalRequests } from "./Principals";
 import { FindingGroups } from "./Groups";
 import { ThemeToggle } from "./Theme";
 import { WorkspaceLocation, WorkspacePath } from "./Workspace";
+import { BulkImport, ShardBanner, ShardPanel } from "./BulkImport";
+import { GcpEditionBanner, GcpEditionPanel } from "./GcpEdition";
 import {
   ExcludeControl,
   ExcludedFindings,
@@ -1221,6 +1223,10 @@ function App() {
               <Empty text="Security analysis has not run for this evidence run, so there are no evaluations or findings yet. Use Run security analysis above." />
             ) : (
               <>
+                {screen === "Dashboard" && active?.enterprise && (
+                  <ShardBanner run={run} />
+                )}
+                {screen === "Dashboard" && <GcpEditionBanner run={run} />}
                 {screen === "Dashboard" && (
                   <CloudDashboard
                     key={JSON.stringify([run, provider])}
@@ -1456,7 +1462,17 @@ function App() {
                     busy={jobBusy}
                   />
                 )}
+                {screen === "Report center" && (
+                  <GcpEditionPanel
+                    run={run}
+                    startJob={startJob}
+                    busy={jobBusy}
+                  />
+                )}
               </>
+            )}
+            {connected && screen === "Evidence import" && (
+              <BulkImport startJob={startJob} busy={jobBusy} />
             )}
             {connected && screen === "Evidence import" && (
               <ImportedRemoval
@@ -1506,6 +1522,16 @@ function App() {
                               · superseded, not included (select to include)
                             </span>
                           )}
+                          {r.superseded_scopes && (
+                            <span className="muted">
+                              {" "}
+                              · partly superseded:{" "}
+                              {Object.keys(r.superseded_scopes).length}{" "}
+                              dataset(s) come from a newer import and are left
+                              out ({Object.keys(r.superseded_scopes).join(", ")}
+                              )
+                            </span>
+                          )}
                         </label>
                       ))}
                   </div>
@@ -1547,6 +1573,13 @@ function App() {
                   runs for the intended assessment window.
                 </span>
               </section>
+            )}
+            {connected && runs.length > 0 && screen === "Dashboard" && (
+              <ShardPanel
+                startJob={startJob}
+                busy={jobBusy}
+                members={memberSelection.length ? memberSelection : null}
+              />
             )}
           </main>
         </ProviderContext.Provider>
@@ -2455,8 +2488,16 @@ function BulkBar({
     <div className="bulk-bar" aria-label="Bulk marking">
       <strong>{ids.length} selected</strong>
       <button className="small" onClick={onSelectAll} disabled={!total}>
-        Select all {Math.min(total, 2000)} matching
+        {total > 2000
+          ? `Select the first 2000 of ${total} matching (bulk limit 2000)`
+          : `Select all ${total} matching`}
       </button>
+      {total > 2000 && ids.length === 2000 && (
+        <span role="status" className="muted">
+          {total - 2000} matching findings are not selected; narrow the filter
+          to mark them.
+        </span>
+      )}
       {ids.length > 0 && (
         <button className="small" onClick={onClear}>
           Clear selection

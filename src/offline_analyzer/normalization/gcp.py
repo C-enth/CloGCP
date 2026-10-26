@@ -46,7 +46,7 @@ EXPANDED_CONTRACTS = {"assessment-expanded-2.1", "assessment-expanded-2.2"}
 def expanded_contract(source: Source | None) -> bool:
     """Both expanded collector contracts carry a per-dataset contract for typed parsing."""
     return bool(source) and (source.gcp_metadata or {}).get("contract_version") in (
-        EXPANDED_CONTRACTS
+        {*EXPANDED_CONTRACTS, "gcp-delta-1"}
     )
 
 

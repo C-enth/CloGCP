@@ -21,7 +21,7 @@ from offline_analyzer.provenance.execution import checkpoint
 ARN = re.compile(r"^arn:([^:]+):([^:]*):([^:]*):([^:]*):(.+)$")
 ACCOUNT = re.compile(r"[0-9]{12}")
 MAX_EDGES = 100000
-CORRELATION_VERSION = "1.0.1"
+CORRELATION_VERSION = "1.0.2"  # 1.0.2: structured truncation records with counts
 
 
 def parts(value: str, partition=None, account=None):
@@ -120,6 +120,8 @@ def correlate(store, run: str) -> dict:
             findings[resource_scope[f.resource_id]].append(f)
     edges: dict[str, Edge] = {}
     truncated = []
+    detail: list[dict] = []  # provenance/truncation.py records
+    beyond: set[str] = set()  # distinct relationships dropped by MAX_EDGES
 
     def add(
         source,
@@ -217,8 +219,7 @@ def correlate(store, run: str) -> dict:
         )
         eid = stable_id("relationship", [sp, sa, source, dp, da, destination, kind, scope_region])
         if len(edges) >= MAX_EDGES and eid not in edges:
-            if not truncated:
-                truncated.append("Relationship budget reached; enterprise graph incomplete")
+            beyond.add(eid)
             return
         previous = edges.get(eid)
         if previous:
@@ -403,6 +404,7 @@ def correlate(store, run: str) -> dict:
                     source_account=instance.account_id,
                 )
         truncated += analysis.truncated
+        detail += analysis.truncation
 
     trust_versions = defaultdict(list)
     for o in facts.values():
@@ -738,11 +740,26 @@ def correlate(store, run: str) -> dict:
                 (o.observation_id,),
                 detail="Explicit hierarchy link; names do not establish membership",
             )
+    if beyond:
+        from offline_analyzer.provenance.truncation import record, text
+
+        entry = record(
+            "Enterprise relationship budget",
+            "run",
+            MAX_EDGES,
+            MAX_EDGES + len(beyond),
+            "relationships beyond the budget are missing from the graph, the cross-account "
+            "sheets and the enterprise security gaps",
+            provider="Enterprise",
+        )
+        detail.append(entry)
+        truncated.append(text(entry))
     summary = {
         "version": CORRELATION_VERSION,
         "unresolved_source_identities": sum(not o.resource_id for o in facts.values()),
         "relationships": len(edges),
         "truncation": sorted(set(truncated)),
+        "truncation_detail": detail,
         "registry": registered,
     }
     with store.transaction():

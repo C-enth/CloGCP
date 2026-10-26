@@ -1,0 +1,19 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloSecAssumeMemberRole",
+      "Effect": "Allow",
+      "Action": "sts:AssumeRole",
+      "Resource": "arn:aws:iam::*:role/CloSecEvidenceReadOnly"
+    },
+    {
+      "Sid": "CloSecAccountSearch",
+      "Effect": "Allow",
+      "Action": [
+        "organizations:ListAccounts"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

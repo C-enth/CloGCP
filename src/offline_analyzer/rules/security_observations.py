@@ -200,19 +200,11 @@ def guardduty_enabled(obs: Normalized, context: EvaluationContext) -> Verdict:
             evidence_needed=("Delegated-administrator or organization-wide GuardDuty evidence",),
             limitations=("Regional result; other Regions are evaluated separately",),
         )
-    states = {
-        item.native_id: item.configuration.get("Status")
-        for item in context._index("AWS::GuardDuty::Detector", obs.region)
-        if item.account_id == obs.account_id
-    }
+    detector_items = context.by_account("AWS::GuardDuty::Detector", obs.region, obs.account_id)
+    states = {item.native_id: item.configuration.get("Status") for item in detector_items}
     expected = {f"{obs.account_id}:{obs.region}:detector/{d}" for d in detectors}
-    related = tuple(
-        sorted(
-            i.observation_id
-            for i in context._index("AWS::GuardDuty::Detector", obs.region)
-            if i.native_id in expected
-        )
-    )
+    # Expected names carry this account, so only this account's detectors can match.
+    related = tuple(sorted(i.observation_id for i in detector_items if i.native_id in expected))
     if any(states.get(name) == "ENABLED" for name in expected):
         return Verdict(Outcome.PASS, "A GuardDuty detector is ENABLED.", related=related)
     if expected - states.keys():
@@ -290,11 +282,7 @@ def kms_rotation(obs: Normalized, context: EvaluationContext) -> Verdict:
             Outcome.NOT_APPLICABLE,
             "Automatic rotation applies only to enabled customer-managed symmetric AWS_KMS keys.",
         )
-    rotation = [
-        item
-        for item in context._index("AWS::KMS::KeyRotation", obs.region)
-        if item.native_id == obs.native_id
-    ]
+    rotation = context.by_native("AWS::KMS::KeyRotation", obs.region, obs.native_id)
     if not rotation:
         return Verdict(
             Outcome.UNKNOWN, "Rotation status not collected.", ("kms:GetKeyRotationStatus",)
@@ -565,7 +553,9 @@ CLASSIFIED = ("Classified under a checklist control (proposed mapping); analyst 
 ADDITIONAL_RULES = tuple(
     replace(
         rule,
-        version="1.1.0",
+        # 1.2.0 for SEC-IAM-ROLE-WILDCARD: role-class and organization-control context
+        # (rules/aws_identity.py); predicate unchanged.
+        version="1.2.0" if rule.rule_id == "SEC-IAM-ROLE-WILDCARD" else "1.1.0",
         methodology=LINKS[rule.rule_id],
         follow_up=CLASSIFIED,
     )

@@ -1,0 +1,21 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloSecHubAssumeRole",
+      "Effect": "Allow",
+      "Principal": {
+        "AWS": "arn:aws:iam::HUB_ACCOUNT_ID:root"
+      },
+      "Action": "sts:AssumeRole",
+      "Condition": {
+        "ArnLike": {
+          "aws:PrincipalArn": "HUB_PRINCIPAL_ARN"
+        },
+        "StringEquals": {
+          "aws:PrincipalOrgID": "ORGANIZATION_ID"
+        }
+      }
+    }
+  ]
+}

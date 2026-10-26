@@ -111,6 +111,14 @@ class IamAnalysis:
         self._transitions = None
         self._passrole = None
         self.truncated: list[str] = []
+        self.truncation: list[dict] = []  # provenance/truncation.py records
+
+    def _budget(self, budget: str, shown: int, total: int, effect: str, basis: str) -> None:
+        from offline_analyzer.provenance.truncation import record, text
+
+        entry = record(budget, "run", shown, total, effect, basis, provider="AWS")
+        self.truncation.append(entry)
+        self.truncated.append(text(entry))
 
     def identity(self, role, action, resource=None, context=None) -> Decision:
         context = {
@@ -153,6 +161,12 @@ class IamAnalysis:
             level = "NOT_SHOWN_PRIVILEGED"
         else:
             level = "UNRESOLVED"
+        if level == "POTENTIALLY_PRIVILEGED" and self.identity_admin(role):
+            notes.append(
+                "Identity policies grant Action:* on Resource:* with no boundary or explicit "
+                "deny; administrator-equivalent is not established only because organization "
+                "controls (SCP) are not assessed"
+            )
         indicated = [a for a in role.attached or () if a.endswith(":policy/AdministratorAccess")]
         if indicated and self.inventory.managed_document(indicated[0]) is None:
             notes.append(
@@ -161,6 +175,28 @@ class IamAnalysis:
             )
         self._privilege[role.arn] = (level, notes)
         return self._privilege[role.arn]
+
+    def identity_admin(self, role) -> bool:
+        """Complete identity policies with an unconditioned Allow Action:* on Resource:*, no
+        boundary and no Deny statement: administrator by identity policy, whatever the
+        (unassessed) organization controls allow. Such a principal gains nothing by passing
+        a role: every SCP that limits it also limits the role it passes."""
+        documents, unresolved = self.inventory.identity_documents(role)
+        if unresolved or role.boundary_arn:
+            return False
+        statements = [s for d in documents for s in d.statements]
+        if any(d.unsupported for d in documents) or any(s.unsupported for s in statements):
+            return False
+        if any(s.effect == "Deny" for s in statements):
+            return False
+        return any(
+            s.effect == "Allow"
+            and not s.conditions
+            and s.actions
+            and {"*", "*:*"} & set(s.actions)
+            and s.resources == ("*",)
+            for s in statements
+        )
 
     def privilege_missing(self, role) -> list[str]:
         self.privilege(role)
@@ -183,6 +219,7 @@ class IamAnalysis:
         if self._transitions is not None:
             return self._transitions
         records = []
+        dropped = 0  # candidate (source, target) pairs beyond the budget, counted not evaluated
         by_account: dict[str, list] = {}
         for role in self.inventory.roles.values():
             by_account.setdefault(role.account, []).append(role)
@@ -193,6 +230,9 @@ class IamAnalysis:
                     if account == "*"
                     else by_account.get(account, [])
                 )
+                if len(records) >= MAX_TRANSITIONS:
+                    dropped += len(sources) or 1
+                    continue
                 if not sources:
                     records.append(
                         Investigation(
@@ -210,11 +250,19 @@ class IamAnalysis:
                     continue
                 for source in sorted(sources, key=lambda r: r.arn):
                     if len(records) >= MAX_TRANSITIONS:
-                        self.truncated.append("AssumeRole investigation budget reached")
-                        self._transitions = records
-                        return records
+                        dropped += 1
+                        continue
                     decision = evaluate_assume(self.inventory, self.org, source, target)
                     records.append(self._assume_record(source, target, decision))
+        if dropped:
+            self._budget(
+                "AssumeRole investigation budget",
+                len(records),
+                len(records) + dropped,
+                "cross-account (source, target) role pairs beyond the budget were not "
+                "evaluated; trust-finding transition counts and the enterprise graph omit them",
+                "exact count of candidate pairs; the pairs beyond the budget were not evaluated",
+            )
         self._transitions = records
         return records
 
@@ -271,6 +319,17 @@ class IamAnalysis:
             return self._passrole
         records = []
         roles = sorted(self.inventory.roles.values(), key=lambda r: r.arn)
+        trusted = {t.arn: any(self._service_trusted(t, s) for s in SERVICES) for t in roles}
+
+        def remaining(principal, targets) -> int:
+            """Service-trusted same-account target roles of `principal` not evaluated."""
+            return sum(
+                trusted[t.arn]
+                for t in targets
+                if t.account == principal.account and t.arn != principal.arn
+            )
+
+        exhausted, pending, principals_left = False, 0, 0
         for principal in roles:
             documents, unresolved = self.inventory.identity_documents(principal)
             candidate = any(
@@ -278,6 +337,11 @@ class IamAnalysis:
                 for d in documents
                 for s in d.statements
             )
+            if exhausted:
+                if candidate:
+                    pending += remaining(principal, roles)
+                    principals_left += 1
+                continue
             if not candidate:
                 if unresolved and not principal.service_linked:
                     records.append(
@@ -294,7 +358,25 @@ class IamAnalysis:
                     )
                 continue
             excluded, unprivileged = [], []
-            if self.privilege(principal)[0] == "ADMIN_EQUIVALENT":
+            if principal.service_linked:
+                # Platform-managed: only the AWS service can assume the role, so no customer
+                # principal controls it (rules/aws_identity.py role class SERVICE_LINKED).
+                records.append(
+                    Investigation(
+                        "PASS_ROLE",
+                        principal.arn,
+                        "(any role in account)",
+                        None,
+                        self.identity(principal, "iam:PassRole").state,
+                        "NOT_AN_ESCALATION",
+                        "Service-linked role: its trust admits only the AWS service, so no "
+                        "customer principal can act as it; its iam:PassRole is the service's "
+                        "own behaviour, not an attacker-controllable escalation.",
+                    )
+                )
+                continue
+            admin = self.privilege(principal)[0] == "ADMIN_EQUIVALENT"
+            if admin or self.identity_admin(principal):
                 records.append(
                     Investigation(
                         "PASS_ROLE",
@@ -304,11 +386,15 @@ class IamAnalysis:
                         self.identity(principal, "iam:PassRole").state,
                         "NOT_AN_ESCALATION",
                         "Principal already holds administrator-equivalent permissions; passing "
-                        "a role cannot add privilege.",
+                        "a role cannot add privilege."
+                        if admin
+                        else "Principal's identity policies already grant Action:* on "
+                        "Resource:* (no boundary or deny); passing a role cannot add privilege. "
+                        "Organization controls (SCP) are not assessed and limit both equally.",
                     )
                 )
                 continue
-            for target in roles:
+            for position, target in enumerate(roles):
                 if target.account != principal.account or target.arn == principal.arn:
                     continue
                 named = self._names_target(documents, target.arn)
@@ -330,10 +416,15 @@ class IamAnalysis:
                             records.append(self._incompatible(principal, target, service, named))
                         continue
                     if len(records) >= MAX_PASSROLE:
-                        self.truncated.append("PassRole investigation budget reached")
-                        self._passrole = records
-                        return records
+                        exhausted = True
+                        break
                     records.append(self._passrole_record(principal, target, service, operations))
+                if exhausted:
+                    pending += remaining(principal, roles[position:])
+                    principals_left += 1
+                    break
+            if exhausted:
+                continue  # the partly evaluated principal gets no summary records
             if unprivileged:
                 records.append(
                     Investigation(
@@ -361,6 +452,16 @@ class IamAnalysis:
                         blocking=["iam:PassRole statement resources exclude these roles"],
                     )
                 )
+        if exhausted:
+            self._budget(
+                "PassRole investigation budget",
+                len(records),
+                len(records) + pending,
+                f"{principals_left} principal(s) with iam:PassRole were not or only partly "
+                "evaluated; their AP-06 path records and PassRole investigations are missing",
+                "records evaluated plus service-trusted target roles not evaluated (an "
+                "estimate: each such role yields up to one record per trusting service)",
+            )
         self._passrole = records
         return records
 

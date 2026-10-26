@@ -32,20 +32,25 @@ class RuntimeIdentity:
             if type(data.get("working_tree_modified")) is bool:
                 self.modified = data["working_tree_modified"]
         if (self.root / ".git").exists():
-            result = subprocess.run(
-                ["git", "rev-parse", "HEAD"],
-                cwd=self.root,
-                capture_output=True,
-                text=True,
-                timeout=3,
-            )
-            value = result.stdout.strip()
-            if re.fullmatch(r"[0-9a-f]{40,64}", value):
-                self.revision = value
-            status = subprocess.run(
-                ["git", "status", "--porcelain"], cwd=self.root, capture_output=True, timeout=3
-            )
-            self.modified = bool(status.stdout)
+            try:
+                result = subprocess.run(
+                    ["git", "rev-parse", "HEAD"],
+                    cwd=self.root,
+                    capture_output=True,
+                    text=True,
+                    timeout=3,
+                )
+                value = result.stdout.strip()
+                if re.fullmatch(r"[0-9a-f]{40,64}", value):
+                    self.revision = value
+                status = subprocess.run(
+                    ["git", "status", "--porcelain"], cwd=self.root, capture_output=True, timeout=3
+                )
+                self.modified = bool(status.stdout) if status.returncode == 0 else None
+            except (OSError, subprocess.TimeoutExpired):
+                # Optional source metadata must not stop an offline assessment. Never
+                # describe an uninspected working tree as clean, even in a release copy.
+                self.modified = None
         self.source_hash = self._source_hash()
 
     def _frontend(self):

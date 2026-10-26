@@ -1,0 +1,136 @@
+{
+  "AWSTemplateFormatVersion": "2010-09-09",
+  "Description": "CloSec read-only evidence collection role (deploy with StackSets to member accounts). No write permissions.",
+  "Parameters": {
+    "RoleName": {
+      "Type": "String",
+      "Default": "CloSecEvidenceReadOnly",
+      "AllowedPattern": "[A-Za-z0-9+=,.@_-]{1,64}"
+    },
+    "HubAccountId": {
+      "Type": "String",
+      "AllowedPattern": "[0-9]{12}"
+    },
+    "HubPrincipalArn": {
+      "Type": "String",
+      "Description": "Role ARN (or ARN pattern, for example an IAM Identity Center permission-set role) allowed to assume this role"
+    },
+    "OrganizationId": {
+      "Type": "String",
+      "AllowedPattern": "o-[a-z0-9]{10,32}"
+    },
+    "MaxSessionDuration": {
+      "Type": "Number",
+      "Default": 3600,
+      "MinValue": 3600,
+      "MaxValue": 43200
+    }
+  },
+  "Resources": {
+    "CollectorRole": {
+      "Type": "AWS::IAM::Role",
+      "Properties": {
+        "RoleName": {
+          "Ref": "RoleName"
+        },
+        "Description": "CloSec read-only evidence collection",
+        "MaxSessionDuration": {
+          "Ref": "MaxSessionDuration"
+        },
+        "AssumeRolePolicyDocument": {
+          "Version": "2012-10-17",
+          "Statement": [
+            {
+              "Effect": "Allow",
+              "Principal": {
+                "AWS": {
+                  "Fn::Sub": "arn:${AWS::Partition}:iam::${HubAccountId}:root"
+                }
+              },
+              "Action": "sts:AssumeRole",
+              "Condition": {
+                "ArnLike": {
+                  "aws:PrincipalArn": {
+                    "Ref": "HubPrincipalArn"
+                  }
+                },
+                "StringEquals": {
+                  "aws:PrincipalOrgID": {
+                    "Ref": "OrganizationId"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        "ManagedPolicyArns": [
+          {
+            "Fn::Sub": "arn:${AWS::Partition}:iam::aws:policy/SecurityAudit"
+          }
+        ],
+        "Policies": [
+          {
+            "PolicyName": "CloSecReadOnlySupplement",
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Sid": "CloSecReadOnlySupplement",
+                  "Effect": "Allow",
+                  "Action": [
+                    "macie2:GetMacieSession",
+                    "resource-explorer-2:ListIndexes"
+                  ],
+                  "Resource": "*"
+                },
+                {
+                  "Sid": "CloSecNoDataPlaneReads",
+                  "Effect": "Deny",
+                  "Action": [
+                    "athena:GetQueryResults",
+                    "dynamodb:BatchGetItem",
+                    "dynamodb:GetItem",
+                    "dynamodb:Query",
+                    "dynamodb:Scan",
+                    "ecr:BatchGetImage",
+                    "ecr:GetDownloadUrlForLayer",
+                    "glue:GetTable",
+                    "kms:Decrypt",
+                    "lambda:GetFunction",
+                    "logs:FilterLogEvents",
+                    "logs:GetLogEvents",
+                    "logs:StartQuery",
+                    "rds:DownloadDBLogFilePortion",
+                    "s3:GetObject",
+                    "s3:GetObjectVersion",
+                    "secretsmanager:GetSecretValue",
+                    "ssm:GetParameter",
+                    "ssm:GetParameters",
+                    "ssm:GetParametersByPath"
+                  ],
+                  "Resource": "*"
+                }
+              ]
+            }
+          }
+        ],
+        "Tags": [
+          {
+            "Key": "closec:purpose",
+            "Value": "read-only-evidence"
+          }
+        ]
+      }
+    }
+  },
+  "Outputs": {
+    "RoleArn": {
+      "Value": {
+        "Fn::GetAtt": [
+          "CollectorRole",
+          "Arn"
+        ]
+      }
+    }
+  }
+}

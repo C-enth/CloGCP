@@ -1,6 +1,6 @@
 {
   "contract": "closec-collector-analyzer",
-  "contract_version": "2.0.0",
+  "contract_version": "2.1.0",
   "lifecycle": [
     "COLLECTED",
     "RECOGNIZED",
@@ -14,12 +14,13 @@
     {
       "provider": "AWS",
       "collector": "collectors/aws/assessment.py",
-      "collector_version": "0.3.2",
+      "collector_version": "0.3.3",
       "manifest_schema": "closec-provisional-0.3",
       "accepted_collector_versions": [
         "0.3.0",
         "0.3.1",
-        "0.3.2"
+        "0.3.2",
+        "0.3.3"
       ],
       "analyzer_adapter": "closec-v030-native-1",
       "operation_names": "botocore 1.43.113 model table (135)",
@@ -40,9 +41,15 @@
           "ACCESS_DENIED",
           "API_ERROR",
           "COMPLETE",
+          "CONNECTION_ERROR",
+          "CREDENTIALS_EXPIRED",
           "NOT_COLLECTED",
           "NOT_ENABLED",
-          "PARTIAL"
+          "PARTIAL",
+          "REGION_NOT_ENABLED",
+          "SERVICE_NOT_IN_USE",
+          "THROTTLED",
+          "TIMEOUT"
         ],
         "outcome_mapping": {
           "COMPLETE": "SUCCEEDED; residual pagination token -> PARTIAL coverage",
@@ -50,11 +57,68 @@
           "NOT_ENABLED": "AWS-defined absence code -> derived absence evidence; otherwise FAILED (coverage ERROR)",
           "ACCESS_DENIED": "FAILED (coverage ERROR); never PASS",
           "API_ERROR": "FAILED (coverage ERROR); never PASS",
-          "NOT_COLLECTED": "SKIPPED (coverage NOT_COLLECTED)"
+          "NOT_COLLECTED": "SKIPPED (coverage NOT_COLLECTED)",
+          "THROTTLED": "0.3.3: FAILED after bounded retries (coverage ERROR); never PASS",
+          "CREDENTIALS_EXPIRED": "0.3.3: FAILED; run finalized INTERRUPTED; never PASS",
+          "TIMEOUT": "0.3.3: FAILED after bounded retries (coverage ERROR); never PASS",
+          "CONNECTION_ERROR": "0.3.3: FAILED after bounded retries (coverage ERROR); never PASS",
+          "REGION_NOT_ENABLED": "0.3.3: SKIPPED, no request made (coverage NOT_COLLECTED)",
+          "SERVICE_NOT_IN_USE": "0.3.3: FAILED with the AWS code (coverage ERROR); never PASS"
         },
         "multi_page_responses": "merged into .closec-derived/ with source page SHA-256s"
       },
-      "integrity": "checksums.sha256 must list every file; mismatch or omission fails closed",
+      "integrity": "checksums.sha256 must list every file; mismatch or omission fails closed; 0.3.3 also writes <package>.zip.sha256 beside the ZIP",
+      "manifest_collection_facts": {
+        "since": "0.3.3",
+        "consumers": {
+          "carried_operations": [
+            "AWS_COLLECTION_RESUMED"
+          ],
+          "collector_runtime": "PROVENANCE",
+          "credentials_expired": [
+            "AWS_COLLECTION_INTERRUPTED_CREDENTIALS"
+          ],
+          "dependency_fallbacks": [
+            "AWS_DEPENDENCY_FALLBACK"
+          ],
+          "detail_limits": [
+            "AWS_DETAIL_LIMIT_REACHED"
+          ],
+          "encoding": "PROVENANCE",
+          "options": [
+            "AWS_RETRIES_DISABLED"
+          ],
+          "organization": [
+            "AWS_ORGANIZATION_ACCESS_MISSING",
+            "AWS_ORGANIZATION_INCOMPLETE",
+            "AWS_NOT_IN_ORGANIZATION"
+          ],
+          "region_status_source": [
+            "AWS_REGION_STATUS_UNAVAILABLE"
+          ],
+          "regions_attempted": [
+            "AWS_REGIONS_PARTIAL"
+          ],
+          "regions_not_enabled": [
+            "AWS_REGIONS_NOT_ENABLED"
+          ],
+          "regions_partial": [
+            "AWS_REGIONS_PARTIAL"
+          ],
+          "regions_succeeded": [
+            "AWS_REGIONS_PARTIAL"
+          ],
+          "resumed_at": [
+            "AWS_COLLECTION_RESUMED"
+          ],
+          "resumed_from": [
+            "AWS_COLLECTION_RESUMED"
+          ],
+          "retries": [
+            "AWS_RETRIES_PERFORMED"
+          ]
+        }
+      },
       "datasets": [
         {
           "dataset": "iam.get_account_authorization_details",

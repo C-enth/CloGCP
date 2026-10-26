@@ -42,9 +42,12 @@ def sha256_file(path: Path, max_bytes: int = 64 * 1024 * 1024) -> str:
     return digest.hexdigest()
 
 
+FORMULA_LEAD = re.compile(r"^[\s\x00-\x1f]*[=+@-]")
+
+
 def excel_literal(value: str) -> str:
     """Report exporters must additionally write strings, never formula cell types."""
-    if re.match(r"^[\s\x00-\x1f]*[=+@-]", value):
+    if FORMULA_LEAD.match(value):
         return "'" + value
     return value
 

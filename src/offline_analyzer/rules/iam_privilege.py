@@ -106,7 +106,7 @@ def instance_role_privilege(obs, context) -> Verdict:
 IAM_RULES = (
     Rule(
         "R1-IAM-INSTANCE-ROLE-PRIVILEGE",
-        "1.0.2",
+        "1.1.0",
         "AWS::IAM::Role",
         GAAD,
         "Instance role allows Action:* or unguarded iam:PassRole",

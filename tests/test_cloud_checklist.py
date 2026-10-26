@@ -219,7 +219,8 @@ def test_attack_paths_stay_within_the_collected_project(org_run):
     store, run = org_run
     paths = cross_paths(store, run)
     kinds = Counter((p["attack_path"], p["feasibility"]) for p in paths)
-    assert kinds[("XP-03", "FEASIBLE")] == 1  # public invoker needs no credential
+    # An invoker binding alone does not resolve ingress and service restrictions.
+    assert kinds[("XP-03", "INSUFFICIENT_EVIDENCE")] == 1
     impersonation = [p for p in paths if p["attack_path"] == "XP-01"]
     assert any("vendor@partner.example" in p["steps"][0] for p in impersonation)
     assert all(p["feasibility"] == "INSUFFICIENT_EVIDENCE" for p in impersonation)

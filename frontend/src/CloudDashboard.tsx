@@ -1,5 +1,8 @@
+import { TruncationBanner } from "./Truncation";
+import { PathRecalculation } from "./PathRecalculation";
+import { SupplementaryAnalysis } from "./SupplementaryAnalysis";
 import React, { useEffect, useState } from "react";
-import { DASHBOARD_TIMEOUT_MS, api, display, type Row } from "./api";
+import { api, display, type Row } from "./api";
 import { PathCoverage, PathDiagrams, StrideSurface } from "./PathDiagram";
 import { CrossAccount } from "./Enterprise";
 import { ChoiceFilter, ChoiceNotice, useRecordChoices } from "./Filters";
@@ -55,22 +58,9 @@ export function CloudDashboard({
   }, [provider]);
   useEffect(() => {
     let active = true;
-    // Summary counts first; STRIDE, snapshot validation and readiness load separately.
-    const base = `/runs/${run}/cloud/dashboard?provider=${provider}`;
-    api(`${base}&part=summary`, undefined, DASHBOARD_TIMEOUT_MS)
+    api(`/runs/${run}/cloud/dashboard?provider=${provider}`)
       .then((d) => {
-        if (!active) return;
-        setSummary(d);
-        return api(`${base}&part=panels`, undefined, DASHBOARD_TIMEOUT_MS).then(
-          (panels) => {
-            if (active)
-              setSummary((current) =>
-                current && current.run_id === d.run_id
-                  ? { ...current, ...panels, running_job: panels.running_job }
-                  : current,
-              );
-          },
-        );
+        if (active) setSummary(d);
       })
       .catch((e) => {
         if (active) setError(e.message);
@@ -103,12 +93,6 @@ export function CloudDashboard({
         ))}
       </div>
       {error && <p role="alert">{error}</p>}
-      {summary?.running_job && (
-        <p role="status" className="truncation-banner">
-          {summary.running_job.kind} is running. This view shows the last
-          completed assessment state and updates when the job finishes.
-        </p>
-      )}
       {!summary || summary.provider !== provider || summary.run_id !== run ? (
         <p>Loading assessment records…</p>
       ) : (
@@ -759,6 +743,7 @@ function CloudPaths({
     [stride, setStride] = useState(""),
     [revision, setRevision] = useState(0),
     [pathsTruncated, setPathsTruncated] = useState(false),
+    [truncation, setTruncation] = useState<any[]>([]),
     [edgesTruncated, setEdgesTruncated] = useState(false);
   useEffect(() => {
     let active = true;
@@ -768,6 +753,7 @@ function CloudPaths({
       .then((p) => {
         if (!active) return;
         setPathsTruncated(!!p.truncated);
+        setTruncation(p.truncation || []);
         setCoverage(p.coverage || {});
         setPaths(
           p.items.filter(
@@ -852,6 +838,8 @@ function CloudPaths({
   return (
     <>
       <h3>Attack-path investigations</h3>
+      {provider !== "AWS" && <PathRecalculation run={run} />}
+      {provider !== "AWS" && <SupplementaryAnalysis run={run} />}
       <div className="toolbar">
         <label>
           Project scope
@@ -882,12 +870,13 @@ function CloudPaths({
         </p>
       </details>
       {error && <p role="alert">{error}</p>}
-      {pathsTruncated && (
+      {pathsTruncated && !truncation.length && (
         <p role="alert">
           The attack-path list is truncated. Narrow the project scope; the
           displayed paths are not a complete attack-path assessment.
         </p>
       )}
+      <TruncationBanner entries={truncation} />
       {!loaded ? (
         <p role="status">Loading attack paths…</p>
       ) : (

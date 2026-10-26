@@ -51,7 +51,9 @@ def safe_text(value: object) -> str:
         return "UNRESOLVED"
     if not isinstance(value, str):
         value = json.dumps(value, ensure_ascii=False, sort_keys=True)
-    value = excel_literal(ILLEGAL.sub("", value))
+    if ILLEGAL.search(value):
+        value = ILLEGAL.sub("", value)
+    value = excel_literal(value)
     if len(value) > 32000:
         value = value[:31900] + " [SHORTENED: consult raw evidence/Evidence Register]"
     return value
@@ -284,6 +286,18 @@ def iam_sheets(wb, store, run_id: str, registry) -> None:
     gaps = sheet(wb, "IAM Evidence Gaps", ["Category", "Scope", "Missing evidence"])
     for gap in analysis.evidence_gaps():
         append(gaps, list(gap))
+    # Every other limit that dropped records (rows only when something was dropped).
+    from offline_analyzer.attack_paths.feasibility import view_limits
+    from offline_analyzer.provenance.truncation import text
+
+    entries = view_limits(store, run_id)
+    cached = store.db.execute(
+        "SELECT data FROM enterprise_projection WHERE run_id=?", [run_id]
+    ).fetchone()
+    if cached:
+        entries += json.loads(cached[0]).get("truncation_detail") or []
+    for entry in entries:
+        append(gaps, ["Truncated view", entry["scope"], text(entry)])
 
 
 def export_excel(
@@ -869,14 +883,17 @@ def _export_excel(store, run_id, output, wb, account_keys, progress) -> Path:
         sheets(wb, store, run_id)
     if store.db.execute(
         "SELECT 1 FROM sources WHERE run_id=? AND json_extract_string(data,'$.format')="
-        "'gcp-json-v1' LIMIT 1", [run_id]
+        "'gcp-json-v1' LIMIT 1",
+        [run_id],
     ).fetchone():
         from offline_analyzer.reporting.gcp_register import add_sheets, build
 
         add_sheets(wb, build(store, run_id))
     for worksheet in wb.worksheets:
         if worksheet.title in {
-            "GCP_Observation_Register", "GCP_Evidence_Index", "GCP_Evidence_Details"
+            "GCP_Observation_Register",
+            "GCP_Evidence_Index",
+            "GCP_Evidence_Details",
         }:
             continue
         worksheet.auto_filter.ref = (

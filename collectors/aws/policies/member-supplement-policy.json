@@ -1,0 +1,41 @@
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "CloSecReadOnlySupplement",
+      "Effect": "Allow",
+      "Action": [
+        "macie2:GetMacieSession",
+        "resource-explorer-2:ListIndexes"
+      ],
+      "Resource": "*"
+    },
+    {
+      "Sid": "CloSecNoDataPlaneReads",
+      "Effect": "Deny",
+      "Action": [
+        "athena:GetQueryResults",
+        "dynamodb:BatchGetItem",
+        "dynamodb:GetItem",
+        "dynamodb:Query",
+        "dynamodb:Scan",
+        "ecr:BatchGetImage",
+        "ecr:GetDownloadUrlForLayer",
+        "glue:GetTable",
+        "kms:Decrypt",
+        "lambda:GetFunction",
+        "logs:FilterLogEvents",
+        "logs:GetLogEvents",
+        "logs:StartQuery",
+        "rds:DownloadDBLogFilePortion",
+        "s3:GetObject",
+        "s3:GetObjectVersion",
+        "secretsmanager:GetSecretValue",
+        "ssm:GetParameter",
+        "ssm:GetParameters",
+        "ssm:GetParametersByPath"
+      ],
+      "Resource": "*"
+    }
+  ]
+}

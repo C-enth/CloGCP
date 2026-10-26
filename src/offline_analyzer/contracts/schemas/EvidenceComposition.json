@@ -1,0 +1,189 @@
+{
+  "$defs": {
+    "CompositionEvent": {
+      "additionalProperties": false,
+      "properties": {
+        "resource_scope": {
+          "items": {
+            "type": "string"
+          },
+          "maxItems": 3,
+          "minItems": 3,
+          "title": "Resource Scope",
+          "type": "array"
+        },
+        "previous_observation": {
+          "title": "Previous Observation",
+          "type": "string"
+        },
+        "previous_artifact": {
+          "title": "Previous Artifact",
+          "type": "string"
+        },
+        "new_artifact": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "New Artifact"
+        },
+        "previous_collected_at": {
+          "format": "date-time",
+          "title": "Previous Collected At",
+          "type": "string"
+        },
+        "new_collected_at": {
+          "format": "date-time",
+          "title": "New Collected At",
+          "type": "string"
+        },
+        "status": {
+          "enum": [
+            "SUPERSEDED_BY_LATER_ATTEMPT",
+            "SAME_TIME_CONFLICT_REQUIRES_REVIEW",
+            "OLDER_DELTA_RETAINED_AS_HISTORY",
+            "SEMANTICALLY_EQUIVALENT_BASIS_RETAINED"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "new_coverage": {
+          "title": "New Coverage",
+          "type": "string"
+        }
+      },
+      "required": [
+        "resource_scope",
+        "previous_observation",
+        "previous_artifact",
+        "new_artifact",
+        "previous_collected_at",
+        "new_collected_at",
+        "status",
+        "new_coverage"
+      ],
+      "title": "CompositionEvent",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "properties": {
+    "schema_version": {
+      "const": "gcp-evidence-composition-1",
+      "default": "gcp-evidence-composition-1",
+      "title": "Schema Version",
+      "type": "string"
+    },
+    "base_run": {
+      "title": "Base Run",
+      "type": "string"
+    },
+    "delta_run": {
+      "title": "Delta Run",
+      "type": "string"
+    },
+    "source_runs": {
+      "items": {
+        "type": "string"
+      },
+      "maxItems": 2,
+      "minItems": 2,
+      "title": "Source Runs",
+      "type": "array"
+    },
+    "events": {
+      "items": {
+        "$ref": "#/$defs/CompositionEvent"
+      },
+      "title": "Events",
+      "type": "array"
+    },
+    "collection_timestamps": {
+      "items": {
+        "format": "date-time",
+        "type": "string"
+      },
+      "title": "Collection Timestamps",
+      "type": "array"
+    },
+    "simultaneous_state_established": {
+      "const": false,
+      "default": false,
+      "title": "Simultaneous State Established",
+      "type": "boolean"
+    },
+    "temporally_mixed": {
+      "title": "Temporally Mixed",
+      "type": "boolean"
+    },
+    "baseline_modified": {
+      "const": false,
+      "default": false,
+      "title": "Baseline Modified",
+      "type": "boolean"
+    },
+    "analysis_strategy": {
+      "const": "EXISTING_EVALUATORS_IN_NEW_RUN",
+      "title": "Analysis Strategy",
+      "type": "string"
+    },
+    "broader_analysis_reason": {
+      "title": "Broader Analysis Reason",
+      "type": "string"
+    },
+    "affected_scopes": {
+      "items": {
+        "items": {
+          "type": "string"
+        },
+        "type": "array"
+      },
+      "title": "Affected Scopes",
+      "type": "array"
+    },
+    "security_reviews_copied": {
+      "const": false,
+      "default": false,
+      "title": "Security Reviews Copied",
+      "type": "boolean"
+    },
+    "reconciliation": {
+      "items": {
+        "additionalProperties": true,
+        "type": "object"
+      },
+      "title": "Reconciliation",
+      "type": "array"
+    },
+    "materialized_sha256": {
+      "anyOf": [
+        {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "title": "Materialized Sha256"
+    }
+  },
+  "required": [
+    "base_run",
+    "delta_run",
+    "source_runs",
+    "events",
+    "collection_timestamps",
+    "temporally_mixed",
+    "analysis_strategy",
+    "broader_analysis_reason",
+    "affected_scopes"
+  ],
+  "title": "EvidenceComposition",
+  "type": "object"
+}

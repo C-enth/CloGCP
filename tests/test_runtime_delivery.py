@@ -116,3 +116,18 @@ def test_bundled_public_schemas_match_current_contracts(tmp_path, monkeypatch):
     assert {p.name for p in bundled.glob("*.json")} == {p.name for p in generated.glob("*.json")}
     for path in generated.glob("*.json"):
         assert json.loads(path.read_text()) == json.loads((bundled / path.name).read_text())
+
+
+def test_source_control_timeout_leaves_runtime_metadata_unknown(monkeypatch):
+    import subprocess
+
+    from offline_analyzer.api.runtime import RuntimeIdentity
+
+    def timeout(*args, **kwargs):
+        raise subprocess.TimeoutExpired("git", 3)
+
+    monkeypatch.setattr(subprocess, "run", timeout)
+    identity = RuntimeIdentity()
+    status = identity.status()
+    assert status["working_tree_modified"] is None
+    assert status["compatible"] is True

@@ -7,6 +7,7 @@ selected run; candidates are never labelled validated without an analyst decisio
 Account/project display names come from collector manifests (labels, never identity).
 """
 
+import json
 import re
 import zipfile
 from collections import Counter, defaultdict
@@ -124,7 +125,12 @@ def model(
         entry["sources"] += 1
         if source.get("effective_coverage") in {"ERROR", "NOT_COLLECTED"}:
             entry["gaps"] += 1
-    from offline_analyzer.reporting.coverage_reasons import ERROR_REASONS, NOTE_REASONS, notable
+    from offline_analyzer.reporting.coverage_reasons import (
+        ERROR_REASONS,
+        NOTE_REASONS,
+        notable,
+        source_category,
+    )
 
     notes: Counter = Counter()
     for source in sources:
@@ -132,9 +138,7 @@ def model(
         scope = source.get("project_id") or source.get("account_id") or ""
         metadata = source.get("gcp_metadata") or {}
         if wanted(provider, scope):
-            for code in notable(
-                metadata.get("error_category"), metadata.get("completeness_limitations")
-            ):
+            for code in notable(source_category(source), metadata.get("completeness_limitations")):
                 notes[(provider, scope, code)] += 1
     coverage_notes = [
         {
@@ -170,6 +174,14 @@ def model(
         group_revision = ReportRevision.model_validate_json(raw)
         for snapshot in group_revision.snapshots:
             covering.setdefault(snapshot.finding_id, group_revision)
+    # Latest revision per primary finding in one query (same rows as latest_revision()).
+    own_revision = {
+        primary: ReportRevision.model_validate_json(raw)
+        for primary, raw in store.rows(
+            "SELECT primary_finding, data FROM report_revisions QUALIFY row_number() OVER "
+            "(PARTITION BY primary_finding ORDER BY revision DESC)=1"
+        )
+    }
     findings = []
     for finding in store.candidates(run_id):
         provider, scope = _scope(finding)
@@ -249,14 +261,10 @@ def model(
         )
         # Report edits belong to Client Reporting; only evidence-current revisions are
         # used. Approval state stays explicit and is never inferred from the text edit.
-        from offline_analyzer.findings.report_ready import (
-            current_findings,
-            latest_revision,
-            validity,
-        )
+        from offline_analyzer.findings.report_ready import current_findings, validity
 
         # The finding's own revision, else a group revision that names it as a member.
-        revision = latest_revision(store, finding.finding_id) or covering.get(finding.finding_id)
+        revision = own_revision.get(finding.finding_id) or covering.get(finding.finding_id)
         if revision:
             state = validity(
                 revision,
@@ -290,6 +298,13 @@ def model(
     )
     evaluated = attack_paths(store, run_id)
     reported = {f["id"] for f in findings}
+    coverage_notes += truncation_notes(store, run_id, evaluated, provider_filter)
+    coverage_notes += organization_notes(store, run_id, sources, wanted, names)
+    coverage_notes += collection_fact_notes(store, run_id, wanted, names, coverage_notes)
+    from offline_analyzer.enterprise.shards import coverage_note as shard_note
+
+    if sharded := shard_note(store, run_id):
+        coverage_notes.append(sharded)
 
     def visible(ids) -> list[str]:
         # Excluded findings stay excluded: paths and hops never cite them.
@@ -320,7 +335,7 @@ def model(
             for p in paths
             if p.get("analyst_review") == "CONFIRMED" and finding["id"] in p.get("finding_ids", [])
         )
-    return {
+    data = {
         "run_id": run_id,
         "generated_at": datetime.now(UTC).isoformat(timespec="seconds"),
         "include": INCLUDE[include],
@@ -369,6 +384,121 @@ def model(
             if counts["INSUFFICIENT EVIDENCE"] or counts["MANUAL VALIDATION"]
         ],
     }
+    from offline_analyzer.reporting.gcp_feed import linked, merge_report
+
+    record = linked(store, run_id)
+    if record:
+        # AWS live + linked GCP frozen edition, labelled by source and edition.
+        data = merge_report(data, record, provider_filter, scope_filter)
+        # Register groups must cover the merged findings, including frozen members.
+        # This is a new report projection; the edition and original decisions stay intact.
+        data["groups"] = report_groups(data["findings"])
+    from offline_analyzer.reporting.contextual import check, register
+
+    # Contextual findings register (Excel sheet, Word findings, UI) from the same model.
+    data["contextual_register"] = register(store, run_id, data)
+    data["register_reconciliation"] = check(data)
+    return data
+
+
+def organization_notes(store, run_id: str, sources, wanted, names) -> list[dict]:
+    """One coverage note per AWS account with IAM evidence whose organization controls (SCP
+    and RCP) cannot be evaluated: absent Organizations evidence is stated, never read as
+    "no SCP"."""
+    from types import SimpleNamespace
+
+    from offline_analyzer.iam.analysis import ORG_KINDS, load
+    from offline_analyzer.iam.organizations import OrganizationModel
+    from offline_analyzer.rules.aws_identity import organization_note
+
+    accounts = sorted(
+        {
+            s["account_id"]
+            for s in sources
+            if s.get("format") != "gcp-json-v1"
+            and s.get("account_id")
+            and str(s.get("operation", "")).startswith("iam:")
+        }
+    )
+    if not accounts:
+        return []
+    holder = SimpleNamespace(org=OrganizationModel(load(store, run_id, ORG_KINDS), sources))
+    notes = []
+    for account in accounts:
+        text = organization_note(holder, account) if wanted("AWS", account) else None
+        if text:
+            notes.append(
+                {
+                    "provider": "AWS",
+                    "scope": account,
+                    "name": names.get(("AWS", account), ""),
+                    "code": "ORGANIZATION_CONTROLS_NOT_ASSESSED",
+                    "reason": text,
+                    "datasets": 0,
+                }
+            )
+    return notes
+
+
+def collection_fact_notes(store, run_id: str, wanted, names, existing) -> list[dict]:
+    """Coverage notes from AWS collector 0.3.3 manifest facts (retries, limits, fallbacks,
+    Regions, organization access, resume). Organization access already stated from the
+    evidence (ORGANIZATION_CONTROLS_NOT_ASSESSED) is not repeated."""
+    from offline_analyzer.reporting.aws_collection import account_notes, reason
+
+    stated = {(n["scope"], n["code"]) for n in existing if n["provider"] == "AWS"}
+    notes = []
+    for account, counts in sorted(account_notes(store, run_id).items()):
+        if not wanted("AWS", account):
+            continue
+        for code, count in sorted(counts.items()):
+            if code == "AWS_ORGANIZATION_ACCESS_MISSING" and (
+                (account, "ORGANIZATION_CONTROLS_NOT_ASSESSED") in stated
+            ):
+                continue
+            notes.append(
+                {
+                    "provider": "AWS",
+                    "scope": account,
+                    "name": names.get(("AWS", account), ""),
+                    "code": code,
+                    "reason": reason(code),
+                    "datasets": count,
+                }
+            )
+    return notes
+
+
+def truncation_notes(store, run_id: str, evaluated: dict, provider_filter: str) -> list[dict]:
+    """Coverage notes for every limit that dropped records: attack-path and IAM budgets, the
+    enterprise relationship budget and the Word report's path limit. Empty when nothing was
+    dropped, so untruncated reports are unchanged."""
+    from offline_analyzer.provenance.truncation import note, record
+    from offline_analyzer.reporting.report_document import PATH_LIMIT
+
+    entries = list(evaluated.get("truncation") or [])
+    cached = store.db.execute(
+        "SELECT data FROM enterprise_projection WHERE run_id=?", [run_id]
+    ).fetchone()
+    if cached:
+        entries += json.loads(cached[0]).get("truncation_detail") or []
+    listed = [p for p in evaluated["items"] if not p.get("excluded_dependency")]
+    if len(listed) > PATH_LIMIT:
+        entries.append(
+            record(
+                "Word report attack-path limit",
+                "report",
+                PATH_LIMIT,
+                len(listed),
+                "the Word report details the first paths; the Excel workbook lists all of them",
+                provider="Report",
+            )
+        )
+    return [
+        note(e)
+        for e in entries
+        if not provider_filter or e.get("provider") in {provider_filter, "Enterprise", "Report"}
+    ]
 
 
 def report_groups(findings: list[dict]) -> list[dict]:
@@ -449,6 +579,56 @@ def write_rtf(data: dict, path: Path) -> None:
     document(data, path)
 
 
+def _path_export(
+    store, run: str, version: dict, data: dict, edition, include: str, provider: str, scope: str
+) -> dict:
+    """Apply the same provider, scope and review policy to supplemental path material."""
+    if not version["latest"] or provider == "AWS":
+        return {"latest": None, "paths": [], "versions": []}
+    if edition:
+        allowed = {f["id"] for f in edition.get("document", {}).get("findings", [])}
+    else:
+        from offline_analyzer.findings.exclusions import excluded
+        from offline_analyzer.findings.sre import latest_sre, review_state
+
+        hidden = excluded(store, run)
+        decisions, sre = store.latest_decisions(run), latest_sre(store, run)
+        allowed = {
+            f.finding_id
+            for f in store.candidates(run)
+            if f.finding_id not in hidden
+            and included(include, *review_state(store, f, decisions, sre))
+        }
+    reported = {f.get("id", f.get("finding_id")) for f in data.get("findings", [])}
+    paths = [
+        p
+        for p in version["paths"]
+        if (not scope or p["project_id"] == scope)
+        and set(p.get("original_finding_ids", [])) <= allowed
+        and (include != "confirmed" or bool(set(p.get("original_finding_ids", [])) & reported))
+    ]
+    ids = {p["path_id"] for p in paths}
+    comparison = [
+        r
+        for r in version["latest"]["comparison"]
+        if r["new_path_id"] in ids
+        or (not r["new_path_id"] and not scope and include != "confirmed")
+    ]
+    metadata = {
+        **version["latest"],
+        "comparison": comparison,
+        "new_path_count": len(paths),
+        "old_path_count": len({r["old_path_id"] for r in comparison if r["old_path_id"]}),
+        "classification_counts": dict(Counter(p["classification"] for p in paths)),
+        "export_scope": {"provider": provider or "ALL", "scope": scope, "include": include},
+        "export_qualification": (
+            "Scope/review-filtered projection. The result hash and evaluation ID "
+            "identify the retained full evaluation; omitted history remains there."
+        ),
+    }
+    return {**version, "latest": metadata, "paths": paths}
+
+
 def export_assessment(
     store,
     run_id: str,
@@ -470,7 +650,53 @@ def export_assessment(
         if edition
         else model(store, run_id, include, provider, scope, grouped)
     )
+    from offline_analyzer.reporting.gcp_feed import require_reconciled
+
+    require_reconciled(data)  # consolidated counts must reconcile before any export
     label = file_label(data) + ("" if include == "valid" else f"-{include}")
+    from offline_analyzer.attack_paths.versioned import latest as latest_paths
+
+    path_version = _path_export(
+        store,
+        run_id,
+        latest_paths(store.workspace, run_id),
+        data,
+        edition,
+        include,
+        provider,
+        scope,
+    )
+    if path_version["latest"]:
+        data["versioned_path_evaluation"] = path_version
+        data["paths"] = [
+            {
+                **p,
+                "title": "Historical projection — see current v2 evaluation: " + p.get("title", ""),
+            }
+            if p.get("provider") == "GCP"
+            else p
+            for p in data.get("paths", [])
+        ]
+        for finding in data.get("findings", []):
+            matched = [
+                p
+                for p in path_version["paths"]
+                if finding.get("id", finding.get("finding_id")) in p.get("original_finding_ids", [])
+            ]
+            if matched:
+                finding["evaluated_paths"] = "; ".join(
+                    p["path_id"]
+                    + ": "
+                    + p["classification"]
+                    + "; execution UNVERIFIED; review UNREVIEWED"
+                    for p in matched
+                )
+            else:
+                finding["evaluated_paths"] = (
+                    "No linked current path is included by these report filters; "
+                    "inspect the saved v2 comparison for review."
+                )
+        data["groups"] = report_groups(data.get("findings", []))
     with tempfile.TemporaryDirectory() as temporary:
         workbook = Path(temporary) / "report.xlsx"
         document = Path(temporary) / "report.docx"
@@ -486,6 +712,32 @@ def export_assessment(
         with zipfile.ZipFile(path, "x", zipfile.ZIP_DEFLATED) as archive:
             archive.write(workbook, f"CloSec-{label}-assessment.xlsx")
             archive.write(document, f"CloSec-{label}-assessment-report.docx")
+            if path_version["latest"]:
+                archive.writestr(
+                    "attack-path-evaluation-v2.json",
+                    json.dumps(
+                        {"evaluation": path_version["latest"], "paths": path_version["paths"]},
+                        indent=2,
+                    ),
+                )
+            from offline_analyzer.evidence.composition import description
+
+            composition = description(store, run_id)
+            if composition and provider != "AWS":
+                if provider or scope:
+                    composition = {
+                        "schema_version": composition["schema_version"],
+                        "source_runs": composition["source_runs"],
+                        "export_scope": {"provider": provider, "scope": scope},
+                        "qualification": (
+                            "Full reconciliation retained in the workspace and unfiltered "
+                            "consolidated export; scoped exports omit unrelated project/review "
+                            "details."
+                        ),
+                    }
+                archive.writestr(
+                    "evidence-composition-reconciliation.json", json.dumps(composition, indent=2)
+                )
             archive.writestr(
                 "README.txt",
                 "Excel workbook and Word report: cover, executive summary, coverage and "

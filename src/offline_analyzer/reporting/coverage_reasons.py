@@ -101,3 +101,27 @@ def reason_text(error_category: str | None, limitations) -> str:
         for code in notable(error_category, limitations)
     ]
     return " ".join(texts)
+
+
+def _merge_aws() -> None:
+    from offline_analyzer.reporting.aws_collection import ERROR_REASONS as AWS_ERRORS
+    from offline_analyzer.reporting.aws_collection import NOTE_REASONS as AWS_NOTES
+
+    ERROR_REASONS.update(AWS_ERRORS)
+    NOTE_REASONS.update(AWS_NOTES)
+
+
+_merge_aws()
+
+
+def source_category(source: dict) -> str | None:
+    """Error category of a stored source: the GCP collector's own category, or the AWS
+    error-code category (reporting/aws_collection.py)."""
+    metadata = source.get("gcp_metadata") or {}
+    if metadata.get("error_category"):
+        return metadata["error_category"]
+    if source.get("format") == "gcp-json-v1":
+        return None
+    from offline_analyzer.reporting.aws_collection import error_category
+
+    return error_category(source.get("errors"), source.get("coverage"))

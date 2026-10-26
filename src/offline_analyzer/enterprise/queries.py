@@ -99,9 +99,10 @@ class EnterpriseViews:
                 "SELECT account_id,"
                 "json_extract_string(f.data,'$.suggested_severity'),count(*) FROM "
                 "findings f JOIN finding_resources r USING(run_id,finding_id) "
-                "WHERE run_id=? GROUP BY ALL"
+                "WHERE run_id=? AND finding_id NOT IN (SELECT unnest(?)) GROUP BY ALL"
             ),
-            [run],
+            # Excluded findings (every reason) are not counted.
+            [run, excluded_ids(store, run)],
         ):
             findings[account][severity] = n
         referenced = {
@@ -320,8 +321,11 @@ class EnterpriseViews:
         total = store.db.execute(
             "SELECT count(*) FROM enterprise_edges WHERE " + predicate, params
         ).fetchone()[0]
+        from offline_analyzer.findings.exclusions import without_excluded
+
+        hidden = set(excluded_ids(store, run))
         data = [
-            json.loads(d)
+            without_excluded(json.loads(d), hidden, "related_findings")
             for (d,) in store.rows(
                 "SELECT data FROM enterprise_edges WHERE "
                 + predicate
@@ -407,8 +411,16 @@ class EnterpriseViews:
         total = store.db.execute(
             "SELECT count(*) FROM enterprise_issues WHERE " + where, [run, hidden]
         ).fetchone()[0]
+        from offline_analyzer.findings.exclusions import without_excluded
+
+        # Review state is fingerprinted over the stored issue; exclusions are removed after.
         items = [
-            self.review_state(store, json.loads(d))
+            without_excluded(
+                self.review_state(store, json.loads(d)),
+                set(hidden),
+                "finding_ids",
+                "primary_finding",
+            )
             for (d,) in store.rows(
                 "SELECT data FROM enterprise_issues WHERE "
                 + where

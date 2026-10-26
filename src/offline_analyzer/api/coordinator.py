@@ -1,13 +1,11 @@
 """One database owner, durable local jobs and independent progress/cancellation reads."""
 
 import asyncio
-import hashlib
 import re
 import secrets
 import time
 from collections.abc import Callable
 from concurrent.futures import Future, ThreadPoolExecutor
-from contextvars import ContextVar
 from copy import deepcopy
 from datetime import UTC, datetime
 from pathlib import Path
@@ -22,20 +20,12 @@ from offline_analyzer.storage.store import Store
 ACTIVE = {"QUEUED", "RUNNING"}
 
 
-KEY_LIMIT = 240  # contracts/jobs.py LocalJob.key
-# Set by the API middleware for GET requests: such calls use read connections.
-READ_ONLY: ContextVar[bool] = ContextVar("closec_read_only", default=False)
-
-
 class Coordinator:
     def __init__(self, workspace: Path):
         self.workspace = workspace
         self.executor = ThreadPoolExecutor(max_workers=1, thread_name_prefix="assessment-owner")
-        # GET requests: separate read connections, never queued behind jobs or writes.
-        self.readers = ThreadPoolExecutor(max_workers=2, thread_name_prefix="closec-reader")
-        self.owner_opened = Event()
         self.journal = JobJournal(workspace)
-        self.jobs = self.journal.load()
+        self.jobs = self.journal.load(persist_recovery=False)
         self.futures: dict[str, Future] = {}
         self.signals: dict[str, Execution] = {}
         self.connections = {}
@@ -61,41 +51,15 @@ class Coordinator:
             raise InputError("JOB_JOURNAL_UNAVAILABLE") from exc
 
     async def call(self, action: Callable[[Store], Any]) -> Any:
-        if READ_ONLY.get() and self.owner_opened.is_set():
-            return await self.read(action)
         with self.lock:
             if self.running and self.jobs[self.running]["status"] == "RUNNING":
                 raise InputError("WORKSPACE_OPERATION_IN_PROGRESS")
 
         def execute():
             with Store(self.workspace) as store:
-                self.owner_opened.set()
                 return action(store)
 
         return await asyncio.wrap_future(self.executor.submit(execute))
-
-    async def read(self, action: Callable[[Store], Any]) -> Any:
-        """Read-only work on a reader connection: served from the last committed state, also
-        while a job runs (DuckDB MVCC); never queued behind the owner worker."""
-
-        def execute():
-            with Store(self.workspace, reader=True) as store:
-                return action(store)
-
-        return await asyncio.wrap_future(self.readers.submit(execute))
-
-    def running_job(self) -> dict | None:
-        with self.lock:
-            job = self.jobs.get(self.running) if self.running else None
-            if not job or job["status"] != "RUNNING":
-                return None
-            return {"id": job["id"], "kind": job["kind"], "progress": deepcopy(job["progress"])}
-
-    def generation(self) -> tuple:
-        """Changes whenever a job finishes (cache invalidation for derived views)."""
-        with self.lock:
-            done = [j for j in self.jobs.values() if j["status"] not in ACTIVE]
-            return len(done), max((j["finished_at"] or 0 for j in done), default=0)
 
     async def exclusive(self, action: Callable[[], Any]) -> Any:
         """Run on the single database worker with no Store open (workspace copy/backup):
@@ -195,10 +159,6 @@ class Coordinator:
             self._progress(self.running, stage, completed, total)
 
     def prepare(self, kind: str, *, key=None, context=None, cancellable=False):
-        if key and len(key) > KEY_LIMIT:
-            # Long keys (for example every selected enterprise member) are shortened to a
-            # deterministic digest, so identical requests still deduplicate.
-            key = key[:40] + ":" + hashlib.sha256(key.encode()).hexdigest()
         with self.lock:
             if self.closing:
                 raise InputError("APPLICATION_STOPPING")
@@ -283,7 +243,6 @@ class Coordinator:
                     self.running = job_id
                     self._save(job)
                 with executing(signal), Store(self.workspace) as store:
-                    self.owner_opened.set()
                     with self.lock:
                         self.connections[job_id] = store.db if cancellable else None
                     signal.check()
@@ -477,6 +436,5 @@ class Coordinator:
             if job["status"] in ACTIVE:
                 self.cancel(job["id"])
         self.executor.shutdown(wait=True, cancel_futures=True)
-        self.readers.shutdown(wait=True, cancel_futures=True)
         self.stopped.set()
         self.monitor.join(timeout=2)

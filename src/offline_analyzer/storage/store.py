@@ -9,6 +9,8 @@ import duckdb
 from offline_analyzer.contracts.r0 import Candidate, Decision, Normalized, Result
 from offline_analyzer.ingestion.json_input import InputError
 from offline_analyzer.ingestion.safety import resolve_under
+from offline_analyzer.storage.consolidation_schema import DDL as CONSOLIDATION_DDL
+from offline_analyzer.storage.consolidation_schema import TABLES as CONSOLIDATION_TABLES
 from offline_analyzer.storage.enterprise_schema import DDL as ENTERPRISE_DDL
 from offline_analyzer.storage.management_schema import DDL as MANAGEMENT_DDL
 from offline_analyzer.storage.report_schema import DDL as REPORT_DDL
@@ -54,17 +56,24 @@ CONNECTION_CONFIG = {
 
 
 class Store:
-    def __init__(self, workspace: Path, *, _recover: bool = True, reader: bool = False):
-        """`reader`: a read connection for the API's concurrent GET requests. It skips crash
-        recovery and schema creation (the owner connection did both) and sees the last
-        committed state while a job writes."""
+    def __init__(self, workspace: Path, *, _recover: bool = True, read_only: bool = False):
         self.workspace = workspace.resolve()
+        if read_only:
+            # Reanalysis must not recover journals, migrate schemas, checkpoint or create files.
+            database = resolve_under(self.workspace, "assessment.duckdb")
+            if not database.is_file():
+                raise InputError("WORKSPACE_DATABASE_REQUIRED")
+            try:
+                self.db = duckdb.connect(str(database), read_only=True, config=CONNECTION_CONFIG)
+            except duckdb.Error as exc:
+                raise InputError("WORKSPACE_UNAVAILABLE_OR_BUSY") from exc
+            return
         if __import__("os").environ.get("CLOGCP_PROFILE") == "1":
             from offline_analyzer.clogcp_profile import ensure_workspace
 
             ensure_workspace(self.workspace)
         self.workspace.mkdir(mode=0o700, parents=True, exist_ok=True)
-        if _recover and not reader:
+        if _recover:
             from offline_analyzer.storage.scope_journal import recover
 
             recover(self.workspace)
@@ -77,11 +86,28 @@ class Store:
             )
         except duckdb.Error as exc:
             raise InputError("WORKSPACE_UNAVAILABLE_OR_BUSY") from exc
-        if reader:
-            return
         try:
+            existing = {r[0] for r in self.db.execute("SHOW TABLES").fetchall()}
+            import re
+
+            expected = {
+                match[1]
+                for sql in (*DDL, *ENTERPRISE_DDL, *REPORT_DDL, *MANAGEMENT_DDL, *CONSOLIDATION_DDL)
+                if (match := re.search(r"CREATE TABLE IF NOT EXISTS (\w+)", sql))
+            }
+            if expected <= existing:
+                if self.db.execute("SELECT version FROM schema_info").fetchall() != [(1,)]:
+                    raise InputError("UNSUPPORTED_DATABASE_VERSION")
+                return  # Compatible existing stores need no schema transaction.
+            self._backup_before_additive_tables()
             with self.transaction():
-                for sql in (*DDL, *ENTERPRISE_DDL, *REPORT_DDL, *MANAGEMENT_DDL):
+                for sql in (
+                    *DDL,
+                    *ENTERPRISE_DDL,
+                    *REPORT_DDL,
+                    *MANAGEMENT_DDL,
+                    *CONSOLIDATION_DDL,
+                ):
                     self.db.execute(sql)
                 versions = self.db.execute("SELECT version FROM schema_info").fetchall()
                 if not versions:
@@ -91,6 +117,24 @@ class Store:
         except Exception:
             self.db.close()
             raise
+
+    def _backup_before_additive_tables(self) -> None:
+        """Copy an existing database before additive tables are created in it."""
+        existing = {
+            name for (name,) in self.db.execute("SELECT table_name FROM duckdb_tables()").fetchall()
+        }
+        if "runs" not in existing or set(CONSOLIDATION_TABLES) <= existing:
+            return
+        import shutil
+        from datetime import UTC, datetime
+
+        self.db.execute("CHECKPOINT")
+        directory = resolve_under(self.workspace, "schema-backups")
+        directory.mkdir(mode=0o700, exist_ok=True)
+        stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
+        target = resolve_under(directory, f"assessment-before-consolidation-tables-{stamp}.duckdb")
+        if not target.exists():
+            shutil.copyfile(resolve_under(self.workspace, "assessment.duckdb"), target)
 
     def __enter__(self):
         return self

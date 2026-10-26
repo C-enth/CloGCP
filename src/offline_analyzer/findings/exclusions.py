@@ -34,6 +34,12 @@ REASONS = {
 FALSE_POSITIVE = "FALSE_POSITIVE"
 # Preset false-positive reasons offered in the UI; free text is always allowed.
 FALSE_POSITIVE_PRESETS = ("Google-managed service agent (platform-managed)",)
+# Offered for runs with AWS evidence (rules/aws_identity.py role and trust classes).
+AWS_FALSE_POSITIVE_PRESETS = (
+    "AWS service-linked role (platform-managed)",
+    "AWS IAM Identity Center reserved role (platform-managed)",
+    "AWS Organizations / Control Tower management access role (platform-managed)",
+)
 MAX_BULK = 2000
 PRINCIPAL = re.compile(r"(?:serviceAccount|user|group|domain|principal|principalSet):[^\s;,()]+")
 LATEST_SQL = (
@@ -213,7 +219,12 @@ def listing(store, run: str, provider: str = "") -> dict:
     return {
         "items": items,
         "reasons": REASONS,
-        "false_positive_presets": list(FALSE_POSITIVE_PRESETS),
+        "false_positive_presets": list(FALSE_POSITIVE_PRESETS)
+        + (
+            list(AWS_FALSE_POSITIVE_PRESETS)
+            if any(s.get("format") != "gcp-json-v1" for s in store.source_data(run))
+            else []
+        ),
         "false_positives": sum(i["false_positive"] for i in items),
     }
 
@@ -238,6 +249,20 @@ def appendix(store, run: str, provider: str = "", scope: str = "") -> list[dict]
         group["count"] += 1
         group["finding_ids"].append(item["id"])
     return [groups[k] for k in sorted(groups)]
+
+
+def without_excluded(item: dict, hidden, key: str, primary: str | None = None) -> dict:
+    """Display copy of a relationship or issue with excluded finding IDs removed from `key`;
+    the stored record (and any fingerprint over it) is unchanged. A primary finding that is
+    excluded is replaced by the first visible member."""
+    ids = item.get(key) or []
+    if not any(i in hidden for i in ids):
+        return item
+    shown = [i for i in ids if i not in hidden]
+    copy = {**item, key: shown, f"excluded_{key}": len(ids) - len(shown)}
+    if primary and copy.get(primary) in hidden:
+        copy[primary] = shown[0] if shown else None
+    return copy
 
 
 def excluded_ids(store, run: str) -> list[str]:

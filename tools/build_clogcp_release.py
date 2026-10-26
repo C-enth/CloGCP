@@ -1,33 +1,29 @@
-"""Build a separate allowlisted CloGCP portable/source release from a validated baseline.
-
-Never changes the baseline, original install or client workspaces. No Git/network mutation.
-"""
+"""Build CloGCP from committed current source and verified offline dependency wheels."""
 
 import argparse
 import hashlib
 import json
+import stat
+import subprocess
+import zipfile
 from pathlib import Path
-from zipfile import ZIP_DEFLATED, ZipFile, ZipInfo
 
-NEW_RUNTIME = (
-    "clogcp.py",
-    "clogcp_profile.py",
-    "findings/clogcp_reconcile.py",
-    "reporting/clogcp_assurance.py",
-    "rules/gcp_context.py",
-    "rules/gcp_domains.py",
-    "rules/gcp_public_context.py",
+from tools.portable_release import dependencies
+from tools.source_release import allowed, findings
+
+ROOT = Path(__file__).resolve().parents[1]
+VERSION = "0.8.5-clogcp.1"
+ENTRY_FILES = (
+    "CloGCP.cmd",
+    "CloGCP.command",
+    "check-windows.py",
+    "setup-windows.ps1",
+    "setup-macos.sh",
+    "verify.py",
+    "CLOGCP_VERSION.json",
+    "pyproject.toml",
+    "requirements.txt",
 )
-EXCLUDED_PARTS = {
-    "__pycache__",
-    ".venv",
-    "node_modules",
-    ".git",
-    "artifacts",
-    "data",
-    ".pytest_cache",
-}
-VERSION = "0.8.4-clogcp.2"
 
 
 def digest(data: bytes) -> str:
@@ -35,156 +31,98 @@ def digest(data: bytes) -> str:
 
 
 def write_zip(path: Path, files: dict[str, bytes]) -> None:
-    with ZipFile(path, "x", compression=ZIP_DEFLATED, compresslevel=9) as z:
+    with zipfile.ZipFile(path, "x", zipfile.ZIP_DEFLATED) as archive:
         for name, data in sorted(files.items()):
-            rel = Path(name)
-            if rel.is_absolute() or ".." in rel.parts or EXCLUDED_PARTS.intersection(rel.parts):
-                raise ValueError("Unapproved release path")
-            info = ZipInfo("CloGCP/" + name, (2026, 10, 23, 0, 0, 0))
-            info.compress_type = ZIP_DEFLATED
-            info.external_attr = (
-                0o100755 if name.endswith((".sh", ".command")) else 0o100644
-            ) << 16
-            z.writestr(info, data)
-    with ZipFile(path) as z:
-        if z.testzip():
-            raise ValueError("ZIP CRC failure")
+            relative = Path(name)
+            if relative.is_absolute() or ".." in relative.parts:
+                raise ValueError("UNSAFE_RELEASE_PATH")
+            info = zipfile.ZipInfo("CloGCP/" + name)
+            info.compress_type = zipfile.ZIP_DEFLATED
+            info.create_system = 3
+            mode = 0o755 if name.endswith((".sh", ".command")) else 0o644
+            info.external_attr = (stat.S_IFREG | mode) << 16
+            archive.writestr(info, data)
+    with zipfile.ZipFile(path) as archive:
+        if archive.testzip():
+            raise ValueError("RELEASE_CRC_FAILURE")
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--baseline", type=Path, required=True)
-    p.add_argument("--output", type=Path, required=True)
-    a = p.parse_args()
-    root = Path(__file__).resolve().parents[1]
-    a.output.mkdir(parents=True, exist_ok=False)
-    base = json.loads((a.baseline / "portable-manifest.json").read_text())
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--output", type=Path, required=True)
+    parser.add_argument("--wheelhouse", type=Path, required=True)
+    args = parser.parse_args()
+    revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT).decode().strip()
+    names = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
     runtime = {}
-    changed = []
-    for entry in base["files"]:
-        name = entry["path"]
-        old = (a.baseline / name).read_bytes()
-        if digest(old) != entry["sha256"]:
-            raise ValueError("Baseline integrity mismatch")
-        # Portable app: runtime + existing dependencies, no collectors or frontend development.
-        if name.startswith(("src/", "wheelhouse/", "locks/")) or name in {
-            "pyproject.toml",
-            "requirements.txt",
-            "setup-macos.sh",
-            "setup-windows.ps1",
-        }:
-            current = root / name
-            runtime[name] = current.read_bytes() if name.startswith("src/") else old
-            if name == "setup-macos.sh":
-                runtime[name] = old.replace(
-                    b"CloSec setup complete. Run: bash start-macos.sh",
-                    b"CloGCP setup complete. Run: sh CloGCP.command",
-                )
-            elif name == "setup-windows.ps1":
-                runtime[name] = current.read_bytes()
-            if runtime[name] != old:
-                changed.append(name)
-    for name in NEW_RUNTIME:
-        relative = "src/offline_analyzer/" + name
-        runtime[relative] = (root / relative).read_bytes()
-        changed.append(relative)
-    for name in ("CloGCP.command", "CloGCP.cmd", "README.md", "check-windows.py"):
-        runtime[name] = (root / name).read_bytes()
-        changed.append(name)
-    for name in (
-        "docs/ADR-CLOGCP-001.md",
-        "docs/GCP_COLLECTOR_CONTRACT.md",
-        "docs/GCP_EXCEL_REGISTER.md",
-    ):
-        runtime[name] = (root / name).read_bytes()
-    for path in sorted((root / "docs/clogcp").rglob("*")):
-        if path.is_file():
-            runtime[path.relative_to(root).as_posix()] = path.read_bytes()
-    verifier = (
-        (a.baseline / "verify.py")
-        .read_text()
-        .replace("CloSec", "CloGCP")
-        .replace("closec-portable-1", "clogcp-portable-1")
-    )
-    runtime["verify.py"] = verifier.encode()
+    for name in names:
+        if not name:
+            continue
+        selected = name.startswith(("src/offline_analyzer/", "src/clogcp_delta/")) and allowed(name)
+        selected |= name.startswith("docs/") and Path(name).suffix == ".md" and allowed(name)
+        selected |= name in ENTRY_FILES or name == "README.md"
+        selected |= name in {
+            "collectors/gcp/GCP_Security_Evidence_Collector.ps1",
+            "collectors/gcp/README.md",
+        }
+        if not selected:
+            continue
+        path = ROOT / name
+        if path.is_symlink() or not path.is_file() or findings(name, path.read_bytes()):
+            raise ValueError("SOURCE_SECURITY_REVIEW_REQUIRED: " + name)
+        runtime[name] = path.read_bytes()
+    if not set(ENTRY_FILES) <= runtime.keys():
+        raise ValueError("REQUIRED_APPLICATION_COMPONENT_MISSING")
+    for name, path in dependencies(args.wheelhouse).items():
+        runtime[name] = path.read_bytes()
     snapshot = digest(
         b"".join(
-            n.encode() + b"\0" + hashlib.sha256(v).digest()
-            for n, v in sorted(runtime.items())
-            if not n.startswith(("wheelhouse/", "locks/"))
+            name.encode() + b"\0" + hashlib.sha256(data).digest()
+            for name, data in sorted(runtime.items())
         )
     )
     metadata = {
         "product": "CloGCP",
         "version": VERSION,
-        "status": "RELEASE_CANDIDATE",
-        "base_source_revision": base["git_revision"],
-        "source_kind": "WORKING_TREE_SNAPSHOT",
+        "application_version": "0.8.5rc1",
+        "engine_version": "2.0.1",
+        "git_revision": revision,
+        "working_tree_modified": False,
+        "source_kind": "COMMITTED_SOURCE",
         "source_snapshot": snapshot,
-        "source_branch": "main",
-        "base_zip_sha256": "9050e2f34d861065c58c8d96709b4adc4d4cc20047f1b12026a5db8acae59dd8",
         "customer_data_included": False,
-        "production_assessment_validated": False,
         "native_windows_acceptance": "PENDING",
         "desktop_excel_acceptance": "PENDING",
+        "authorized_client_acceptance": "PENDING",
+        "python_system_prerequisite": "CPython 3.12",
     }
-    runtime["CLOGCP_VERSION.json"] = (json.dumps(metadata, indent=2) + "\n").encode()
+    runtime["src/offline_analyzer/api/assets/release-info.json"] = json.dumps(
+        metadata, indent=2
+    ).encode()
     manifest = {
         "schema": "clogcp-portable-1",
-        "product": "CloGCP",
-        "git_revision": base["git_revision"],
         **metadata,
         "files": [
-            {"path": n, "sha256": digest(v), "bytes": len(v)} for n, v in sorted(runtime.items())
+            {"path": name, "bytes": len(data), "sha256": digest(data)}
+            for name, data in sorted(runtime.items())
         ],
     }
-    runtime["portable-manifest.json"] = (json.dumps(manifest, indent=2) + "\n").encode()
-    portable = a.output / "CloGCP.zip"
-    write_zip(portable, runtime)
-    source = dict(runtime)
-    source = {n: v for n, v in source.items() if not n.startswith(("wheelhouse/", "locks/"))}
-    for directory in ("tests", "tools", "frontend", "collectors"):
-        for path in sorted((root / directory).rglob("*")):
-            if (
-                path.is_file()
-                and not path.is_symlink()
-                and not EXCLUDED_PARTS.intersection(path.relative_to(root).parts)
-            ):
-                if path.suffix in {".pyc", ".log"}:
-                    continue
-                source[path.relative_to(root).as_posix()] = path.read_bytes()
-    for name in (
-        "AGENTS.md",
-        "ARCHITECTURE.md",
-        "EVIDENCE_SCHEMA.md",
-        "METHODOLOGY_COVERAGE.md",
-        "IMPLEMENTATION_ROADMAP.md",
-        "TEST_PLAN.md",
-        "pyproject.toml",
-    ):
-        source[name] = (root / name).read_bytes()
-    source["SOURCE_README.txt"] = (
-        b"CloGCP source and synthetic tests. Portable ZIP supplies wheelhouse and locks "
-        b"for offline setup. Source is an uncommitted working-tree snapshot.\n"
-    )
-    source.pop("portable-manifest.json")
-    source["SOURCE_SHA256SUMS.txt"] = "".join(
-        f"{digest(v)}  {n}\n" for n, v in sorted(source.items())
-    ).encode()
-    write_zip(a.output / "CloGCP-source.zip", source)
-    files = {
-        p.name: {"sha256": digest(p.read_bytes()), "bytes": p.stat().st_size}
-        for p in (portable, a.output / "CloGCP-source.zip")
-    }
-    for name, entry in files.items():
-        (a.output / (name + ".sha256")).write_text(entry["sha256"] + "  " + name + "\n")
-    (a.output / "VERSION.json").write_text(
-        json.dumps({**metadata, "assets": files}, indent=2) + "\n"
-    )
-    (a.output / "APPLICATION_CHANGES.json").write_text(
-        json.dumps(sorted(set(changed)), indent=2) + "\n"
-    )
-    print(json.dumps({"source_snapshot": snapshot, "assets": files}, indent=2))
+    runtime["portable-manifest.json"] = json.dumps(manifest, indent=2).encode()
+    args.output.mkdir(parents=True, exist_ok=False)
+    write_zip(args.output / "CloGCP.zip", runtime)
+    # Source comes directly from this checkout, never a previous delivery archive.
+    source = {}
+    extra = {*ENTRY_FILES, "run-portable.py", "CloSec.cmd", "CloSec.command"}
+    for name in names:
+        if not name or not (allowed(name) or name in extra):
+            continue
+        path = ROOT / name
+        if not path.is_file() or path.is_symlink():
+            continue
+        source[name] = path.read_bytes()
+    source["SOURCE_BUILD.json"] = json.dumps(metadata, indent=2).encode()
+    write_zip(args.output / "CloGCP-source.zip", source)
+    print(json.dumps({**metadata, "runtime_members": len(runtime), "source_members": len(source)}))
 
 
 if __name__ == "__main__":

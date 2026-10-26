@@ -345,7 +345,7 @@ def follow_up(*items: str) -> tuple[str, ...]:
 R1_RULES = (
     Rule(
         "R1-EC2-SG-SENSITIVE-INGRESS",
-        "1.2.0",
+        "1.3.0",
         "AWS::EC2::SecurityGroup",
         "ec2:DescribeSecurityGroups",
         "Security group exposes sensitive ports to the internet on a public interface",
@@ -373,7 +373,7 @@ R1_RULES = (
     ),
     Rule(
         "R1-IAM-ROLE-TRUST-CONDITIONS",
-        "1.2.0",
+        "1.3.0",
         "AWS::IAM::Role",
         "iam:GetAccountAuthorizationDetails",
         "IAM role trusts another account without binding conditions",

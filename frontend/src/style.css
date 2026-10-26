@@ -2027,3 +2027,44 @@ button.link {
   gap: 6px;
   align-items: center;
 }
+
+/* Explicit truncation banner (Truncation.tsx): shown only when a limit dropped records. */
+.truncation-banner {
+  border: 1px solid var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning);
+  border-radius: 6px;
+  padding: 8px 12px;
+  margin: 8px 0;
+}
+.truncation-banner ul {
+  margin: 4px 0 0;
+  padding-left: 20px;
+}
+
+/* Bulk import and business-group shards */
+.bulk-import label,
+.shard-plan label {
+  display: block;
+  margin: 8px 0;
+}
+.bulk-import input:not([type="checkbox"]),
+.bulk-import textarea {
+  width: 100%;
+  max-width: 48rem;
+}
+.bulk-import label.inline {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.bulk-report table,
+.shard-plan table,
+.combined-view table {
+  margin-top: 8px;
+}
+.bulk-report .warning,
+.combined-view .warning {
+  color: var(--warning);
+  font-weight: 600;
+}
