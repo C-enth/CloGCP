@@ -14,6 +14,7 @@ from uuid import uuid4
 
 from offline_analyzer.ingestion.json_input import InputError
 from offline_analyzer.storage.store import (
+    CONNECTION_CONFIG,
     CONSOLIDATION_DDL,
     DDL,
     ENTERPRISE_DDL,
@@ -199,9 +200,25 @@ def recover_copy(source: Path, target: Path, *, upgrade_additive: bool = False) 
             raise InputError("WORKSPACE_COPY_VERIFICATION_FAILED")
         if before != file_inventory(source):
             raise InputError("SOURCE_WORKSPACE_CHANGED_DURING_COPY")
-        if upgrade_additive:
-            with Store(copied, _recover=False):
-                pass
+        if added:
+            # Windows denies copying a database held open by DuckDB. Back up the
+            # closed staged file first, then add only the known empty tables.
+            import duckdb
+
+            directory = copied / "schema-backups"
+            directory.mkdir(mode=0o700, exist_ok=True)
+            backup = directory / f"assessment-before-recovery-additive-{uuid4().hex}.duckdb"
+            shutil.copyfile(copied / "assessment.duckdb", backup)
+            if workspace_sha256(backup) != before["assessment.duckdb"]:
+                raise InputError("WORKSPACE_BACKUP_VERIFICATION_FAILED")
+            db = duckdb.connect(str(copied / "assessment.duckdb"), config=CONNECTION_CONFIG)
+            try:
+                db.execute("BEGIN TRANSACTION")
+                for sql in CONSOLIDATION_DDL:
+                    db.execute(sql)
+                db.execute("COMMIT")
+            finally:
+                db.close()  # Also rolls back an interrupted/failed transaction.
         after_tables = database_inventory(copied)
         if any(after_tables.get(name) != value for name, value in tables.items()) or any(
             after_tables[name]["rows"] != 0 for name in added

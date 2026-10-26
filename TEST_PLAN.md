@@ -793,3 +793,10 @@ check before release. The correction compares path snapshots with path snapshots
 handle snapshots with handle snapshots, retaining full-length and mutation checks.
 A regression simulates differing stable API identities. Local recovery/upgrade rerun:
 **18 passed, 1 native-junction skip**, 19.77 s. The Windows CI rerun validates the correction.
+
+The second Windows run passed all 18 hotfix cases and exposed the existing additive
+upgrade's attempt to copy a DuckDB file while its writer was open. Recovery now verifies
+a backup of the closed staged database before opening a transaction for the two empty
+additive tables. Store, ingestion, engine and reporting modules remain unchanged. The
+backup digest is asserted equal to the original database. Local rerun: **18 passed,
+1 native-junction skip**, 17.24 s. No failed candidate has been released.

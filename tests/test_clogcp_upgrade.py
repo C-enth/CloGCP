@@ -33,6 +33,12 @@ def test_previous_clogcp_schema_requires_explicit_verified_copy(tmp_path, monkey
     report = recover_copy(source, target, upgrade_additive=True)
     assert report["source_modified"] is False and report["records_migrated"] is False
     assert set(report["additive_tables_created_in_copy"]) == set(TABLES)
+    backups = [
+        digest
+        for name, digest in report["destination_files"].items()
+        if name.startswith("schema-backups/assessment-before-recovery-additive-")
+    ]
+    assert backups == [before["assessment.duckdb"]]
     assert before == file_inventory(source)
     assert tables == database_inventory(source)
     after = database_inventory(target)
