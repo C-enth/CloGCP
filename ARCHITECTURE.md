@@ -232,3 +232,9 @@ preflight is read-only and does not invoke implicit checkpoint/recovery/migratio
 explicit `side_by_side --upgrade-additive` command verifies a new workspace copy, creates
 only known missing empty consolidation tables there and checks every original row/hash.
 The original remains unchanged. Unknown schemas and pending journals stop for operator action.
+
+P0 recovery hotfix 0.8.5-clogcp.2 separates unbounded-total workspace integrity hashing
+(1 MiB reads) from bounded untrusted-ingestion hashing. A private destination-drive
+container holds unverified copies; the requested destination is published only after
+full file/table verification. Incomplete containers and descendants cannot be opened.
+No reasoning, reporting, evidence schema or runtime framework changes are introduced.

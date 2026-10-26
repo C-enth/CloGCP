@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.8.5-clogcp.2 — P0 recovery hotfix, 2026-10-26
+
+Dedicated streaming workspace SHA-256 removes the accidental ingestion-size cap from
+workspace inventory. Ingestion limits remain unchanged. Staged, disk-checked copying
+verifies all files and rows before publishing a destination, refuses unsafe links and
+incomplete containers, and retains historical recovery manifests. Engine/reporting
+source is unchanged. See [safe retry instructions](docs/clogcp/HOTFIX_0.8.5_2.md).
+
 ## 0.8.5-clogcp.1 — 2026-10-26
 
 Independent versioned attack-path recalculation; engine 2.0.1; preserved B1/B2 and review

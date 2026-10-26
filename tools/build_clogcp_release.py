@@ -12,7 +12,7 @@ from tools.portable_release import dependencies
 from tools.source_release import allowed, findings
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.5-clogcp.1"
+VERSION = "0.8.5-clogcp.2"
 ENTRY_FILES = (
     "CloGCP.cmd",
     "CloGCP.command",
@@ -84,7 +84,7 @@ def main() -> None:
     metadata = {
         "product": "CloGCP",
         "version": VERSION,
-        "application_version": "0.8.5rc1",
+        "application_version": "0.8.5rc2",
         "engine_version": "2.0.1",
         "git_revision": revision,
         "working_tree_modified": False,

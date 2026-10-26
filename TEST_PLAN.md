@@ -765,3 +765,25 @@ Imports were asserted to use extracted application and finalizer modules. Fresh 
 macOS x86_64 setup/pip check passed; packaged runtime/frontend identity is compatible.
 Standalone finalizer integrity and independent execution passed. All three package
 CRC/member digests and runtime-source byte equality passed. Native Windows remains pending.
+
+## P0 recovery hashing hotfix 0.8.5-clogcp.2
+
+Workspace inventory no longer calls the 64 MiB ingestion hasher. A dedicated helper
+reads all bytes in 1 MiB chunks. Ingestion, attack-path and reporting source remain
+unchanged. Recovery uses a private incomplete-marked staging container, disk-space
+preflight and full source/destination hash/table checks before publication. Historical
+recovery manifests are retained.
+
+Local targeted regression: **69 passed, 1 skipped** in 53.70 s. The skip requires native
+Windows junctions. Tests include an actual **67 MiB + 39 byte** synthetic file, unchanged
+ingestion rejection of that file, bounded-read instrumentation, preserved frozen B1/B2
+and all analyst/SRE/database rows, successful recovered-workspace API opening, KeyboardInterrupt,
+ENOSPC, corrupted destination, manifest write failure, hard process termination/retry,
+symlink/reparse/traversal refusal, low space and existing-destination preservation.
+Initial test-only fixture tail length/noqa formatting were corrected; product checks passed.
+The release includes additional exact-package and native Windows CI evidence when available.
+
+Version-bumped compiled browser workflow: **1 passed**, 32.27 s. It opens the recovered
+workspace, preserves frozen baseline/reviews, independently recalculates paths and exports
+through the existing workflow. Ruff lint/format and diff checks passed. Native Windows
+junction/recovery tests are provided in the pinned-action Windows CI workflow.

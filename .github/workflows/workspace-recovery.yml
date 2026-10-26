@@ -1,0 +1,42 @@
+name: Windows workspace recovery
+on:
+  push:
+    branches: [main]
+    paths:
+      - src/offline_analyzer/storage/side_by_side.py
+      - tests/test_workspace_recovery_hotfix.py
+      - tests/test_clogcp_upgrade.py
+      - .github/workflows/workspace-recovery.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  recovery:
+    runs-on: windows-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065
+        with:
+          python-version: '3.12'
+          architecture: x64
+      - name: Install bundled runtime dependencies and development test dependencies
+        shell: pwsh
+        run: |
+          $bundle = Join-Path $env:RUNNER_TEMP 'clogcp-runtime'
+          Expand-Archive -LiteralPath CloGCP.zip -DestinationPath $bundle
+          $wheels = Join-Path $bundle 'CloGCP\wheelhouse\windows-x64'
+          $lock = Join-Path $bundle 'CloGCP\locks\windows-x64.txt'
+          python -m pip install --no-index --only-binary=:all: --require-hashes --find-links $wheels -r $lock
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip install pytest==9.1.1 httpx==0.28.1
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python -m pip check
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Large files, interrupted copying, junctions and recovered workspace opening
+        shell: pwsh
+        env:
+          PYTHONPATH: src
+        run: python -m pytest -q tests/test_workspace_recovery_hotfix.py tests/test_clogcp_upgrade.py
