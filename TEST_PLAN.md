@@ -800,3 +800,11 @@ a backup of the closed staged database before opening a transaction for the two 
 additive tables. Store, ingestion, engine and reporting modules remain unchanged. The
 backup digest is asserted equal to the original database. Local rerun: **18 passed,
 1 native-junction skip**, 17.24 s. No failed candidate has been released.
+
+Final Windows CI: **19 passed**, 8.95 s, on native Windows CPython 3.12 x64:
+https://github.com/C-enth/CloGCP/actions/runs/40311957277
+Source commit: bd5693a66cfc8e5109a2ba3f90254d8a0bc3d549. Final local selected regression:
+**70 passed, 1 native-junction skip**, 51.53 s. Exact extracted-package tests: **63 passed,
+1 native-junction skip**, 57.29 s. Fresh offline macOS setup/pip check passed.
+All 43 schemas match; ingestion, Store, engine, reporting and mapping source are unchanged
+from v0.8.5-clogcp.1. Full native GUI/Excel/customer acceptance remain pending.

@@ -1,0 +1,32 @@
+{
+  "version": "0.8.5-clogcp.2",
+  "application_version": "0.8.5rc2",
+  "runtime_source_commit": "bd5693a66cfc8e5109a2ba3f90254d8a0bc3d549",
+  "application_sha256": "1b8eabf1b2410e75bb44e046c9974e58d0c1751c899acb1c984ef5e209a7d688",
+  "application_bytes": 63781657,
+  "windows_recovery": {
+    "status": "PASS",
+    "passed": 19,
+    "seconds": 8.95,
+    "url": "https://github.com/C-enth/CloGCP/actions/runs/40311957277"
+  },
+  "local_regression": {
+    "passed": 70,
+    "skipped_native_junction": 1,
+    "seconds": 51.53
+  },
+  "packaged_tests": {
+    "passed": 63,
+    "skipped_native_junction": 1,
+    "seconds": 57.29
+  },
+  "browser": {
+    "passed": 1,
+    "seconds": 32.27
+  },
+  "ingestion_engine_reporting_store_mappings_changed": false,
+  "previous_release": "v0.8.5-clogcp.1",
+  "previous_release_action": "PRESERVED",
+  "customer_data_included": false,
+  "full_windows_gui_excel_customer_acceptance": "PENDING"
+}
