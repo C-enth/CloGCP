@@ -21,6 +21,7 @@ def test_multicloud_operational_workflow(tmp_path):
     from playwright.sync_api import expect, sync_playwright
 
     from offline_analyzer.api.app import create_app
+    from offline_analyzer.reporting.gcp_register import AUDIT_SHEET
     from offline_analyzer.reporting.gcp_register import SHEETS as GCP_REGISTER_SHEETS
     from offline_analyzer.reporting.report_document import EXCEL_SHEETS
     from tools.fixtures.r12_demo import build as aws_build
@@ -210,7 +211,11 @@ def test_multicloud_operational_workflow(tmp_path):
                 assert not any(n.endswith(".pdf") for n in names)
                 assert "demo-alpha" in word_text(bundle.read(word))
                 report = load_workbook(io.BytesIO(bundle.read(book)), read_only=True)
-                assert report.sheetnames == [*EXCEL_SHEETS, *GCP_REGISTER_SHEETS]
+                # The review audit sheet follows the register once decisions are recorded.
+                assert report.sheetnames in (
+                    [*EXCEL_SHEETS, *GCP_REGISTER_SHEETS],
+                    [*EXCEL_SHEETS, *GCP_REGISTER_SHEETS, AUDIT_SHEET],
+                )
                 report.close()
             page.get_by_role("button", name="Export all approved findings (Word DOCX)").click()
             rtf_row = page.locator("tr").filter(has_text="CloSec-assessment-approved-docx.docx")

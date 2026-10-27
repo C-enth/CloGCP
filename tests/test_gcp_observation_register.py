@@ -16,6 +16,7 @@ from offline_analyzer.ingestion.importer import import_package
 from offline_analyzer.reporting.assessment_report import export_assessment, model
 from offline_analyzer.reporting.excel import export_excel
 from offline_analyzer.reporting.gcp_register import (
+    AUDIT_SHEET,
     COLUMNS,
     PENDING,
     SHEETS,
@@ -65,6 +66,11 @@ def database_digest(store):
     return hashlib.sha256(json.dumps(payload, default=str, sort_keys=True).encode()).hexdigest()
 
 
+def register_tail(names):
+    """The register sheets end the workbook; the audit sheet follows only recorded decisions."""
+    return names[-3:] == list(SHEETS) or names[-4:] == [*SHEETS, AUDIT_SHEET]
+
+
 def values(ws):
     return list(ws.iter_rows(values_only=True))
 
@@ -83,7 +89,8 @@ def test_exact_contract_and_traceability_and_read_only(estate, tmp_path):
     path = tmp_path / "register.xlsx"
     wb.save(path)
     saved = load_workbook(path)
-    assert saved.sheetnames == list(SHEETS)
+    # Recorded decisions exist, so the review audit sheet follows the three register sheets.
+    assert saved.sheetnames == [*SHEETS, AUDIT_SHEET]
     register, index, details = [saved[s] for s in SHEETS]
     # Owner-provided contract independently pinned in exact order.
     expected = (
@@ -108,8 +115,14 @@ def test_exact_contract_and_traceability_and_read_only(estate, tmp_path):
     records = {r[0]: dict(zip(COLUMNS, r, strict=True)) for r in values(register)[1:]}
     assert records[reviewed.finding_id][COLUMNS[4]] == reviewed.suggested_severity
     assert records[reviewed.finding_id][COLUMNS[9]] == reviewed.finding_class
-    assert records[reviewed.finding_id][COLUMNS[34]] == "GAP_CONFIRMED"
-    assert records[reviewed.finding_id][COLUMNS[37]] == "Reviewer"
+    # Owner rule: SPOC, reviewer and review-date cells stay blank for the analyst; the
+    # recorded tool decisions move to the audit sheet unchanged.
+    for column in (33, 34, 35, 37, 38):
+        assert records[reviewed.finding_id][COLUMNS[column]] in (None, "")
+    audit = {r[0]: r for r in values(saved[AUDIT_SHEET])[1:]}
+    assert audit[reviewed.finding_id][2] == "Reviewer"
+    assert audit[reviewed.finding_id][5] == "GAP_CONFIRMED"
+    assert audit[reviewed.finding_id][6] == "Synthetic response"
     assert records[reviewed.finding_id][COLUMNS[31]] is True
     assert any(r[COLUMNS[39]] == PENDING for r in records.values())
     assert any(r[COLUMNS[9]] == "Evidence limitation" for r in records.values())
@@ -165,7 +178,7 @@ def test_existing_sheets_and_aws_unchanged(estate, tmp_path):
                 # Creation timestamps are the only nondeterministic workbook property.
                 assert all(a.read(n) == b.read(n) for n in a.namelist() if n != "docProps/core.xml")
         else:
-            assert right.sheetnames[-3:] == list(SHEETS)
+            assert register_tail(right.sheetnames)
     # Full report-center Excel still works; AWS-only retains the established sheet contract.
     for single, gcp in ((runs[0], True), (runs[2], False)):
         target = tmp_path / f"full-{gcp}.xlsx"
@@ -183,7 +196,7 @@ def test_scoped_assessment_export(estate, tmp_path):
     with zipfile.ZipFile(target) as archive:
         name = next(n for n in archive.namelist() if n.endswith(".xlsx"))
         workbook = load_workbook(io.BytesIO(archive.read(name)))
-    assert workbook.sheetnames[-3:] == list(SHEETS)
+    assert register_tail(workbook.sheetnames)
     assert {r[2] for r in values(workbook[SHEETS[0]])[1:]} == {"demo-alpha"}
     assert {r[2] for r in values(workbook[SHEETS[1]])[1:]} == {"demo-alpha"}
 

@@ -895,6 +895,7 @@ def _export_excel(store, run_id, output, wb, account_keys, progress) -> Path:
             "GCP_Observation_Register",
             "GCP_Evidence_Index",
             "GCP_Evidence_Details",
+            "GCP_Review_Audit",
         }:
             continue
         worksheet.auto_filter.ref = (

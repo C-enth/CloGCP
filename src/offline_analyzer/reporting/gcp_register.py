@@ -19,11 +19,14 @@ from openpyxl.worksheet.table import Table, TableColumn, TableStyleInfo
 from offline_analyzer.contracts.r0 import stable_id
 from offline_analyzer.findings.detail import _masked
 from offline_analyzer.findings.exclusions import excluded
+from offline_analyzer.findings.explanations import explain
 from offline_analyzer.findings.groups import group_key
+from offline_analyzer.findings.recommendations import recommendation
 from offline_analyzer.findings.sre import latest_sre, review_state
 from offline_analyzer.ingestion.json_input import MAX_BYTES, InputError
 from offline_analyzer.ingestion.safety import excel_literal, resolve_under
 from offline_analyzer.provenance.execution import checkpoint
+from offline_analyzer.reporting.coverage_reasons import reason_text, source_category
 
 COLUMNS = (
     "Record ID (internal)",
@@ -68,6 +71,20 @@ COLUMNS = (
     "Final review conclusion (automatic)",
 )
 SHEETS = ("GCP_Observation_Register", "GCP_Evidence_Index", "GCP_Evidence_Details")
+# Analyst and SPOC columns stay blank for the reviewer; recorded tool decisions are kept here.
+AUDIT_SHEET = "GCP_Review_Audit"
+AUDIT_COLUMNS = (
+    "Record ID",
+    "Recorded analyst status",
+    "Recorded analyst",
+    "Analyst decision time",
+    "Analyst note",
+    "Recorded SRE verdict",
+    "SRE reason",
+    "SRE contact",
+    "SRE recorded time",
+)
+CITED = re.compile(r"(roles/[A-Za-z0-9_.]+) -> ([^\s;,()]+)")
 INDEX_COLUMNS = (
     "Evidence mapping ID",
     "Record ID",
@@ -201,7 +218,7 @@ def build(
     One row per stored candidate; evaluations without a candidate remain observations or
     evidence limitations. Excluded findings and their evaluations stay excluded.
     """
-    empty: dict = {"register": [], "index": [], "details": []}
+    empty: dict = {"register": [], "index": [], "details": [], "audit": []}
     if provider == "AWS":
         return empty
     store.require_run(run)
@@ -230,6 +247,10 @@ def build(
         groups[group_key(finding)].append(finding.finding_id)
     decisions, sre = store.latest_decisions(run), latest_sre(store, run)
     revisions = _revisions(store, run, decisions)
+    engine = _engine_levels(store, run)
+    titles = {}
+    for finding in visible:
+        titles.setdefault(group_key(finding), finding.title)
     records = []
     for finding in visible:
         evaluations = by_key[(finding.rule_id, finding.resource_id)]
@@ -237,6 +258,8 @@ def build(
         decision, response = decisions.get(finding.finding_id), sre.get(finding.finding_id)
         report = reported.get(finding.finding_id, {})
         revision = revisions.get(finding.finding_id)
+        explanation = explain(finding)
+        members = groups[group_key(finding)]
         records.append(
             {
                 "id": finding.finding_id,
@@ -263,8 +286,13 @@ def build(
                         {v for r in evaluations for v in source_results.get(r.evaluation_id, [])}
                     )
                 ),
-                "related": [i for i in groups[group_key(finding)] if i != finding.finding_id],
+                "related": [i for i in members if i != finding.finding_id],
                 "group": stable_id("finding-group", list(group_key(finding))),
+                "group_title": f"{titles[group_key(finding)]} ({len(members)} records)",
+                "group_size": len(members),
+                "expected": recommendation(finding.rule_id).get("expected_posture"),
+                "scenario": explanation["misuse"],
+                "engine": engine.get(finding.finding_id, []),
                 "shown": bool(report) if data is not None else True,
                 "status": status,
                 "stage": stage,
@@ -296,6 +324,7 @@ def build(
                     *result.evidence_needed,
                     *result.limitations,
                 ],
+                "expected": recommendation(result.rule_id).get("expected_posture"),
                 "refs": result.evidence,
                 "outcome": str(result.outcome),
                 "source_result": _text(source_results.get(result.evaluation_id, [])),
@@ -406,14 +435,70 @@ def _source_results(store: Any, run: str, results: list) -> dict:
     }
 
 
+def _engine_levels(store: Any, run: str) -> dict[str, list[str]]:
+    """Latest engine 2.0.1 class per original finding; empty before any recalculation."""
+    from offline_analyzer.attack_paths.versioned import latest
+
+    try:
+        paths = latest(store.workspace, run)["paths"]
+    except (OSError, ValueError, KeyError, TypeError, InputError):
+        return {}
+    found = defaultdict(list)
+    for path in paths:
+        for fid in path.get("original_finding_ids") or []:
+            found[fid].append(f"{path.get('classification')}: {path.get('path_id')}")
+    return {k: sorted(v) for k, v in found.items()}
+
+
+def _focus(node: Any, text: str) -> Any:
+    """Only the allow bindings a record cites (role -> member); others are counted, not shown.
+
+    Uncited or non-policy evidence is returned unchanged, so nothing is hidden by guesswork.
+    The complete redacted excerpt always remains in GCP_Evidence_Details.
+    """
+    pairs = {(role, member.split("?", 1)[0]) for role, member in CITED.findall(text or "")}
+    if not pairs or not isinstance(node, dict):
+        return node
+    holder = node.get("policy") if isinstance(node.get("policy"), dict) else node
+    bindings = holder.get("bindings")
+    if not isinstance(bindings, list):
+        return node
+    kept, total = [], 0
+    for binding in bindings:
+        if not isinstance(binding, dict) or not isinstance(binding.get("members"), list):
+            continue
+        total += len(binding["members"])
+        cited = [
+            m
+            for m in binding["members"]
+            if isinstance(m, str) and (binding.get("role"), m.split("?", 1)[0]) in pairs
+        ]
+        if cited:
+            kept.append({**binding, "members": cited})
+    if not kept:
+        return node
+    focused = {k: node[k] for k in ("resource", "assetType", "name", "subject") if k in node}
+    focused["bindings"] = kept
+    shown = sum(len(b["members"]) for b in kept)
+    if total > shown:
+        focused["omitted"] = f"{total - shown} other members; see {SHEETS[2]}"
+    return focused
+
+
+def _unique(values) -> list[str]:
+    return list(dict.fromkeys(str(v) for v in values if v))
+
+
 def _record(output: dict, record: dict, sequence: int, lookup: EvidenceLookup, paths: list) -> None:
-    references, snippets, statuses, limits, operations = (
+    references, snippets, statuses, quality, operations = (
         [],
         [],
         [],
-        list(record.get("limits", [])),
+        [],
         list(record.get("operations", [])),
     )
+    # Rule-declared unresolved dependencies: what the evidence does not establish.
+    unestablished = _unique(record.get("limits", []))
     first_index = len(output["index"]) + 2
     for ref in sorted(set(record["refs"]), key=lambda r: (r.artifact_id, r.locator)):
         checkpoint()
@@ -431,16 +516,21 @@ def _record(output: dict, record: dict, sequence: int, lookup: EvidenceLookup, p
             if failed
             else lookup.excerpt(ref.artifact_id, ref.locator)
         )
-        if limitation:
-            limits.append(limitation)
-        limits.extend(metadata.get("completeness_limitations") or [])
-        limits.extend(source.get("limitations") or [])
+        # Collection coverage reasons: evidence limits and data quality.
+        quality.append(limitation)
+        quality.append(
+            reason_text(source_category(source), metadata.get("completeness_limitations"))
+        )
+        quality.extend(source.get("limitations") or [])
         status = source.get("effective_coverage") or "Unrecorded collection status"
         statuses.append(status)
         operations.append(source.get("operation") or "")
         references.append(reference)
         if snippet:
-            compact = json.dumps(json.loads(snippet), ensure_ascii=True, separators=(",", ":"))
+            focused = _focus(
+                json.loads(snippet), " ".join(_text(record.get(k)) for k in ("reason", "title"))
+            )
+            compact = json.dumps(focused, ensure_ascii=True, separators=(",", ":"))
             snippets.append(f"{ref.locator or '(root)'}: {compact}")
         detail_row, index_row = len(output["details"]) + 2, len(output["index"]) + 2
         output["index"].append(
@@ -478,7 +568,8 @@ def _record(output: dict, record: dict, sequence: int, lookup: EvidenceLookup, p
                 ]
             )
     if not record["refs"]:
-        limits.append("No source evidence reference recorded; original configuration unavailable.")
+        quality.append("No source evidence reference recorded; original configuration unavailable.")
+    quality = _unique(quality)
     # Main-sheet snippets are explicitly excerpts, never evidence-completeness status.
     actual = "\n".join(snippets)
     if len(actual) > 600:
@@ -490,8 +581,9 @@ def _record(output: dict, record: dict, sequence: int, lookup: EvidenceLookup, p
     revision = record.get("revision")
     risk = revision.risk_acceptance if revision else None
     outcome = record.get("outcome", "")
-    path_levels = [
-        f"{p.get('id', '')}: {p.get('feasibility', '')}"
+    # Engine 2.0.1 classes when a recalculation exists; legacy projections are labelled.
+    path_levels = [f"Engine 2.0.1 {level}" for level in record.get("engine", [])] or [
+        f"Legacy projection (not engine 2.0.1) {p.get('id', '')}: {p.get('feasibility', '')}"
         for p in paths
         if record["id"] in p.get("finding_ids", [])
     ]
@@ -508,39 +600,55 @@ def _record(output: dict, record: dict, sequence: int, lookup: EvidenceLookup, p
         record["type"],
         actual or "Original configuration unavailable; see evidence limitations.",
         ("; ".join(references), f"'{SHEETS[1]}'!B{first_index}") if references else "",
-        revision.sections.expected_posture if revision else record.get("control"),
+        revision.sections.expected_posture
+        if revision
+        else record.get("expected") or record.get("control"),
         _text(sorted(set(statuses))) or "Source evidence unavailable",
-        _text(limits),
-        revision.sections.attack_scenario if revision else "",
+        _text(unestablished) or "No unresolved dependency recorded by the rule.",
+        revision.sections.attack_scenario if revision else record.get("scenario", ""),
         _text(record.get("conditions")),
         record.get("source_result"),
         _text([record.get("domain"), "GCP", *sorted(set(operations))]),
         record.get("control"),
         "CLI/API configuration" if snippets else "Evidence unavailable",
-        _text(limits),
+        _text(quality) or "No collection limitation recorded for the cited sources.",
         _text([record.get("reason"), decision.note if decision else ""]),
         _text(record.get("related")),
         _text(path_levels),
         outcome,
         sequence,
         record.get("resource"),
-        record.get("group"),
+        record.get("group_title") or record.get("group"),
         f"Approved by {risk.reviewer} at {risk.approved_at.isoformat()}: {risk.rationale}"
         if risk
         else PENDING,
         revision.include_in_report if revision else PENDING,
         bool(record.get("shown")),
-        1,
+        record.get("group_size", 1),
         "",
-        response.verdict if response else PENDING,
-        response.reason if response else "",
+        "",
+        "",
         _text(revision.sections.references) if revision else "",
-        decision.analyst if decision else "",
-        decision.decided_at.isoformat() if decision else "",
+        "",
+        "",
         _text([record.get("status"), record.get("stage")]) if decision else PENDING,
     ]
     assert len(row) == len(COLUMNS) == 40
     output["register"].append(row)
+    if decision or response:
+        output["audit"].append(
+            [
+                record["id"],
+                record.get("status") or "",
+                decision.analyst if decision else "",
+                decision.decided_at.isoformat() if decision else "",
+                decision.note if decision else "",
+                response.verdict if response else "",
+                response.reason if response else "",
+                getattr(response, "sre_contact", "") if response else "",
+                response.recorded_at.isoformat() if response else "",
+            ]
+        )
 
 
 def _parts(text: str) -> list[str]:
@@ -561,11 +669,12 @@ def add_sheets(workbook: Any, payload: dict) -> None:
     """Native tables, literal strings and internal hyperlinks; existing sheets untouched."""
     if not payload["register"]:
         return
+    audit = payload.get("audit") or []
     for name, headers, rows in zip(
-        SHEETS,
-        (COLUMNS, INDEX_COLUMNS, DETAIL_COLUMNS),
-        (payload["register"], payload["index"], payload["details"]),
-        strict=True,
+        (*SHEETS, AUDIT_SHEET)[: 4 if audit else 3],
+        (COLUMNS, INDEX_COLUMNS, DETAIL_COLUMNS, AUDIT_COLUMNS),
+        (payload["register"], payload["index"], payload["details"], audit),
+        strict=False,
     ):
         if len(rows) > 1_048_575:
             raise InputError("GCP_REGISTER_EXCEL_ROW_LIMIT")

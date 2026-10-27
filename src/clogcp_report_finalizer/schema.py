@@ -45,4 +45,4 @@ COLUMNS = (
 
 REGISTER = "GCP_Observation_Register"
 CLIENT_REGISTER = "Client_Observation_Register"
-VERSION = "1.0.0rc1"
+VERSION = "1.0.0rc2"

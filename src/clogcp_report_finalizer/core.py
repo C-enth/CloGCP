@@ -213,6 +213,24 @@ def _qa(
                 "MISSING_REVIEW",
                 "No complete assessor review record was exported. No approval has been invented.",
             )
+        if "MANUAL_VALIDATION_REQUIRED" in str(row.get(COLUMNS[25]) or "").upper():
+            add(
+                record,
+                "MANUAL_VALIDATION_ITEM",
+                "The source result requires manual validation; it is not a confirmed gap or Pass.",
+            )
+        prefilled = [
+            COLUMNS[i]
+            for i in (34, 35, 37, 38)
+            if row.get(COLUMNS[i]) and "pending" not in str(row.get(COLUMNS[i])).lower()
+        ]
+        if prefilled:
+            add(
+                record,
+                "PREFILLED_REVIEW_FIELDS",
+                "Reviewer/SPOC cells were filled by an earlier export from recorded tool "
+                "decisions: " + ", ".join(prefilled) + ". Confirm or clear them for the analyst.",
+            )
         if text["verification"].startswith("Verification procedure required"):
             add(record, "MISSING_VERIFICATION", text["verification"])
         if "PROVEN" in str(row.get(COLUMNS[24]) or "").upper():
