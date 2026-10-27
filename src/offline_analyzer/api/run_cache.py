@@ -1,13 +1,14 @@
 """Per-run cache of derived API views (dashboard, attack paths), invalidated by state.
 
 A cached value is reused only while the run's state stamp is unchanged. The stamp combines
-the row counts of every table an analyst action or assessment writes (decisions, exclusions,
-path reviews, report revisions, SRE validations including severity overrides, limitations,
-finalized editions, retired runs, labels, enterprise issue reviews), the run's evaluation and
-finding counts and assessment time, the account-registry file and the coordinator's job
-generation (any finished job, including re-assessment). Any decision, exclusion, path review,
-report revision, severity override or re-assessment therefore changes the stamp; computing
-it costs a handful of COUNT queries. The cache holds derived views only, never evidence.
+the row count and content checksum of every table an analyst action or assessment writes
+(decisions, exclusions, path reviews, report revisions, SRE validations including severity
+overrides, limitations, finalized editions, retired runs, labels, enterprise issue reviews),
+the run's evaluation and finding counts and assessment time, the account-registry file and
+the coordinator's generation (any finished job, including re-assessment, or exclusive
+operation). Any decision, exclusion, path review, report revision, severity override, label
+change or re-assessment therefore changes the stamp; computing it costs a handful of
+aggregate queries. The cache holds derived views only, never evidence.
 """
 
 from collections import OrderedDict
@@ -32,7 +33,15 @@ LIMIT = 64
 def stamp(store, run: str, generation) -> tuple:
     parts = [generation]
     for table in MUTABLE_TABLES:
-        parts.append(store.db.execute(f"SELECT count(*) FROM {table}").fetchone()[0])
+        # Row count plus a content checksum: an in-place upsert (scope labels) or a delete
+        # followed by an insert changes the stamp even when the count does not.
+        parts.append(
+            tuple(
+                store.db.execute(
+                    f'SELECT count(*), sum(hash("{table}")::HUGEINT) FROM "{table}"'
+                ).fetchone()
+            )
+        )
     for table in ("evaluations", "findings"):
         parts.append(
             store.db.execute(f"SELECT count(*) FROM {table} WHERE run_id=?", [run]).fetchone()[0]

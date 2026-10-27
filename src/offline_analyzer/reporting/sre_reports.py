@@ -286,8 +286,10 @@ def sre_workbooks_zip(store, run: str, provider: str = "") -> bytes:
     return buffer.getvalue()
 
 
-def finalized(store, run: str, provider: str = "", scope: str = "") -> dict:
-    """Confirmed vulnerabilities, consolidated, with the attack paths that involve them."""
+def finalized(store, run: str, provider: str = "", scope: str = "", paths=None) -> dict:
+    """Confirmed vulnerabilities, consolidated, with the attack paths that involve them.
+
+    `paths`: optional callable returning attack_paths(store, run) for this run state."""
     from offline_analyzer.attack_paths.diagram import diagram, diagram_text
     from offline_analyzer.attack_paths.feasibility import attack_paths
     from offline_analyzer.findings.finalisation import filtered, frozen
@@ -302,9 +304,10 @@ def finalized(store, run: str, provider: str = "", scope: str = "") -> dict:
         if r["stage"] == "CONFIRMED_VULNERABILITY" and (not scope or r["scope"] == scope)
     ]
     ids = {r["id"] for r in confirmed}
+    # Building every attack path is the costliest part; with nothing confirmed none can match.
     paths = [
         p
-        for p in attack_paths(store, run)["items"]
+        for p in ((paths() if paths else attack_paths(store, run))["items"] if ids else [])
         if ids & set(p.get("finding_ids") or [])
         and not p.get("excluded_dependency")
         and (not provider or p["provider"] == provider)

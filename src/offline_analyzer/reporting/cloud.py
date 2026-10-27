@@ -171,7 +171,8 @@ def methodology_matrix() -> dict:
     }
 
 
-def dashboard(store, run: str, provider: str = "Consolidated") -> dict:
+def dashboard(store, run: str, provider: str = "Consolidated", paths=None) -> dict:
+    """`paths`: optional callable returning attack_paths(store, run) for this run state."""
     store.require_run(run)
     providers = ("AWS", "GCP") if provider == "Consolidated" else (provider,)
     all_sources = list(store.source_data(run))
@@ -194,6 +195,12 @@ def dashboard(store, run: str, provider: str = "Consolidated") -> dict:
     package = json.loads(
         store.db.execute("SELECT package FROM runs WHERE run_id=?", [run]).fetchone()[0]
     )
+    # Decode every evaluation and candidate once for both providers; first rule wins on ID.
+    all_results = list(store.results(run))
+    all_candidates = list(store.candidates(run))
+    rules_by_id: dict = {}
+    for r in PROVIDER_RULES:
+        rules_by_id.setdefault(r.rule_id, r)
     for p in ("AWS", "GCP"):
         sources = [
             s for s in all_sources if ("GCP" if s["format"] == "gcp-json-v1" else "AWS") == p
@@ -229,13 +236,13 @@ def dashboard(store, run: str, provider: str = "Consolidated") -> dict:
                     domain(r.domain),
                     {"domain": domain(r.domain), "AWS": Counter(), "GCP": Counter()},
                 )[p]["implemented_checks"] += 1
-        for result in store.results(run):
+        for result in all_results:
             if result.provider != p:
                 continue
             outcomes[str(result.outcome)] += 1
             if result.evaluation_scope == "RESOURCE":
                 evaluated_scopes.add(result.project_id if p == "GCP" else result.account_id)
-            rule = next((r for r in PROVIDER_RULES if r.rule_id == result.rule_id), None)
+            rule = rules_by_id.get(result.rule_id)
             if rule:
                 row = matrix[domain(rule.domain)][p]
                 row["evaluations"] += 1
@@ -248,7 +255,7 @@ def dashboard(store, run: str, provider: str = "Consolidated") -> dict:
                     result.evaluation_scope == "RESOURCE" and str(result.outcome) == "UNKNOWN"
                 )
         findings = excluded_findings = 0
-        for finding in store.candidates(run):
+        for finding in all_candidates:
             if finding.provider != p:
                 continue
             if finding.finding_id in hidden:
@@ -351,11 +358,11 @@ def dashboard(store, run: str, provider: str = "Consolidated") -> dict:
     # Paths that depend on an excluded finding are not counted (they stay listed, flagged).
     paths = [
         p
-        for p in attack_paths(store, run)["items"]
+        for p in (paths() if paths else attack_paths(store, run))["items"]
         if p["provider"] in providers and not p.get("excluded_dependency")
     ]
     stride = []
-    results = list(store.results(run))
+    results = all_results
     for category in STRIDE_CATEGORIES:
         linked_rules = {
             r.rule_id

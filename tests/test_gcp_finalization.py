@@ -260,3 +260,51 @@ def test_finalizer_lists_manual_validation_and_prefilled_review_cells(tmp_path):
     source.close()
     assert manual and categories["MANUAL_VALIDATION_ITEM"] == manual
     assert prefilled and categories["PREFILLED_REVIEW_FIELDS"] == prefilled
+
+
+# ------------------------------------------------------------------- view cache freshness
+
+
+def test_cached_views_follow_every_analyst_write(tmp_path):
+    from fastapi.testclient import TestClient
+
+    from offline_analyzer.api.app import create_app
+    from tests.test_api import ORIGIN, TOKEN, authenticated
+
+    work = tmp_path / "work"
+    with Store(work) as store:
+        run_id = assess_enterprise(store, [import_package(store, gcp_build(tmp_path / "a"))])
+        finding = next(f for f in store.candidates(run_id) if f.provider == "GCP").finding_id
+    with TestClient(create_app(work, origin=ORIGIN, bootstrap=TOKEN), base_url=ORIGIN) as client:
+        headers = authenticated(client)
+
+        def view():
+            data = client.get(
+                f"/api/runs/{run_id}/cloud/dashboard?provider=GCP", headers=headers
+            ).json()["providers"]["GCP"]
+            return data["confirmed_findings"], data["excluded_findings"]
+
+        assert view() == view() == (0, 0)  # second request is served from the cache
+        client.post(
+            f"/api/runs/{run_id}/review/{finding}",
+            json={"status": "CONFIRMED", "analyst": "Synthetic", "note": "n"},
+            headers=headers,
+        ).raise_for_status()
+        assert view() == (1, 0)
+        exclusion = {"action": "EXCLUDE", "reason": "DUPLICATE", "analyst": "Synthetic"}
+        client.post(
+            f"/api/runs/{run_id}/exclusions/{finding}", json=exclusion, headers=headers
+        ).raise_for_status()
+        assert view() == (0, 1)
+        exclusion = {"action": "RESTORE", "analyst": "Synthetic"}
+        client.post(
+            f"/api/runs/{run_id}/exclusions/{finding}", json=exclusion, headers=headers
+        ).raise_for_status()
+        assert view() == (1, 0)
+        finalized_view = client.get(f"/api/runs/{run_id}/finalized", headers=headers).json()
+        paths = client.get(f"/api/runs/{run_id}/cloud/paths", headers=headers).json()
+        # Callers receive private copies: decorating one response never alters the cache.
+        paths["items"].append({"tampered": True})
+        again = client.get(f"/api/runs/{run_id}/cloud/paths", headers=headers).json()
+        assert {"tampered": True} not in again["items"]
+        assert finalized_view == client.get(f"/api/runs/{run_id}/finalized", headers=headers).json()

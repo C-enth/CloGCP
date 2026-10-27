@@ -34,6 +34,7 @@ class Coordinator:
         self.identity_details: dict[str, dict[str, str]] = {}
         self.lock = Lock()
         self.running: str | None = None
+        self.exclusive_runs = 0
         self.closing = False
         self.stopped = Event()
         self.monitor = Thread(target=self._heartbeat, daemon=True, name="closec-job-heartbeat")
@@ -67,7 +68,28 @@ class Coordinator:
         with self.lock:
             if self.running and self.jobs[self.running]["status"] == "RUNNING":
                 raise InputError("WORKSPACE_OPERATION_IN_PROGRESS")
-        return await asyncio.wrap_future(self.executor.submit(action))
+        try:
+            return await asyncio.wrap_future(self.executor.submit(action))
+        finally:
+            with self.lock:
+                self.exclusive_runs += 1
+
+    @property
+    def generation(self) -> tuple:
+        """Changes when any job reaches a final state or an exclusive operation ends, so
+        derived-view caches never outlive work done outside ordinary analyst writes."""
+        with self.lock:
+            finished = sorted(
+                (job_id, job["status"])
+                for job_id, job in self.jobs.items()
+                if job["status"] not in ACTIVE
+            )
+            return self.exclusive_runs, len(finished), hash(tuple(finished))
+
+    @property
+    def job_running(self) -> bool:
+        with self.lock:
+            return bool(self.running and self.jobs[self.running]["status"] == "RUNNING")
 
     def _heartbeat(self):
         while not self.stopped.wait(1):

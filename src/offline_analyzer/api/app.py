@@ -165,6 +165,24 @@ def create_app(
     from offline_analyzer.api.runtime import RuntimeIdentity
 
     runtime = RuntimeIdentity()
+    from copy import deepcopy
+
+    from offline_analyzer.api.run_cache import RunCache
+
+    cache = RunCache()
+
+    def cached(store, run: str, name: tuple, compute):
+        """A private copy of a state-stamped derived view; callers may modify it."""
+        return deepcopy(
+            cache.get(store, run, name, compute, coordinator.generation, coordinator.job_running)
+        )
+
+    def shared_paths(store, run: str) -> dict:
+        """All attack paths of a run, built once per state for every view that needs them."""
+        from offline_analyzer.attack_paths.feasibility import attack_paths
+
+        return cached(store, run, ("attack-paths", ""), lambda: attack_paths(store, run))
+
     # Opening a selected workspace never removes historical or interrupted artifacts.
     views = Views(workspace)
     enterprise = EnterpriseViews()
@@ -882,7 +900,14 @@ def create_app(
             raise InputError("INVALID_PROVIDER")
         from offline_analyzer.reporting.cloud import dashboard
 
-        return await coordinator.call(lambda store: dashboard(store, run, provider))
+        return await coordinator.call(
+            lambda store: cached(
+                store,
+                run,
+                ("cloud-dashboard", provider),
+                lambda: dashboard(store, run, provider, lambda: shared_paths(store, run)),
+            )
+        )
 
     @app.get("/api/runs/{run}/cloud/relationships")
     async def cloud_relationships(run: str, project: str = "", limit: int = 200):
@@ -914,7 +939,9 @@ def create_app(
         def execute(store):
             from offline_analyzer.reporting.gcp_feed import frozen_paths, linked, summary
 
-            result = attack_paths(store, run, project)
+            result = cached(
+                store, run, ("attack-paths", project), lambda: attack_paths(store, run, project)
+            )
             for path in result["items"]:
                 path["diagram"] = diagram(path)
             record = linked(store, run)
@@ -1325,7 +1352,14 @@ def create_app(
 
         if provider not in {"", "AWS", "GCP"} or len(scope) > 200:
             raise InputError("INVALID_PROVIDER")
-        return await coordinator.call(lambda store: build(store, run, provider, scope))
+        return await coordinator.call(
+            lambda store: cached(
+                store,
+                run,
+                ("finalized", provider, scope),
+                lambda: build(store, run, provider, scope, lambda: shared_paths(store, run)),
+            )
+        )
 
     class FreezeBody(Body):
         confirmed: bool = False
