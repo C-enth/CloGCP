@@ -19,6 +19,7 @@ from offline_analyzer.attack_paths.prerequisites import path_records
 from offline_analyzer.correlation.prowler import MAPPINGS
 from offline_analyzer.findings.explanations import explain
 from offline_analyzer.findings.generate import validation_status
+from offline_analyzer.findings.location import display_region
 from offline_analyzer.ingestion.json_input import InputError
 from offline_analyzer.ingestion.safety import excel_literal
 from offline_analyzer.inventory.accounts import workspace_registry
@@ -420,7 +421,7 @@ def _export_excel(store, run_id, output, wb, account_keys, progress) -> Path:
             finding.title,
             finding.security_domain,
             finding.account_id,
-            finding.region,
+            display_region(finding.region),
             finding.resource_id,
             finding.native_id,
             finding.rule_id,
@@ -463,7 +464,7 @@ def _export_excel(store, run_id, output, wb, account_keys, progress) -> Path:
                     "candidate",
                     finding.finding_id,
                     finding.account_id,
-                    finding.region,
+                    display_region(finding.region),
                     finding.native_id,
                     status,
                     finding.technical_observation,

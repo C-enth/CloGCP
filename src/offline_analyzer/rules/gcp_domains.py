@@ -278,7 +278,12 @@ def serverless_public(obs: Normalized, context: Sequence[Normalized]) -> Verdict
     disabled = c.get(
         "invokerIamDisabled", annotations.get("run.googleapis.com/invoker-iam-disabled")
     )
-    if disabled not in (None, True, False, "true", "false"):
+    # Only JSON booleans or their string forms; 1/0 compare equal to True/False in Python.
+    if (
+        disabled is not None
+        and not isinstance(disabled, bool)
+        and disabled not in ("true", "false")
+    ):
         return unknown("Boolean invoker IAM check configuration")
     subject = canonical(obs.native_id)
     allowed_roles = {"roles/run.invoker"}

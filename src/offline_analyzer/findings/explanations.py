@@ -8,7 +8,7 @@ never evidence that misuse or exploitation happened.
 
 from offline_analyzer.findings.recommendations import recommendation
 
-VERSION = "finding-explanations-1.0.0"
+VERSION = "finding-explanations-1.1.0"
 MISUSE_QUALIFIER = "Potential misuse; not demonstrated by configuration evidence."
 
 MISUSE = {
@@ -163,9 +163,10 @@ MISUSE = {
         "misused depends on the reported category shown in the finding evidence."
     ),
     "GCP-ORG-PUBLIC-SERVERLESS": (
-        "Anyone on the internet can call the service without authentication, so any flaw in "
-        "its code, or any action it performs with its runtime identity, is exposed to "
-        "everyone; it can also be called repeatedly to run up cost."
+        "If ingress and any frontend admit the request, a caller needs no Google identity to "
+        "invoke the service; what the caller can then do depends on the application's own "
+        "authorization. Invocation does not hand over the runtime identity, and the binding "
+        "alone does not establish internet reachability."
     ),
     "GCP-ORG-PUBLIC-DATA": (
         "Anyone on the internet, or any Google account, can read and, depending on the role, "
@@ -375,6 +376,59 @@ IMPACT = {
 }
 
 
+# Misuse scenario per GCP domain rule family. Kept distinct from the rule's risk statement,
+# which is the impact, so a finding never repeats one sentence under two headings.
+DOMAIN_SCENARIO = {
+    "Kubernetes": (
+        "A caller holding cluster credentials, or code running in a compromised workload, "
+        "could use the weaker setting to reach the control plane, nodes or other workloads "
+        "further than the intended boundary allows."
+    ),
+    "Serverless": (
+        "A caller admitted by IAM and ingress could invoke the workload; any further action "
+        "depends on application flaws and the permissions of its runtime identity."
+    ),
+    "Edge Security": (
+        "Traffic reaching the external load balancer would be handled without the "
+        "expected edge control, such as a modern TLS policy, Cloud Armor or request logging."
+    ),
+    "Network and Exposure": (
+        "Hosts reachable through the broad rule could receive connection attempts on "
+        "sensitive ports from sources outside the approved ranges."
+    ),
+    "Monitoring and Detection": (
+        "Activity that the configuration should record or alert on could go unnoticed, "
+        "delaying detection and investigation."
+    ),
+    "Supply Chain": (
+        "A changed build input or retagged image could be deployed without the expected "
+        "review or immutability guarantee."
+    ),
+    "Identity and Access": (
+        "A principal able to use the trust or role could act with permissions beyond the "
+        "intended scope."
+    ),
+    "Data Security": (
+        "A caller covered by the grant could read the data without belonging to the organization."
+    ),
+    "Database Security": (
+        "A client or operator could rely on the weaker database setting; impact depends on "
+        "network reachability and credentials."
+    ),
+    "Governance": (
+        "Without the guardrail, an authorized administrator could create the configuration "
+        "the constraint is meant to prevent."
+    ),
+    "Cryptography and Secrets": (
+        "A secret that is never rotated stays usable for longer if it is copied or leaked."
+    ),
+    "Messaging": (
+        "An endpoint receiving push messages could not verify that they came from the "
+        "intended subscription."
+    ),
+}
+
+
 def explain(finding) -> dict[str, str]:
     """Why flagged, how it can be misused, impact and recommendation for one candidate."""
 
@@ -391,10 +445,12 @@ def explain(finding) -> dict[str, str]:
             spec = SPECS[rule]
             return {
                 "why_flagged": field("technical_observation"),
-                "misuse": spec.risk + " " + MISUSE_QUALIFIER,
+                "misuse": f"{DOMAIN_SCENARIO.get(spec.domain, spec.risk)} ({MISUSE_QUALIFIER})"
+                if spec.domain in DOMAIN_SCENARIO
+                else "Not yet described for this rule; analyst assessment required.",
                 "impact": spec.risk,
                 "recommendation": spec.remediation,
-                "version": "clogcp-explanations-1.0.0",
+                "version": "clogcp-explanations-1.1.0",
             }
     misuse = MISUSE.get(rule)
     return {

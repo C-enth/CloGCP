@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 
 from offline_analyzer.attack_paths.model import HOP_KEYS
 from offline_analyzer.findings.explanations import MISUSE_QUALIFIER, explain
+from offline_analyzer.findings.location import display_region
 from offline_analyzer.findings.recommendations import recommendation
 from offline_analyzer.findings.sre import STAGES, VERDICTS, latest_sre, review_state
 from offline_analyzer.ingestion.json_input import InputError
@@ -86,7 +87,7 @@ def rows(store, run: str, provider: str = "") -> list[dict]:
                 "provider": finding_provider,
                 "scope": scope,
                 "scope_name": names.get((finding_provider, scope), ""),
-                "region": finding.region,
+                "region": display_region(finding.region),
                 "resource": finding.native_id,
                 "control": finding.methodology_id or "Not mapped",
                 "control_subject": describe(finding.methodology_id)["checklist_title"],

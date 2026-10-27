@@ -12,6 +12,7 @@ import re
 from offline_analyzer.contracts.r0 import Candidate
 from offline_analyzer.findings.explanations import explain
 from offline_analyzer.findings.generate import validation_status
+from offline_analyzer.findings.location import display_region
 from offline_analyzer.findings.recommendations import recommendation
 from offline_analyzer.findings.sre import STAGES, VERDICTS, latest_sre, stage
 from offline_analyzer.ingestion.json_input import SECRET_KEYS, SECRET_VALUE, InputError
@@ -541,7 +542,7 @@ def finding_detail(store, run: str, finding_id: str) -> dict:
             "provider": finding.provider or "AWS",
             "service": service or "unrecorded",
             "account_or_project": finding.project_id or finding.account_id,
-            "region": finding.region,
+            "region": display_region(finding.region),
             "resource_name": finding.native_id.rstrip("/").split("/")[-1].split(":")[-1],
             "resource_id": finding.native_id,
             "severity": finding.suggested_severity,

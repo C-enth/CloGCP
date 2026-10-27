@@ -198,13 +198,151 @@ CONFIG_GUIDANCE = {
 }
 
 
+# Checkable expected state per rule: the configuration a fresh collection should show.
+# Display text only; it is never stored with a candidate and never changes a fingerprint.
+EXPECTED = {
+    "GCP-GKE-LEGACY-ABAC": "legacyAbac.enabled is false or absent (Standard clusters).",
+    "GCP-GKE-PRIVATE-NODES": (
+        "privateClusterConfig.enablePrivateNodes is true, or the node pool default is private."
+    ),
+    "GCP-GKE-SHIELDED-NODES": "shieldedNodes.enabled is true (Standard clusters).",
+    "GCP-GKE-CLIENT-CERT": (
+        "masterAuth.clientCertificateConfig.issueClientCertificate is false or absent."
+    ),
+    "GCP-GKE-ENDPOINT": (
+        "The public control-plane endpoint is disabled, or masterAuthorizedNetworksConfig "
+        "is enabled with only approved source ranges."
+    ),
+    "GCP-GKE-WORKLOAD-IDENTITY": (
+        "workloadIdentityConfig.workloadPool is set on Standard clusters running workloads "
+        "that call Google APIs."
+    ),
+    "GCP-GKE-NETWORK-POLICY": (
+        "Network policy enforcement is enabled (networkPolicy.enabled or Dataplane V2)."
+    ),
+    "GCP-GKE-SECRETS-ENCRYPTION": (
+        "databaseEncryption.state is ENCRYPTED with an approved Cloud KMS key where "
+        "application-layer encryption is required."
+    ),
+    "GCP-RUN-PUBLIC": (
+        "No unconditional allUsers/allAuthenticatedUsers roles/run.invoker binding and "
+        "invokerIamDisabled not true, unless the service is a documented public endpoint "
+        "whose ingress and application authentication match the approved audience."
+    ),
+    "GCP-FUNCTION-PUBLIC": (
+        "No unconditional allUsers/allAuthenticatedUsers invoker binding (Gen 1: "
+        "roles/cloudfunctions.invoker; Gen 2: roles/run.invoker on the underlying service), "
+        "unless the function is a documented public endpoint."
+    ),
+    "GCP-RUN-RUNTIME-PRIVILEGE": (
+        "The runtime service account holds no roles/owner or roles/editor binding; it has "
+        "only task-specific roles."
+    ),
+    "GCP-FUNCTION-RUNTIME-PRIVILEGE": (
+        "The runtime service account holds no roles/owner or roles/editor binding; it has "
+        "only task-specific roles."
+    ),
+    "GCP-GKE-NODE-PRIVILEGE": (
+        "The node service account holds no roles/owner or roles/editor binding."
+    ),
+    "GCP-BQ-PUBLIC-DATA": (
+        "No dataset access entry grants data-read to allUsers or allAuthenticatedUsers, "
+        "unless the dataset is a documented public dataset."
+    ),
+    "GCP-SQL-EXPLICIT-FLAGS": (
+        "Each listed database flag has the approved security value for the engine."
+    ),
+    "GCP-DNS-DNSSEC": "dnssecConfig.state is on for the public managed zone.",
+    "GCP-LB-TLS": (
+        "The attached SSL policy has minTlsVersion TLS_1_2 or later and an approved profile."
+    ),
+    "GCP-LB-ARMOR": (
+        "The external backend service references a Cloud Armor security policy where "
+        "the approved design requires one."
+    ),
+    "GCP-LB-LOGGING": "logConfig.enable is true on the external backend service.",
+    "GCP-NET-FIREWALL-POLICY": (
+        "No firewall policy rule allows sensitive ports from 0.0.0.0/0 or ::/0; sources "
+        "are approved ranges."
+    ),
+    "GCP-GOV-GUARDRAIL": (
+        "The effective organization policy enforces the boolean constraint unconditionally."
+    ),
+    "GCP-LOG-AUDIT-COVERAGE": (
+        "Data Access audit logs (DATA_READ/DATA_WRITE) are enabled for the required "
+        "services without unapproved exempted members."
+    ),
+    "GCP-MONITOR-ALERT-DISABLED": ("The alert policy is enabled, or its retirement is documented."),
+    "GCP-SECRET-LIFECYCLE": (
+        "A rotation period or documented rotation procedure applies to the secret."
+    ),
+    "GCP-ARTIFACT-TAGS": (
+        "dockerConfig.immutableTags is true where the release process relies on tags."
+    ),
+    "GCP-BUILD-APPROVAL": ("Triggers that deploy to protected environments require approval."),
+    "GCP-PUBSUB-PUSH-AUTH": (
+        "pushConfig.oidcToken is set with a dedicated service account and audience."
+    ),
+    "GCP-IAM-CUSTOM-PUBLIC": (
+        "No custom role containing sensitive permissions is granted to allUsers or "
+        "allAuthenticatedUsers."
+    ),
+    "GCP-WIF-SHARED-ISSUER": (
+        "Each provider for a shared CI issuer has an attributeCondition restricting the "
+        "repository, project or workflow."
+    ),
+    "GCP-ORG-PUBLIC-SERVERLESS": (
+        "No unconditional allUsers/allAuthenticatedUsers invoker binding, unless the "
+        "service is a documented public endpoint whose ingress and application "
+        "authentication match the approved audience."
+    ),
+    "GCP-ORG-PUBLIC-DATA": (
+        "No allUsers/allAuthenticatedUsers binding on the data resource, unless the "
+        "data is documented as public."
+    ),
+    "GCP-ORG-PUBLIC-OTHER": "No role is granted to allUsers or allAuthenticatedUsers.",
+    "GCP-ORG-BASIC-ROLE": (
+        "No roles/owner or roles/editor binding for user, group or domain principals "
+        "except documented break-glass accounts."
+    ),
+    "GCP-ORG-SA-PRIVILEGED": (
+        "No roles/owner or roles/editor binding for user-managed or default service accounts."
+    ),
+    "GCP-ORG-IMPERSONATION": (
+        "Token Creator, Service Account User and Key Admin are granted on specific service "
+        "accounts only, not at project, folder or organization level."
+    ),
+    "GCP-ORG-CROSSPROJECT-SA": (
+        "Privileged roles are held only by service accounts from documented, approved projects."
+    ),
+    "GCP-ORG-DELETED-PRINCIPAL": "No binding references a deleted: principal.",
+    "GCP-ORG-EXTERNAL-DOMAIN": (
+        "Only organization-owned or approved third-party domains hold roles; third-party "
+        "access is time-bound and recertified."
+    ),
+    "GCP-ORG-FEDERATION": (
+        "Pool providers restrict attribute conditions to specific accounts, roles or "
+        "repositories, and impersonation is granted on dedicated service accounts only."
+    ),
+}
+# Organization-search rules whose stored remediation is broader than the evidence supports.
+ORG_ACTIONS = {
+    "GCP-ORG-PUBLIC-SERVERLESS": (
+        "Confirm whether the service is an approved public endpoint. If it is not, remove the "
+        "allUsers/allAuthenticatedUsers invoker binding or restrict ingress; if it is, record "
+        "the approval and verify application authentication."
+    ),
+}
+
+
 def template_for(rule_id: str) -> Recommendation | None:
     from offline_analyzer.rules.gcp_domains import SPECS
 
     if rule_id in SPECS:
         spec = SPECS[rule_id]
         return Recommendation(
-            expected_posture=spec.title
+            expected_posture=EXPECTED.get(rule_id)
+            or spec.title
             + ": applicability and required security posture reviewed with the owner.",
             recommended_action=spec.remediation,
             immediate_mitigation=spec.remediation,
@@ -230,6 +368,29 @@ def template_for(rule_id: str) -> Recommendation | None:
             version="clogcp-remediation-1.0.0",
         )
     r = BY_ID.get(rule_id)
+    if not r and rule_id in EXPECTED:
+        from offline_analyzer.rules.gcp_org import BY_ID as ORG_BY_ID
+
+        org = ORG_BY_ID.get(rule_id)
+        if not org:
+            return None
+        implementation, mitigation, dependencies, validation, reference = GUIDANCE["IAM"]
+        action = ORG_ACTIONS.get(rule_id, org.remediation)
+        return Recommendation(
+            expected_posture=EXPECTED[rule_id],
+            recommended_action=action,
+            immediate_mitigation=mitigation,
+            permanent_remediation=action,
+            implementation_guidance=implementation,
+            operational_considerations=dependencies,
+            compensating_controls=(
+                "Validate documented exceptions, conditions and deny policies. Compensating "
+                "controls are not presumed deployed and require explicit analyst approval."
+            ),
+            validation_procedure=validation,
+            references=("https://docs.cloud.google.com/" + reference,),
+            version="clogcp-org-remediation-1.0.0",
+        )
     if not r:
         return None
     family = "IAM" if rule_id == "GCP-STORAGE-PUBLIC" else rule_id.split("-")[1]

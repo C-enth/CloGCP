@@ -14,6 +14,7 @@ from collections import Counter, defaultdict
 from datetime import UTC, datetime
 from pathlib import Path
 
+from offline_analyzer.findings.location import display_region
 from offline_analyzer.ingestion.safety import excel_literal
 
 OUTCOME_LABEL = {
@@ -228,7 +229,7 @@ def model(
                 "provider": provider,
                 "scope": scope,
                 "scope_name": names.get((provider, scope), ""),
-                "region": finding.region,
+                "region": display_region(finding.region),
                 "resource": finding.native_id,
                 "observed": finding.technical_observation,
                 "expected": advice.get("expected_posture") or "Analyst to define expected state",
