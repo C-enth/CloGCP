@@ -62,7 +62,7 @@ def analyze(args: argparse.Namespace) -> dict:
         findings = list(store.candidates(run))
         summary = {
             "product": "CloGCP",
-            "build": "0.8.5-clogcp.2",
+            "build": "0.8.5-clogcp.3",
             "origin": origin,
             "run": run,
             "projects": len(

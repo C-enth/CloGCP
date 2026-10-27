@@ -1,4 +1,8 @@
-"""Build CloGCP from committed current source and verified offline dependency wheels."""
+"""Build CloGCP from the runtime selection of a clone and verified offline dependency wheels.
+
+The ZIP equals a clone's RUNTIME_MANIFEST.json files plus wheels, release-info.json and
+portable-manifest.json. An uncommitted working tree is recorded as WORKING_TREE_SNAPSHOT.
+"""
 
 import argparse
 import hashlib
@@ -9,21 +13,11 @@ import zipfile
 from pathlib import Path
 
 from tools.portable_release import dependencies
+from tools.runtime_manifest import MANIFEST, manifest, runtime_files, source_names
 from tools.source_release import allowed, findings
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.8.5-clogcp.2"
-ENTRY_FILES = (
-    "CloGCP.cmd",
-    "CloGCP.command",
-    "check-windows.py",
-    "setup-windows.ps1",
-    "setup-macos.sh",
-    "verify.py",
-    "CLOGCP_VERSION.json",
-    "pyproject.toml",
-    "requirements.txt",
-)
+VERSION = "0.8.5-clogcp.3"
 
 
 def digest(data: bytes) -> str:
@@ -53,27 +47,24 @@ def main() -> None:
     parser.add_argument("--wheelhouse", type=Path, required=True)
     args = parser.parse_args()
     revision = subprocess.check_output(["git", "rev-parse", "HEAD"], cwd=ROOT).decode().strip()
-    names = subprocess.check_output(["git", "ls-files", "-z"], cwd=ROOT).decode().split("\0")
-    runtime = {}
-    for name in names:
-        if not name:
-            continue
-        selected = name.startswith(("src/offline_analyzer/", "src/clogcp_delta/")) and allowed(name)
-        selected |= name.startswith("docs/") and Path(name).suffix == ".md" and allowed(name)
-        selected |= name in ENTRY_FILES or name == "README.md"
-        selected |= name in {
-            "collectors/gcp/GCP_Security_Evidence_Collector.ps1",
-            "collectors/gcp/README.md",
-        }
-        if not selected:
-            continue
-        path = ROOT / name
-        if path.is_symlink() or not path.is_file() or findings(name, path.read_bytes()):
+    modified = bool(
+        subprocess.check_output(["git", "status", "--porcelain"], cwd=ROOT).decode().strip()
+    )
+    names = source_names(ROOT)
+    # The clone's runtime selection, byte for byte; the committed manifest must be current.
+    runtime = runtime_files(ROOT)
+    if (ROOT / MANIFEST).read_bytes() != manifest(runtime):
+        raise ValueError("RUNTIME_MANIFEST_OUT_OF_DATE")
+    for name, data in runtime.items():
+        if findings(name, data):
             raise ValueError("SOURCE_SECURITY_REVIEW_REQUIRED: " + name)
-        runtime[name] = path.read_bytes()
-    if not set(ENTRY_FILES) <= runtime.keys():
-        raise ValueError("REQUIRED_APPLICATION_COMPONENT_MISSING")
+    runtime[MANIFEST] = (ROOT / MANIFEST).read_bytes()
     for name, path in dependencies(args.wheelhouse).items():
+        if name.startswith("locks/"):
+            # Wheels are added; the committed hash locks are never replaced by the wheelhouse.
+            if path.read_bytes() != runtime[name]:
+                raise ValueError("WHEELHOUSE_LOCK_DIFFERS_FROM_COMMITTED_LOCK: " + name)
+            continue
         runtime[name] = path.read_bytes()
     snapshot = digest(
         b"".join(
@@ -84,11 +75,11 @@ def main() -> None:
     metadata = {
         "product": "CloGCP",
         "version": VERSION,
-        "application_version": "0.8.5rc2",
+        "application_version": "0.8.5rc3",
         "engine_version": "2.0.1",
         "git_revision": revision,
-        "working_tree_modified": False,
-        "source_kind": "COMMITTED_SOURCE",
+        "working_tree_modified": modified,
+        "source_kind": "WORKING_TREE_SNAPSHOT" if modified else "COMMITTED_SOURCE",
         "source_snapshot": snapshot,
         "customer_data_included": False,
         "native_windows_acceptance": "PENDING",
@@ -99,7 +90,7 @@ def main() -> None:
     runtime["src/offline_analyzer/api/assets/release-info.json"] = json.dumps(
         metadata, indent=2
     ).encode()
-    manifest = {
+    portable = {
         "schema": "clogcp-portable-1",
         **metadata,
         "files": [
@@ -107,12 +98,12 @@ def main() -> None:
             for name, data in sorted(runtime.items())
         ],
     }
-    runtime["portable-manifest.json"] = json.dumps(manifest, indent=2).encode()
+    runtime["portable-manifest.json"] = json.dumps(portable, indent=2).encode()
     args.output.mkdir(parents=True, exist_ok=False)
     write_zip(args.output / "CloGCP.zip", runtime)
     # Source comes directly from this checkout, never a previous delivery archive.
     source = {}
-    extra = {*ENTRY_FILES, "run-portable.py", "CloSec.cmd", "CloSec.command"}
+    extra = {*runtime, "CloSec.cmd", "CloSec.command"}
     for name in names:
         if not name or not (allowed(name) or name in extra):
             continue

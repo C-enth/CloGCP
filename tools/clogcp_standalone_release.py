@@ -31,6 +31,20 @@ DEPENDENCIES = {
     },
 }
 
+# Each package's version comes from its own source, never from this packager.
+VERSION_SOURCES = {
+    "clogcp_report_finalizer": ("src/clogcp_report_finalizer/schema.py", r'^VERSION = "([^"]+)"'),
+    "clogcp_delta": (
+        "src/clogcp_delta/models.py",
+        r'collector_version: Literal\["gcp-delta-([^"]+)"\]',
+    ),
+}
+
+
+def version(package: str) -> str:
+    path, pattern = VERSION_SOURCES[package]
+    return re.search(pattern, (ROOT / path).read_text(encoding="utf-8"), re.M)[1]
+
 
 def assemble(package: str, output: Path, wheelhouse: Path) -> Path:
     if package not in DEPENDENCIES or output.exists():
@@ -72,7 +86,8 @@ def assemble(package: str, output: Path, wheelhouse: Path) -> Path:
         else "CloGCP Missing-Evidence Collector"
     )
     gui = " --gui" if package == "clogcp_report_finalizer" else " --help"
-    files["README.md"] = f"""# {display} 1.0.0rc1
+    release = version(package)
+    files["README.md"] = f"""# {display} {release}
 
 Separate offline source candidate. No analyzer backend, database or client evidence included.
 Requires an existing Python 3.12 runtime; installing this tool does not reinstall CloGCP.
@@ -134,7 +149,7 @@ if defined CLOGCP_PYTHON (
     manifest = {
         "schema_version": "clogcp-standalone-source-1",
         "package": package,
-        "version": "1.0.0rc1",
+        "version": release,
         "customer_evidence_included": False,
         "native_windows_acceptance": "PENDING",
         "native_excel_acceptance": "PENDING",
@@ -145,7 +160,7 @@ if defined CLOGCP_PYTHON (
     }
     files["source-manifest.json"] = json.dumps(manifest, indent=2).encode()
     output.mkdir(parents=True)
-    target = output / (package.replace("_", "-") + "-1.0.0rc1-source.zip")
+    target = output / (package.replace("_", "-") + f"-{release}-source.zip")
     with zipfile.ZipFile(target, "x", zipfile.ZIP_DEFLATED) as archive:
         for name, data in sorted(files.items()):
             info = zipfile.ZipInfo(name)

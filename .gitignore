@@ -105,7 +105,8 @@ attack-path-evaluations/
 docs/METHODOLOGY_INPUT*.md
 docs/ui-audit/screenshots/
 
-# Existing independently distributed application and clone cache.
+# Release archives are build outputs attached to tags, never committed (RUNTIME_MANIFEST.json
+# pins the runtime files instead). .portable/ remains ignored for older clone caches.
 .portable/
 workspace/
-!/CloGCP.zip
+/wheelhouse/
