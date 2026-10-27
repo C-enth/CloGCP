@@ -20,8 +20,8 @@
   },
   {
    "path": "README.md",
-   "bytes": 3582,
-   "sha256": "835ff41889f6f2de719ed62ca30c288e421ec13a00963338379b9f6a4bba3c20"
+   "bytes": 4110,
+   "sha256": "eb48d970e24517abb9817d2c8c2273c63f19f4226cd007fa0c11cce810637e3d"
   },
   {
    "path": "check-windows.py",
@@ -99,6 +99,11 @@
    "sha256": "ba3d4b89f8da44ed31561d8861abcb0ccb2826b32057b4d4c072e357711eaab9"
   },
   {
+   "path": "docs/GCP_FINALIZATION_STATUS.md",
+   "bytes": 20918,
+   "sha256": "ed013e478e00fbeeb414447d1d8df003f44af0b9f1cccf41dadbf478065d490f"
+  },
+  {
    "path": "docs/GCP_FINAL_WORKFLOW.md",
    "bytes": 11222,
    "sha256": "c002cee60f33c087c57ac9890320f990ae91a8d8f19ffcd94ca1423189505df1"
@@ -107,6 +112,11 @@
    "path": "docs/GCP_USAGE.md",
    "bytes": 6393,
    "sha256": "eef851168a0e76a88d6e97e81451a219a98c86fc1011d2ab67914033e4b7c3ca"
+  },
+  {
+   "path": "docs/GCP_VALIDATION_WORKFLOW.md",
+   "bytes": 5143,
+   "sha256": "f4ea215c83fd214ea50f5f5261c7fd7be2ddd2b715ee5d4a332fb2276491d240"
   },
   {
    "path": "docs/GUI_USAGE.md",
@@ -267,6 +277,11 @@
    "path": "docs/handoff/GCP_ATTACK_ENGINE_20261025.md",
    "bytes": 6384,
    "sha256": "684ec95df76080085f774bf1a60d3615d0a18440e6e80849b2f2e00858d357fd"
+  },
+  {
+   "path": "docs/handoff/GCP_FINALIZATION_20261027.md",
+   "bytes": 1224,
+   "sha256": "a0ae1912f4ba7b3d6f529f3516ccfd175c917d7a5407849717fc65cd790aac3d"
   },
   {
    "path": "docs/handoff/GCP_FINAL_WORKFLOW_20261026.md",

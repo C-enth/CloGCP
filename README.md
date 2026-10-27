@@ -1,8 +1,11 @@
-# CloGCP 0.8.5-clogcp.2
+# CloGCP 0.8.5-clogcp.3 (candidate)
 
-P0 hotfix: workspace recovery now streams SHA-256 for files larger than 64 MiB,
-without changing ingestion limits. Copies publish only after complete verification.
-See [hotfix and safe retry instructions](docs/clogcp/HOTFIX_0.8.5_2.md).
+GCP finalization readiness: evidence-consistent claims, checkable expected states, a register
+that follows the owner's column rules, finalizer QA additions, faster dashboard/Finalized
+views and a clone that equals the release. Display and export text only; stored findings,
+IDs, fingerprints, decisions and frozen editions are unchanged. See the
+[changelog](CHANGELOG.md) and the [one-page validation workflow](docs/GCP_VALIDATION_WORKFLOW.md).
+The 0.8.5-clogcp.2 recovery hotfix is retained ([notes](docs/clogcp/HOTFIX_0.8.5_2.md)).
 
 Offline, evidence-backed GCP assessment prerelease. This update adds attack-path engine
 2.0.1, independent **Recalculate Attack Paths**, immutable supplementary IAM evidence
@@ -34,8 +37,11 @@ security rules or approves findings. Additional IAM uses a separate analysis ver
 
 Windows: extract `CloGCP.zip` into a new folder and run `CloGCP.cmd`.
 macOS: run `sh CloGCP.command` (`CLOGCP_PYTHON` may select installed Python 3.12).
-For a source clone on Windows, `CloGCP.cmd` verifies the pinned bundled application ZIP
-and prepares it under ignored `.portable/` before launch. The old release remains available
+A source clone runs the same runtime files as the release: `RUNTIME_MANIFEST.json` lists
+them with SHA-256 and `verify.py` checks them before every launch. Release archives are tag
+assets, never committed. The clone has no wheels: set `CLOGCP_WHEELHOUSE` to the `wheelhouse`
+folder of the matching release ZIP; setup installs only the committed hash-locked wheels.
+The old release remains available
 at [v0.8.4-clogcp.2](https://github.com/C-enth/CloGCP/releases/tag/v0.8.4-clogcp.2).
 
 Read [the exact workflow](docs/GCP_FINAL_WORKFLOW.md), [release notes](docs/clogcp/RELEASE_0.8.5.md),

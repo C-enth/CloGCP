@@ -1,5 +1,41 @@
 # Changelog
 
+## 0.8.5-clogcp.3 — GCP finalization readiness, 2026-10-27 (candidate, uncommitted branch)
+
+Display and export text only. Stored findings, IDs, fingerprints, decisions and frozen
+editions are unchanged; new wording appears in new exports. See
+[status audit](docs/GCP_FINALIZATION_STATUS.md) and
+[validation workflow](docs/GCP_VALIDATION_WORKFLOW.md).
+
+- Claims: the org-level public-serverless scenario no longer states unconditional internet
+  invocation, which contradicted its own "ingress unresolved" risk. Its remediation no longer
+  prescribes a load balancer plus Cloud Armor. Domain rules no longer repeat the risk
+  sentence as both misuse and impact. All 29 domain rules and 10 org rules have a checkable
+  expected state instead of a generic template.
+- Cloud Run: an integer `invokerIamDisabled` (1/0) is UNKNOWN; it is no longer read as
+  "IAM check disabled". `None` still never means disabled. Real exports carry booleans, and
+  the rule version is unchanged.
+- Identity: legacy zone self-link URLs are shown as their zone segment, or "unrecorded".
+  Stored region and resource IDs are untouched.
+- Register: column 11 shows only the cited role → member bindings (the full redacted
+  excerpt stays in evidence details). Column 13 gives the expected state. Column 15 holds
+  rule-declared unresolved dependencies and column 22 collection coverage reasons; the two
+  are no longer identical. Column 16 holds the qualified scenario and column 25 the engine
+  2.0.1 class (legacy projections are labelled). Column 29 holds a group title with its count
+  and column 33 the group size. Columns 35, 36, 38 and 39 are blank for the analyst; recorded
+  decisions move to the new `GCP_Review_Audit` sheet.
+- Finalizer 1.0.0rc2: QA adds MANUAL_VALIDATION_ITEM and PREFILLED_REVIEW_FIELDS. The input
+  workbook is still never modified.
+- Performance: the Cloud dashboard decodes evaluations and candidates once instead of three
+  times. Finalized skips the whole-run attack-path build when nothing is confirmed. Cloud
+  dashboard, attack paths and Finalized share a state-stamped cache (row count plus content
+  checksum, plus job/exclusive generation).
+- Layout: clone + launcher = release. `RUNTIME_MANIFEST.json` and the hash `locks/` are
+  committed; `CloGCP.zip` and `run-portable.py` are no longer tracked. Setup installs only
+  locked wheels from the release ZIP or `CLOGCP_WHEELHOUSE`.
+- Tools: `tools/workspace_counts.py` (count-only, read-only), `tools/screen_timings.py`,
+  `tools/finalization_equality.py`.
+
 ## 0.8.5-clogcp.2 — P0 recovery hotfix, 2026-10-26
 
 Dedicated streaming workspace SHA-256 removes the accidental ingestion-size cap from

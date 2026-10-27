@@ -808,3 +808,38 @@ Source commit: bd5693a66cfc8e5109a2ba3f90254d8a0bc3d549. Final local selected re
 1 native-junction skip**, 57.29 s. Fresh offline macOS setup/pip check passed.
 All 43 schemas match; ingestion, Store, engine, reporting and mapping source are unchanged
 from v0.8.5-clogcp.1. Full native GUI/Excel/customer acceptance remain pending.
+
+## 0.8.5-clogcp.3 GCP finalization validation — 2026-10-27
+
+Commands (from the clone root, CPython 3.12):
+
+```
+PYTHONPATH=src:. python -m pytest -q --continue-on-collection-errors      # + RUN_GUI_BROWSER=1
+PYTHONPATH=src:. python -m pytest -q tests/test_gcp_finalization.py tests/test_clone_layout.py
+PYTHONPATH=src:. python -m tools.runtime_manifest --check
+PYTHONPATH=src:. python -m tools.finalization_equality --packages ESTATE --output OUT.json
+PYTHONPATH=src:. python -m tools.screen_timings --packages ESTATE --workspace NEW_DIR
+python tools/workspace_counts.py WORKSPACE                                # owner, app closed
+```
+
+Actual results (macOS x86_64):
+
+- Released `main` baseline, no browser: 26 failed, 1,541 passed, 39 skipped, 2 collection
+  errors (`test_aws_dependent_scope` imports a missing fixture function; `test_pdf_report`
+  imports a withdrawn module), 867.6 s.
+- Branch, full suite with browser: 31 failed, 1,599 passed, 3 skipped, the same 2 collection
+  errors, 1,896.9 s. Non-browser: the 25 remaining baseline failures, identical;
+  `test_portable_release` now passes. Browser: the same 5 failures as `main` with identical
+  assertions (main browser run: 5 failed, 4 passed), plus a sheet-list assertion in
+  `test_gcp_browser`. That one was updated for `GCP_Review_Audit` and passes on rerun
+  (branch browser rerun: 5 failed, 4 passed). No new failure remains.
+- New tests: `test_gcp_finalization.py` (31) and `test_clone_layout.py` (7) pass. The
+  retired `test_clone_launcher.py` was removed with `run-portable.py`.
+- Ruff check/format, Prettier, `tsc -b`, Vitest 5/5 and `npm run build` pass.
+- Equality proof on 41 synthetic projects: identical (see GCP_FINALIZATION_STATUS.md).
+- Clean install from the candidate ZIP and from a clean clone (with `CLOGCP_WHEELHOUSE`):
+  offline locked install, `pip check`, `verify.py` PASS, synthetic analysis, `/api/health`
+  ready, GUI HTTP 200. The user profile was not touched.
+
+Not tested: native Windows, desktop Excel, real B1/B2 workspace counts, real collector
+exports through the finalizer, and Windows screen timings.

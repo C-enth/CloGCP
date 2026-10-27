@@ -308,3 +308,60 @@ def test_cached_views_follow_every_analyst_write(tmp_path):
         again = client.get(f"/api/runs/{run_id}/cloud/paths", headers=headers).json()
         assert {"tampered": True} not in again["items"]
         assert finalized_view == client.get(f"/api/runs/{run_id}/finalized", headers=headers).json()
+
+
+# ------------------------------------------------------------- count-only workspace script
+
+
+def test_workspace_counts_is_read_only_and_prints_no_scope_values(assessed):
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    store, _, _, _ = assessed
+    workspace = store.workspace
+    script = Path(__file__).resolve().parents[1] / "tools" / "workspace_counts.py"
+    database = workspace / "assessment.duckdb"
+    before = digest(database)
+    # The test's own Store holds the database open: the script must refuse, not bypass it.
+    locked = subprocess.run(
+        [sys.executable, "-I", str(script), str(workspace)], text=True, capture_output=True
+    )
+    assert locked.returncode != 0 and "Close CloGCP" in locked.stderr
+    assert digest(database) == before
+    wal = workspace / "assessment.duckdb.wal"
+    if not wal.exists():
+        wal.write_bytes(b"")
+        try:
+            refused = subprocess.run(
+                [sys.executable, "-I", str(script), str(workspace)], text=True, capture_output=True
+            )
+        finally:
+            wal.unlink()
+        assert refused.returncode != 0 and "write-ahead log" in refused.stderr
+
+
+def test_workspace_counts_on_a_closed_synthetic_workspace(tmp_path):
+    import subprocess
+    import sys
+    from pathlib import Path
+
+    work = tmp_path / "work"
+    with Store(work) as store:
+        run_id = assess_enterprise(store, [import_package(store, gcp_build(tmp_path / "a"))])
+        expected = len(list(store.candidates(run_id)))
+        record_decision(
+            store, run_id, next(iter(store.candidates(run_id))).finding_id, "CONFIRMED", "S", ""
+        )
+    before = {p.name: digest(p) for p in work.rglob("*") if p.is_file()}
+    script = Path(__file__).resolve().parents[1] / "tools" / "workspace_counts.py"
+    result = subprocess.run(
+        [sys.executable, "-I", str(script), str(work)], text=True, capture_output=True
+    )
+    assert result.returncode == 0, result.stderr
+    assert {p.name: digest(p) for p in work.rglob("*") if p.is_file()} == before
+    run = next(r for r in json.loads(result.stdout)["runs"] if r["findings"])
+    assert run["findings"] == expected and run["confirmed"] == 1
+    assert run["unreviewed"] == expected - 1
+    for value in ("demo-alpha", "example.com", "allUsers", run_id):
+        assert value not in result.stdout
