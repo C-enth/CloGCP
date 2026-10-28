@@ -4,6 +4,7 @@ default. The path is returned to the local user only; errors are fixed codes, an
 lines carry a one-way hash. Switching takes effect on restart; nothing is moved or deleted.
 """
 
+import os
 from datetime import UTC, datetime
 from pathlib import Path
 from typing import Literal
@@ -63,8 +64,22 @@ def register(app: FastAPI, *, workspace: Path, coordinator, location: dict, rest
         result = {"purpose": body.purpose, "checks": checks, "target_state": target_state(target)}
         if body.purpose == "open":
             result["inspection"] = loc.inspect_workspace(target)
+            clogcp = os.environ.get("CLOGCP_PROFILE") == "1"
             if result["inspection"]["code"]:
-                result["inspection"]["message"] = loc.ERRORS[result["inspection"]["code"]]
+                message = loc.ERRORS[result["inspection"]["code"]]
+                result["inspection"]["message"] = (
+                    message.replace("CloSec", "CloGCP") if clogcp else message
+                )
+            elif clogcp:
+                # The same read-only checks the CloGCP launcher applies on restart, so a
+                # folder is never remembered here and then refused at every launch.
+                from offline_analyzer.clogcp_profile import REFUSALS, open_refusal
+
+                refusal = open_refusal(target)
+                if refusal:
+                    result["inspection"].update(
+                        ok=False, code=refusal, message=REFUSALS.get(refusal, refusal)
+                    )
         if body.purpose in {"create", "change"} and result["target_state"] in {
             "NOT_EMPTY",
             "FILE",
@@ -98,6 +113,7 @@ def register(app: FastAPI, *, workspace: Path, coordinator, location: dict, rest
             "default_path": location.get("default_path"),
             "remembered": status,
             "open_report": location.get("open_report"),
+            "remembered_refusal": location.get("remembered_refusal"),
             "checks": loc.location_checks(workspace)
             if not location.get("setup_required")
             else None,

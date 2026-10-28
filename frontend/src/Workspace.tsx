@@ -338,6 +338,12 @@ export function WorkspaceLocation({ info }: { info?: Row }) {
           the default location.
         </p>
       )}
+      {info.remembered_refusal && (
+        <p role="alert" aria-label="Remembered workspace refused">
+          The remembered workspace was refused ({info.remembered_refusal.code}):{" "}
+          {info.remembered_refusal.message}
+        </p>
+      )}
       <section className="panel" aria-label="Active workspace details">
         <h2>Active workspace</h2>
         {!info.setup_required && (

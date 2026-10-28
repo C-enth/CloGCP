@@ -13,6 +13,7 @@ from datetime import UTC, datetime
 from pathlib import Path
 
 from offline_analyzer import PRODUCT_NAME
+from offline_analyzer.contracts.errors import InputError
 from offline_analyzer.ingestion.safety import resolve_under
 
 ASSETS = Path(__file__).parent / "api" / "assets"
@@ -101,6 +102,14 @@ class WorkspaceLock:
         self.file.close()
 
 
+def refusal_text(code: str) -> str:
+    """Fixed reason for a refusal code; empty when no wording exists."""
+    from offline_analyzer.clogcp_profile import REFUSALS
+    from offline_analyzer.storage.location import ERRORS
+
+    return REFUSALS.get(code) or ERRORS.get(code.removeprefix("WORKSPACE_"), "")
+
+
 def resolve_workspace(explicit: Path | None, default: Path | None) -> tuple[str, Path | None]:
     """Where to open: command line, then CLOSEC_WORKSPACE, then the remembered location,
     then the default. ("SETUP", None) when a remembered location is invalid: the UI asks."""
@@ -159,8 +168,18 @@ def serve_once(args) -> int | str:
     restart = {"requested": False}
     stage = "workspace selection"
     workspace = None
+    refused = None
     try:
         source, workspace = resolve_workspace(args.workspace, args.default_workspace)
+        if source == "REMEMBERED" and os.environ.get("CLOGCP_PROFILE") == "1":
+            from offline_analyzer.clogcp_profile import open_refusal
+
+            # A remembered folder this release refuses must not block every later launch:
+            # show the location screen with the reason instead. Explicit choices still fail.
+            refused = open_refusal(workspace.resolve())
+            if refused:
+                print(f"Remembered workspace refused: {refused}. {refusal_text(refused)}")
+                source, workspace = "SETUP", None
         if source == "SETUP":
             # The remembered location is missing or invalid: serve the location screen from
             # a private empty folder that is removed on exit. No real workspace is opened.
@@ -199,6 +218,9 @@ def serve_once(args) -> int | str:
             "setup_required": source == "SETUP",
             "open_report": report,
             "default_path": str((args.default_workspace or default_workspace()).resolve()),
+            "remembered_refusal": {"code": refused, "message": refusal_text(refused)}
+            if refused
+            else None,
         }
         if source != "SETUP":
             lifecycle_log(workspace, "WORKSPACE_OPENED", path_hash(workspace))
@@ -263,11 +285,14 @@ def serve_once(args) -> int | str:
         if not server.started:
             raise RuntimeError("backend initialization failed")
         return "RESTART" if restart["requested"] else 0
-    except (Exception, SystemExit):
+    except (Exception, SystemExit) as exc:
         # No exception text, paths, policy documents or bootstrap secrets in logs.
         if lock and not setup_folder:
             lifecycle_log(workspace, "STARTUP_FAILED")
         print(f"Startup stage: {stage}.")
+        if isinstance(exc, InputError):
+            # Refusal codes are fixed identifiers, never paths or workspace content.
+            print(f"Refused: {exc}. {refusal_text(str(exc))}".rstrip())
         print(
             f"{PRODUCT_NAME} startup failed. Check dependencies, frontend build, "
             "port and workspace lock."

@@ -439,9 +439,9 @@
    "sha256": "58119c17ee4c5dfe4ded627adeccfff76ffa2b0384c0cd445dd857c0adf49e4f"
   },
   {
-   "path": "src/offline_analyzer/api/assets/assets/index-7Yd0FsH9.js",
-   "bytes": 428482,
-   "sha256": "27a5d6510be276d4d4ca1fb7b6dd9524843efb08b65196dd68bba87811f234c1"
+   "path": "src/offline_analyzer/api/assets/assets/index-BPxabGAi.js",
+   "bytes": 428691,
+   "sha256": "968e6e07883b0daec70b99739be25115ef13ceffbd2010dd903a7e33f2d52a38"
   },
   {
    "path": "src/offline_analyzer/api/assets/assets/index-DlsoO39Z.css",
@@ -451,12 +451,12 @@
   {
    "path": "src/offline_analyzer/api/assets/build-info.json",
    "bytes": 156,
-   "sha256": "30c4abcb4dc7c69bdc06ecda8284471393139fada6119f1920b19597ddbc59fa"
+   "sha256": "d3f13a648d4acf63cb196eb95c8638bdb2b4966aa112d4c538e86f8401398f87"
   },
   {
    "path": "src/offline_analyzer/api/assets/index.html",
    "bytes": 431,
-   "sha256": "d961e5a34b029f5674b1370e6c3238f71484f1674e5145330fc2885dc880b347"
+   "sha256": "f626748db6d51ba26edb63d1f7f75fda9808fe6f1528e940cb530c48c858368c"
   },
   {
    "path": "src/offline_analyzer/api/assets/theme-init.js",
@@ -515,8 +515,8 @@
   },
   {
    "path": "src/offline_analyzer/api/workspace.py",
-   "bytes": 7643,
-   "sha256": "2c36ba2cf1ea4dbdd73effbaee208f6067ca0d8798fcb763595504e98e5dc436"
+   "bytes": 8424,
+   "sha256": "f03a88fb047027b65b5f15e8f13f829eb6c5061b0cbd36c5bc1f2de6ec894f3d"
   },
   {
    "path": "src/offline_analyzer/assessment/__init__.py",
@@ -605,8 +605,8 @@
   },
   {
    "path": "src/offline_analyzer/clogcp_profile.py",
-   "bytes": 2241,
-   "sha256": "22e035c6a5f96161eb2b30825ed167660bd33599bc6fa1540ceec8a9a5390b9b"
+   "bytes": 4822,
+   "sha256": "37564440f43fc397cf07adf15a4bd6655fb2bfe32be3aa73977d26d4ba54e219"
   },
   {
    "path": "src/offline_analyzer/contracts/__init__.py",
@@ -1235,8 +1235,8 @@
   },
   {
    "path": "src/offline_analyzer/launcher.py",
-   "bytes": 11316,
-   "sha256": "70aacc26887c310874747f43f26aae3b43b87cd1948c4c2d94278b127c61ed4c"
+   "bytes": 12588,
+   "sha256": "8fc8ff243fd0432d5d5940e3939058da4403ff751236130aed083da78e50117c"
   },
   {
    "path": "src/offline_analyzer/methodology/__init__.py",
@@ -1600,8 +1600,8 @@
   },
   {
    "path": "src/offline_analyzer/storage/side_by_side.py",
-   "bytes": 12512,
-   "sha256": "63e96e52e0d4663f164d920f73b6d2cf94e42cc23e6aa21f5cf01c5b31ba029b"
+   "bytes": 15950,
+   "sha256": "e57299d5a891903bda5683963412624d1a14b3057e96183f1a7f2ab9c772cdf2"
   },
   {
    "path": "src/offline_analyzer/storage/store.py",

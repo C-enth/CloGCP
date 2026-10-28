@@ -148,13 +148,59 @@ def database_inventory(workspace: Path) -> dict[str, dict]:
     return result
 
 
-def recover_copy(source: Path, target: Path, *, upgrade_additive: bool = False) -> dict:
+def _counts(workspace: Path) -> dict:
+    """Domain counts only (runs, findings, decisions, exclusions, editions, reviews)."""
+    from offline_analyzer.storage.location import counts
+
+    with Store(workspace, read_only=True) as store:
+        return counts(store.db)
+
+
+def _journal_source(source: Path) -> None:
+    """Checks for --recover-journal; the source is only ever opened read-only."""
+    import duckdb
+
+    from offline_analyzer.storage.location import lock_holder
+
+    if (source / ".scope-journal.json").exists() or (source / ".scope-staging").exists():
+        raise InputError("EXPLICIT_WORKSPACE_RECOVERY_REQUIRED")
+    journal = source / "assessment.duckdb.wal"
+    if not journal.is_file() or journal.is_symlink():
+        raise InputError("NO_JOURNAL_TO_RECOVER")
+    if lock_holder(source) is not None:
+        raise InputError("WORKSPACE_IN_USE_CLOSE_APPLICATION_FIRST")
+    expected = {
+        m[1]
+        for sql in (*DDL, *ENTERPRISE_DDL, *REPORT_DDL, *MANAGEMENT_DDL, *CONSOLIDATION_DDL)
+        if (m := re.search(r"CREATE TABLE IF NOT EXISTS (\w+)", sql))
+    }
+    try:
+        # A read-only connection replays the journal in memory and never writes it back.
+        with Store(source, read_only=True) as store:
+            actual = {r[0] for r in store.db.execute("SHOW TABLES").fetchall()}
+            version = store.db.execute("SELECT version FROM schema_info").fetchall()
+    except duckdb.Error:
+        raise InputError("WORKSPACE_IN_USE_OR_UNREADABLE") from None
+    if not expected <= actual or version != [(1,)]:
+        raise InputError("UNSUPPORTED_JOURNAL_RECOVERY_SCHEMA")
+
+
+def recover_copy(
+    source: Path, target: Path, *, upgrade_additive: bool = False, recover_journal: bool = False
+) -> dict:
+    """Verified copy into a new sibling folder. `recover_journal` replays a leftover
+    database journal inside the copy only; the source stays byte-identical."""
     source, target = _safe_absolute(source), _safe_absolute(target)
     _reject_incomplete(source)
     _reject_incomplete(target.parent)
+    if upgrade_additive and recover_journal:
+        raise InputError("ONE_RECOVERY_MODE_AT_A_TIME")
     if target.exists() or source == target or source in target.parents or target in source.parents:
         raise InputError("NEW_SIBLING_WORKSPACE_REQUIRED")
-    if upgrade_additive:
+    if recover_journal:
+        _journal_source(source)
+        added = []
+    elif upgrade_additive:
         # Only the two known empty additive tables may be absent. Read-only first;
         # no generic migrations, scope recovery or analysis are permitted.
         from offline_analyzer.storage.consolidation_schema import TABLES
@@ -183,6 +229,7 @@ def recover_copy(source: Path, target: Path, *, upgrade_additive: bool = False) 
         raise InputError("WORKSPACE_DATABASE_REQUIRED")
     before = file_inventory(source)
     tables = database_inventory(source)
+    counts_before = _counts(source)
     if not target.parent.is_dir():
         raise InputError("WORKSPACE_TARGET_PARENT_REQUIRED")
     total_bytes = sum(path.stat().st_size for path in _workspace_files(source))
@@ -219,11 +266,27 @@ def recover_copy(source: Path, target: Path, *, upgrade_additive: bool = False) 
                 db.execute("COMMIT")
             finally:
                 db.close()  # Also rolls back an interrupted/failed transaction.
+        if recover_journal:
+            import duckdb
+
+            # Read-write only on the copy: DuckDB replays the journal, then it is folded in.
+            db = duckdb.connect(str(copied / "assessment.duckdb"), config=CONNECTION_CONFIG)
+            try:
+                db.execute("CHECKPOINT")
+            finally:
+                db.close()
+            if (copied / "assessment.duckdb.wal").exists():
+                raise InputError("JOURNAL_RECOVERY_INCOMPLETE")
         after_tables = database_inventory(copied)
         if any(after_tables.get(name) != value for name, value in tables.items()) or any(
             after_tables[name]["rows"] != 0 for name in added
         ):
             raise InputError("ADDITIVE_WORKSPACE_ROW_PRESERVATION_FAILED")
+        if recover_journal and set(after_tables) != set(tables):
+            raise InputError("JOURNAL_RECOVERY_TABLES_CHANGED")
+        counts_after = _counts(copied)
+        if counts_after != counts_before:
+            raise InputError("WORKSPACE_COPY_COUNTS_CHANGED")
         after_files = file_inventory(copied)
         manifest_name = "side-by-side-recovery.json"
         if (copied / manifest_name).exists():
@@ -238,6 +301,9 @@ def recover_copy(source: Path, target: Path, *, upgrade_additive: bool = False) 
             "source_modified": False,
             "records_migrated": False,
             "additive_tables_created_in_copy": added,
+            "journal_replayed_in_copy": recover_journal,
+            "counts_before": counts_before,
+            "counts_after": counts_after,
             "recovery_verified": True,
         }
         encoded = json.dumps(manifest, indent=2).encode("utf-8")
@@ -269,9 +335,19 @@ def main() -> None:
     parser.add_argument("--source", type=Path, required=True)
     parser.add_argument("--target", type=Path, required=True)
     parser.add_argument("--upgrade-additive", action="store_true")
+    parser.add_argument(
+        "--recover-journal",
+        action="store_true",
+        help="Replay a leftover assessment.duckdb.wal in the new copy only; source unchanged",
+    )
     args = parser.parse_args()
     try:
-        report = recover_copy(args.source, args.target, upgrade_additive=args.upgrade_additive)
+        report = recover_copy(
+            args.source,
+            args.target,
+            upgrade_additive=args.upgrade_additive,
+            recover_journal=args.recover_journal,
+        )
     except InputError as exc:
         raise SystemExit(str(exc)) from None
     except (OSError, shutil.Error):
@@ -282,6 +358,10 @@ def main() -> None:
                 "recovery_verified": True,
                 "files_verified": len(report["files"]),
                 "manifest_file": report["manifest_file"],
+                "journal_replayed_in_copy": report["journal_replayed_in_copy"],
+                "source_modified": False,
+                "counts_before": report["counts_before"],
+                "counts_after": report["counts_after"],
             }
         )
     )
