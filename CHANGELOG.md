@@ -1,5 +1,16 @@
 # Changelog
 
+## Unreleased — workspace open safety (local branch fix/workspace-open-safety)
+
+- Open existing workspace runs the launcher's read-only marker and compatibility checks and
+  shows the reason; it can no longer remember a folder that every later launch refuses. A
+  remembered folder refused at startup falls back to the location screen with the reason.
+- Startup refusals print the fixed refusal code and reason (no paths).
+- `side_by_side --recover-journal`: replays a leftover `.wal` in a new verified copy only;
+  the source stays byte-identical. Verified copies report domain counts before and after.
+- Synthetic tests: `tests/test_clogcp_workspace_reopen.py`. No stored-data, ID,
+  fingerprint, decision or schema change.
+
 ## 0.8.5-clogcp.3 — GCP finalization readiness, 2026-10-27 (candidate, uncommitted branch)
 
 Display and export text only. Stored findings, IDs, fingerprints, decisions and frozen

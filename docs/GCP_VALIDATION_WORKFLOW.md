@@ -9,10 +9,22 @@ For the assessor finalizing B1/B2. CloGCP 0.8.5-clogcp.3, finalizer 1.0.0rc2.
    compares every file hash and table row:
    `python -m offline_analyzer.storage.side_by_side --source BACKUP --target NEW_COPY`.
 2. Start CloGCP, then go to **Workspace → Open existing workspace (recovery)**. Choose the
-   copy, tick the confirmation and click **Open this workspace**. The app checks the folder
-   read-only first; a pending WAL, pending recovery or an incompatible schema stops with an
-   error and nothing is changed. The switch takes effect after the restart. The live
-   workspace and the backup are never opened.
+   copy, then click **Check location**. The check is read-only and applies the same checks
+   as the launcher. A folder CloGCP would refuse shows its reason and cannot be opened:
+   not a CloGCP workspace, leftover journal, older or newer schema, or in use. Tick the
+   confirmation, click **Open this workspace**, then **Restart CloSec now**. The live
+   workspace and the backup are never opened. If a remembered folder is refused at a later
+   start, CloGCP shows this location screen with the reason instead of failing.
+   - Leftover journal (`assessment.duckdb.wal`, after a crash): with CloGCP closed, make a
+     recovered copy and open the copy. The source stays byte-identical:
+     `python -m offline_analyzer.storage.side_by_side --source CRASHED --target NEW_COPY
+     --recover-journal`. It prints the counts before and after; they must match.
+   - Older schema: the same command with `--upgrade-additive` instead.
+   - Start directly on a folder (launch argument, then environment variable, then remembered
+     location; a refusal prints `Refused: CODE` and its reason):
+     Windows `CloGCP.cmd --workspace "D:\CloGCP\copy"` or `set CLOGCP_WORKSPACE=D:\CloGCP\copy`
+     then `CloGCP.cmd`; macOS `sh CloGCP.command --workspace "/path/copy"` or
+     `CLOGCP_WORKSPACE="/path/copy" sh CloGCP.command`.
 3. Optional count snapshot (CloGCP closed): `python tools/workspace_counts.py NEW_COPY`. It
    prints counts only: findings by run, status, stage, severity and rule; attack paths by
    class; collector versions. It refuses to run while the database is open.

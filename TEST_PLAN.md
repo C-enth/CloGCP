@@ -843,3 +843,14 @@ Actual results (macOS x86_64):
 
 Not tested: native Windows, desktop Excel, real B1/B2 workspace counts, real collector
 exports through the finalizer, and Windows screen timings.
+
+## Workspace open safety — 2026-10-28 (branch fix/workspace-open-safety)
+
+- `tests/test_clogcp_workspace_reopen.py`: 25 passed (browser test opt-in). The same file
+  against unmodified main: 16 failed (every defect test), 8 passed, 1 skipped.
+- Equality on 41 synthetic projects: identical run ID, 537 findings, 5,970 evaluations.
+- Full suite with browser: 35 failed, 1,620 passed, 3 skipped, 2 collection errors,
+  2,445 s. All except 5 also fail on main. Those 5 (`test_launcher_recovery` process
+  cancel, `test_operational_browser`, `test_pilot15_browser`, 2× `test_pilot_import_browser`)
+  passed when rerun alone (5 passed, 159 s); they fail only under full-suite load.
+- Not tested: native Windows, real workspace, a real crash during a write (journal simulated).
